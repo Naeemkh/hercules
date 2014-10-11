@@ -38,6 +38,7 @@
 #include <errno.h>
 #include <stdarg.h>
 
+
 #include "util.h"
 #include "commutil.h"
 #include "timers.h"
@@ -227,6 +228,7 @@ static struct Param_t {
     noyesflag_t  printK;
     noyesflag_t  printStationAccelerations;
     noyesflag_t  includeBuildings;
+    noyesflag_t  useNewQ;
     noyesflag_t  includeNonlinearAnalysis;
     noyesflag_t  useInfQk;
     int  theTimingBarriersFlag;
@@ -261,6 +263,9 @@ static struct Param_t {
     double  theDomainZ;
     noyesflag_t  drmImplement;
     drm_part_t   theDrmPart;
+    double  theQConstant;
+    double  theQAlpha;
+    double  theQBeta;
 
 } Param = {
     .FourDOutFp = NULL,
@@ -366,8 +371,8 @@ monitor_print( const char* format, ... )
 
 static void read_parameters( int argc, char** argv ){
 
-#define LOCAL_INIT_DOUBLE_MESSAGE_LENGTH 18  /* Must adjust this if adding double params */
-#define LOCAL_INIT_INT_MESSAGE_LENGTH 20     /* Must adjust this if adding int params */
+#define LOCAL_INIT_DOUBLE_MESSAGE_LENGTH 21  /* Must adjust this if adding double params */
+#define LOCAL_INIT_INT_MESSAGE_LENGTH 21     /* Must adjust this if adding int params */
 
     double  double_message[LOCAL_INIT_DOUBLE_MESSAGE_LENGTH];
     int     int_message[LOCAL_INIT_INT_MESSAGE_LENGTH];
@@ -402,6 +407,9 @@ static void read_parameters( int argc, char** argv ){
     double_message[15] = Param.theRegionLat;
     double_message[16] = Param.theRegionLong;
     double_message[17] = Param.theRegionDepth;
+    double_message[18] = Param.theQConstant;
+    double_message[19] = Param.theQAlpha;
+    double_message[20] = Param.theQBeta;
 
 
     MPI_Bcast(double_message, LOCAL_INIT_DOUBLE_MESSAGE_LENGTH, MPI_DOUBLE, 0, comm_solver);
@@ -424,6 +432,9 @@ static void read_parameters( int argc, char** argv ){
     Param.theRegionLat		= double_message[15];
     Param.theRegionLong		= double_message[16];
     Param.theRegionDepth    = double_message[17];
+    Param.theQConstant      = double_message[18];
+    Param.theQAlpha         = double_message[19];
+    Param.theQBeta          = double_message[20];
 
     /*Broadcast all integer params*/
     int_message[0]  = Param.theTotalSteps;
@@ -446,6 +457,7 @@ static void read_parameters( int argc, char** argv ){
     int_message[17] = (int)Param.drmImplement;
     int_message[18] = (int)Param.useInfQk;
     int_message[19] = Param.theStepMeshingFactor;
+    int_message[20] = (int)Param.useNewQ;
 
 
     MPI_Bcast(int_message, LOCAL_INIT_INT_MESSAGE_LENGTH, MPI_INT, 0, comm_solver);
@@ -470,6 +482,7 @@ static void read_parameters( int argc, char** argv ){
     Param.drmImplement                   = int_message[17];
     Param.useInfQk                       = int_message[18];
     Param.theStepMeshingFactor           = int_message[19];
+    Param.useNewQ                        = int_message[20];
 
     /*Broadcast all string params*/
     MPI_Bcast (Param.parameters_input_file,  256, MPI_CHAR, 0, comm_solver);
@@ -658,10 +671,13 @@ static int32_t parse_parameters( const char* numericalin )
               region_depth_shallow_m, region_length_east_m,
               region_length_north_m, region_depth_deep_m,
               startT, endT, deltaT, softening_factor,
-              threshold_damping, threshold_VpVs, freq_vel;
+              threshold_damping, threshold_VpVs, freq_vel,
+	      qconstant,qalpha,qbeta;
+	      
     char      type_of_damping[64],
 	      	  checkpoint_path[256],
               include_buildings[64],
+	      use_newq[64],
               include_nonlinear_analysis[64],
               stiffness_calculation_method[64],
               print_matrix_k[64],
@@ -674,6 +690,7 @@ static int32_t parse_parameters( const char* numericalin )
     damping_type_t   typeOfDamping     = -1;
     stiffness_type_t stiffness_method  = -1;
     noyesflag_t      have_buildings    = -1;
+    noyesflag_t      have_newq         = -1;
     noyesflag_t      includeNonlinear  = -1;
     noyesflag_t      printMatrixK      = -1;
     noyesflag_t      printStationVels  = -1;
@@ -746,6 +763,9 @@ static int32_t parse_parameters( const char* numericalin )
 
     /* numerical.in parse texts */
     if ((parsetext(fp, "simulation_wave_max_freq_hz",    'd', &freq                        ) != 0) ||
+	(parsetext(fp, "new_q_factor_constant",          'd', &qconstant                   ) != 0) ||
+	(parsetext(fp, "new_q_factor_alpha",             'd', &qalpha                      ) != 0) ||
+	(parsetext(fp, "new_q_factor_beta",              'd', &qbeta                       ) != 0) ||
         (parsetext(fp, "simulation_node_per_wavelength", 'i', &samples                     ) != 0) ||
         (parsetext(fp, "simulation_shear_velocity_min",  'd', &vscut                       ) != 0) ||
         (parsetext(fp, "simulation_start_time_sec",      'd', &startT                      ) != 0) ||
@@ -772,8 +792,9 @@ static int32_t parse_parameters( const char* numericalin )
         (parsetext(fp, "print_station_velocities",       's', &print_station_velocities    ) != 0) ||
         (parsetext(fp, "print_station_accelerations",    's', &print_station_accelerations ) != 0) ||
         (parsetext(fp, "include_buildings",              's', &include_buildings           ) != 0) ||
+	(parsetext(fp, "use_new_q_factor",               's', &use_newq                    ) != 0) ||
         (parsetext(fp, "mesh_coordinates_for_matlab",    's', &mesh_coordinates_for_matlab ) != 0) ||
-        (parsetext(fp, "implement_drm",    				 's', &implement_drm               ) != 0) ||
+        (parsetext(fp, "implement_drm",    		 's', &implement_drm               ) != 0) ||
         (parsetext(fp, "simulation_velocity_profile_freq_hz",'d', &freq_vel                ) != 0) ||
         (parsetext(fp, "use_infinite_qk",                's', &use_infinite_qk             ) != 0) )
     {
@@ -807,7 +828,7 @@ static int32_t parse_parameters( const char* numericalin )
         fprintf(stderr, "Illegal frequency value %f\n", freq);
         return -1;
     }
-
+   
     if (freq_vel < 0 || freq_vel > freq) {
         fprintf(stderr, "Illegal frequency value, velocity profile frequency can not be smaller than zero or bigger than max freq %f\n", freq_vel);
         return -1;
@@ -963,6 +984,17 @@ static int32_t parse_parameters( const char* numericalin )
                 "Unknown response for including buildings (yes or no): %s\n",
                 include_buildings );
     }
+    
+    if ( strcasecmp(use_newq, "yes") == 0 ) {
+        have_newq = YES;
+    } else if ( strcasecmp(use_newq, "no") == 0 ) {
+        have_newq = NO;
+    } else {
+        solver_abort( __FUNCTION_NAME, NULL,
+                "Unknown response for use new q factor (yes or no): %s\n",
+                use_newq );
+    }
+    
 
     if ( strcasecmp(implement_drm, "yes") == 0 ) {
         implementdrm = YES;
@@ -991,6 +1023,9 @@ static int32_t parse_parameters( const char* numericalin )
     Param.theRegionDepth    = region_depth_shallow_m ;
 
     Param.theVsCut	      = vscut;
+    Param.theQConstant        = qconstant;
+    Param.theQAlpha           = qalpha;
+    Param.theQBeta            = qbeta;
     Param.theFactor	      = freq * samples;
     Param.theFreq         = freq;
     Param.theFreq_Vel	  = freq_vel;
@@ -1030,6 +1065,7 @@ static int32_t parse_parameters( const char* numericalin )
     Param.printStationAccelerations = printStationAccs;
 
     Param.includeBuildings          = have_buildings;
+    Param.useNewQ                   = have_newq;
 
     Param.storeMeshCoordinatesForMatlab  = meshCoordinatesForMatlab;
 
@@ -1050,6 +1086,10 @@ static int32_t parse_parameters( const char* numericalin )
     monitor_print("Mesh Coordinates For Matlab:        %s\n", mesh_coordinates_for_matlab);
     monitor_print("cvmdb_input_file:                   %s\n", Param.cvmdb_input_file);
     monitor_print("Implement drm:      	               %s\n", implement_drm);
+    monitor_print("Use New Q factor:                   %s\n", use_newq);
+    monitor_print("Constant value of Q factor:         %f\n", Param.theQConstant);
+    monitor_print("Alpha value of Q factor:            %f\n", Param.theQAlpha);
+    monitor_print("Beta value of Q factor:             %f\n", Param.theQBeta);
     monitor_print("\n-------------------------------------------------\n\n");
 
     fflush(Param.theMonitorFileFp);
@@ -7248,8 +7288,11 @@ mesh_correct_properties( etree_t* cvm )
 
         	// Ricardo's Formula based on Brocher's paper (2008) on the subject. In the paper Qp = 2*Qs is given.
         	//TODO : Make sure Qp Qs relation is correct...
-
-        	Qs = 10.5 + vs * (-16. + vs * (153. + vs * (-103. + vs * (34.7 + vs * (-5.29 + vs * 0.31)))));
+                if ( Param.useNewQ == YES ){
+		Qs = Param.theQConstant + Param.theQAlpha * pow(vs,Param.theQBeta);    
+		} else {
+	        Qs = 10.5 + vs * (-16. + vs * (153. + vs * (-103. + vs * (34.7 + vs * (-5.29 + vs * 0.31)))));
+		}
         	Qp = 2. * Qs;
 
         	if (Param.useInfQk == YES) {
