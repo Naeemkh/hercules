@@ -214,9 +214,15 @@ parsedarray( FILE* fp, const char* querystring, int size, double* array )
  */
 int vsrule( edata_t *edata, double theFactor )
 {
+	float	vs_f;
 
-    if (edata->edgesize <= edata->Vs / theFactor) {
-
+	if (edata->Vs < 1212.5){
+		 vs_f = 300;
+	}else{
+		 vs_f = edata->Vs;
+	}
+    //if (edata->edgesize <= edata->Vs / theFactor) {
+    if (edata->edgesize <= vs_f / theFactor) {
         return 0;
 
     } else {
