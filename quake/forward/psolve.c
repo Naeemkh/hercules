@@ -2211,6 +2211,35 @@ toexpand(octant_t *leaf, double ticksize, const void *data) {
 		}
 	}
 
+
+
+	    double   x_m, y_m, z_m;
+	    double   esize;
+
+	    x_m = leaf->lx * ticksize;
+	    y_m = leaf->ly * ticksize;
+	    z_m = leaf->lz * ticksize;
+
+	    esize = (double) edata->edgesize;
+
+		if (x_m > 62135.30996 && x_m < 62535.30996) {
+
+			if (y_m > 110478.6253 && y_m < 110878.6253) {
+
+				if (z_m > 4800 && z_m < 5200) {
+
+					if (esize < 12.0) {
+						return 0;
+					} else {
+						return 1;
+
+					}
+
+				}
+			}
+		}
+
+
 	return vsrule( edata, Param.theFactor );
 }
 
