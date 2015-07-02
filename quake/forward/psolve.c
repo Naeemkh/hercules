@@ -8739,9 +8739,10 @@ mesh_correct_properties( etree_t* cvm )
     edata_t* edata;
     int32_t  eindex;
     double   east_m, north_m, depth_m, VpVsRatio, RhoVpRatio;
-    int	     res, iNorth, iEast, iDepth, numPoints = 3;
-    double   vs, vp, rho;
-    double   points[3];
+    int	     res, iNorth, iEast, iDepth, numPoints = 5;
+    double   rho,vs,vp;
+    double   points[5];
+    double   vss[5]={0},vpp[5]={0};
     int32_t  lnid0;
 
     // INTRODUCE BKT MODEL
@@ -8751,9 +8752,11 @@ mesh_correct_properties( etree_t* cvm )
     int QTable_Size = (int)(sizeof(Global.theQTABLE)/( 6 * sizeof(double)));
     int VModel_Size = (int)(sizeof(Global.the1DVModel)/( 6 * sizeof(double)));
 
-    points[0] = 0.005;
-    points[1] = 0.5;
-    points[2] = 0.995;
+    points[0] = 0.1;
+    points[1] = 0.3;
+    points[2] = 0.5;
+    points[3] = 0.7;
+    points[4] = 0.9;
 
 //    if (Global.myID == 0) {
 //        fprintf( stdout,"mesh_correct_properties  ... " );
@@ -8777,12 +8780,14 @@ mesh_correct_properties( etree_t* cvm )
         vs  = 0;
         rho = 0;
 
-        for (iNorth = 0; iNorth < numPoints; iNorth++) {
+        //for (iNorth = 0; iNorth < numPoints; iNorth++) {
+        for (iNorth = 0; iNorth <1; iNorth++) {
 
         	north_m = (Global.myMesh->ticksize) * (double)Global.myMesh->nodeTable[lnid0].x
         			+ edata->edgesize * points[iNorth] + Global.theXForMeshOrigin ;
 
-        	for (iEast = 0; iEast < numPoints; iEast++) {
+        	//for (iEast = 0; iEast < numPoints; iEast++) {
+        	for (iEast = 0; iEast < 1; iEast++) {
 
         		east_m = ( (Global.myMesh->ticksize)
         				* (double)Global.myMesh->nodeTable[lnid0].y
@@ -8820,16 +8825,19 @@ mesh_correct_properties( etree_t* cvm )
         				exit(1);
         			}
 
-        			vp  += g_props.Vp;
-        			vs  += g_props.Vs;
+        			vpp[iDepth]  = g_props.Vp;
+        			vss[iDepth]  = g_props.Vs;
         			rho += g_props.rho;
                 }
             }
         }
 
-        edata->Vp  =  vp / 27;
-        edata->Vs  =  vs / 27;
-        edata->rho = rho / 27;
+//        edata->Vp  =  vp / 27;
+//        edata->Vs  =  vs / 27;
+
+        edata->Vp  =  5/(1/vpp[0]+1/vpp[1]+1/vpp[2]+1/vpp[3]+1/vpp[4]);
+        edata->Vs  =  5/(1/vss[0]+1/vss[1]+1/vss[2]+1/vss[3]+1/vss[4]);
+        edata->rho = rho / 5;
 
         /* Auxiliary ratios for adjustments */
         VpVsRatio  = edata->Vp  / edata->Vs;
