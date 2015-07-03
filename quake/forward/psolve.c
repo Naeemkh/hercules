@@ -188,7 +188,7 @@ static void    compute_adjust(void *valuetable, int32_t itemsperentry,
 			      int32_t how);
 
 static int     interpolate_station_displacements(int32_t step);
-
+static void element_velocity_query ();
 
 /* ---------- Static global variables ------------------------------------ */
 
@@ -8968,6 +8968,95 @@ mesh_correct_properties( etree_t* cvm )
     }
 }
 
+static void element_velocity_query (){
+
+	octant_t*  octant;
+	vector3D_t mycoords;
+	int32_t    eindex;
+	elem_t*    elemp;
+	edata_t*   edata;
+	double     z;
+
+
+	mycoords.x[0] = 150;
+	mycoords.x[1] = 150;
+
+
+
+	FILE* fp1 = hu_fopen( "element_velocity_0.out", "w" ); // Open file for writing
+	FILE* fp2 = hu_fopen( "element_velocity_1.out", "w" ); // Open file for writing
+	FILE* fp3 = hu_fopen( "element_velocity_2.out", "w" ); // Open file for writing
+	FILE* fp4 = hu_fopen( "element_velocity_3.out", "w" ); // Open file for writing
+	for ( z = 0; z <  60000; z++) {
+
+	mycoords.x[2] = z;
+
+	if (search_point( mycoords, &octant ) != 1) {
+		 fprintf(stderr, "Coudn't find the octant.\n");
+	}
+
+	/* Go through my local elements to find which one matches the
+	* containing octant. I should have a better solution than this.
+	*/
+	for (eindex = 0; eindex < Global.myMesh->lenum; eindex++)
+	{
+	   int32_t lnid0 = Global.myMesh->elemTable[eindex].lnid[0];
+
+	   if ( (Global.myMesh->nodeTable[lnid0].x == octant->lx) &&
+	        (Global.myMesh->nodeTable[lnid0].y == octant->ly) &&
+	        (Global.myMesh->nodeTable[lnid0].z == octant->lz) ) {
+
+	       /* Sanity check */
+	       if (Global.myMesh->elemTable[eindex].level != octant->level) {
+	           fprintf(stderr, "Thread %d: source_init: internal error\n",
+	                   Global.myID);
+	           MPI_Abort(MPI_COMM_WORLD, ERROR);
+	           exit(1);
+	       }
+
+	       break;
+	     }
+	  }  /* for all the local elements */
+
+	  if (eindex == Global.myMesh->lenum) {
+	     fprintf(stderr, "Thread %d: source_init: ", Global.myID);
+	     fprintf(stderr, "No element matches the containing octant.\n");
+	     MPI_Abort(MPI_COMM_WORLD, ERROR);
+	     exit(1);
+	  }
+
+	  elemp = &Global.myMesh->elemTable[eindex];
+	  edata = (edata_t*)elemp->data;
+
+
+		 if (Global.myID == 0) {
+	  fprintf(fp1, "Z = %f, Vp = %f, Vs = %f, Rho = %f\n", z,edata->Vp,edata->Vs,edata->rho);
+		 }
+
+		 if (Global.myID == 1) {
+	  fprintf(fp2, "Z = %f, Vp = %f, Vs = %f, Rho = %f\n", z,edata->Vp,edata->Vs,edata->rho);
+		 }
+
+		 if (Global.myID == 2) {
+	  fprintf(fp3, "Z = %f, Vp = %f, Vs = %f, Rho = %f\n", z,edata->Vp,edata->Vs,edata->rho);
+		 }
+
+		 if (Global.myID == 3) {
+	  fprintf(fp4, "Z = %f, Vp = %f, Vs = %f, Rho = %f\n", z,edata->Vp,edata->Vs,edata->rho);
+		 }
+
+	  }
+
+fclose(fp1);
+fclose(fp2);
+fclose(fp3);
+fclose(fp4);
+}
+
+
+
+
+
 
 /*** Program's standard entry point. ***/
 int main( int argc, char** argv )
@@ -9060,6 +9149,14 @@ int main( int argc, char** argv )
 
     /* Generate, partition and output unstructured octree mesh */
     mesh_generate();
+
+    element_velocity_query ();
+
+
+
+
+
+
 
     if ( Param.includeBuildings == YES ){
         if ( get_fixedbase_flag() == YES ) {
