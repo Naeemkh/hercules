@@ -8987,6 +8987,13 @@ static void element_velocity_query (){
 	FILE* fp2 = hu_fopen( "element_velocity_1.out", "w" ); // Open file for writing
 	FILE* fp3 = hu_fopen( "element_velocity_2.out", "w" ); // Open file for writing
 	FILE* fp4 = hu_fopen( "element_velocity_3.out", "w" ); // Open file for writing
+        FILE* fp5 = hu_fopen( "element_velocity_4.out", "w" ); // Open file for writing
+        FILE* fp6 = hu_fopen( "element_velocity_5.out", "w" ); // Open file for writing
+        FILE* fp7 = hu_fopen( "element_velocity_6.out", "w" ); // Open file for writing
+        FILE* fp8 = hu_fopen( "element_velocity_7.out", "w" ); // Open file for writing
+        FILE* fp9 = hu_fopen( "element_velocity_8.out", "w" ); // Open file for writing
+        FILE* fp10 = hu_fopen( "element_velocity_9.out", "w" ); // Open file for writing
+
 	for ( z = 0; z <  60000; z++) {
 
 	mycoords.x[2] = z;
@@ -9045,12 +9052,49 @@ static void element_velocity_query (){
 	  fprintf(fp4, "Z = %f, Vp = %f, Vs = %f, Rho = %f\n", z,edata->Vp,edata->Vs,edata->rho);
 		 }
 
+              if (Global.myID == 4) {
+          fprintf(fp5, "Z = %f, Vp = %f, Vs = %f, Rho = %f\n", z,edata->Vp,edata->Vs,edata->rho);
+                 }
+
+              if (Global.myID == 5) {
+          fprintf(fp6, "Z = %f, Vp = %f, Vs = %f, Rho = %f\n", z,edata->Vp,edata->Vs,edata->rho);
+                 }
+
+              if (Global.myID == 6) {
+          fprintf(fp7, "Z = %f, Vp = %f, Vs = %f, Rho = %f\n", z,edata->Vp,edata->Vs,edata->rho);
+                 }
+
+              if (Global.myID == 7) {
+          fprintf(fp8, "Z = %f, Vp = %f, Vs = %f, Rho = %f\n", z,edata->Vp,edata->Vs,edata->rho);
+                 }
+
+              if (Global.myID == 8) {
+          fprintf(fp9, "Z = %f, Vp = %f, Vs = %f, Rho = %f\n", z,edata->Vp,edata->Vs,edata->rho);
+                 }
+
+              if (Global.myID == 9) {
+          fprintf(fp10, "Z = %f, Vp = %f, Vs = %f, Rho = %f\n", z,edata->Vp,edata->Vs,edata->rho);
+                 }
+
+             
+
 	  }
+
+
+
+
 
 fclose(fp1);
 fclose(fp2);
 fclose(fp3);
 fclose(fp4);
+fclose(fp5);
+fclose(fp6);
+fclose(fp7);
+fclose(fp8);
+fclose(fp9);
+fclose(fp10);
+
 }
 
 
