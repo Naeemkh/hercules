@@ -7477,18 +7477,27 @@ mesh_correct_properties( etree_t* cvm )
             factoredVs = idealVs * Param.theSofteningFactor;
 
             if ( edata->Vs > factoredVs ) {
-                edata->Vs  = factoredVs;
-                edata->Vp  = factoredVs * VpVsRatio;
-                edata->rho = edata->Vp  * RhoVpRatio;
+                 edata->Vs  = factoredVs;
+                 edata->Vp  = factoredVs * VpVsRatio;
+                 edata->rho = edata->Vp  * RhoVpRatio;
             }
         }
 
         /* Readjust Vs, Vp and Density according to VsCut */
-        if ( edata->Vs < Param.theVsCut ) {
-            edata->Vs  = Param.theVsCut;
-            edata->Vp  = Param.theVsCut  * VpVsRatio;
+        if ( edata->Vs  < Param.theVsCut ) {
+             edata->Vs  = Param.theVsCut;
+             edata->Vp  = Param.theVsCut  * VpVsRatio;
             /* edata->rho = edata->Vp * RhoVpRatio; */ /* Discuss with Jacobo */
+
         }
+
+
+        // Limiting the minimum Vp to 1500 m/s.
+        if (edata->Vp < 1500) {
+       	     edata->Vp = 1500;
+        }
+
+
 
 
         // IMPLEMENT BKT MODEL
