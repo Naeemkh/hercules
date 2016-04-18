@@ -7451,8 +7451,8 @@ mesh_correct_properties( etree_t* cvm )
 
 
         // Limiting the minimum Vp to 1500 m/s.
-        if (edata->Vp < 1500) {
-       	     edata->Vp = 1500;
+        if (edata->Vp < 600) {
+       	     edata->Vp = 600;
         }
 
 
