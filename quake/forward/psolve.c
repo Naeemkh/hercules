@@ -1,5 +1,6 @@
 /* -*- C -*- */
 
+
 /* @copyright_notice_start
  *
  * This file is part of the CMU Hercules ground motion simulator developed
