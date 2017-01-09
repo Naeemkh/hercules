@@ -90,6 +90,22 @@ int isThisElementNonLinear(mesh_t *myMesh, int32_t eindex) {
 	elem_t  *elemp;
 	edata_t *edata;
 
+	/*
+	 * If the user choose the method as equivalent linear method. In that case,
+	 * I need to define a condition to consider all elements as a nonlinear element.
+	 *
+	 * For equvalent linear model we need to keep all elements as nonlinear. Since in each simulaiton
+	 * We need to consider the max strain of each element. I will develop a funciton to give the statistics
+	 * of number of elements which considerably change the strain, however, at the current time, I don't have
+	 * a clear picture about making it efficient.
+	 *
+	 * see nonlinear_stats function for statistical report.
+	 *
+	 */
+
+
+
+
 	if ( theNonlinearFlag == 0 )
 		return NO;
 
@@ -103,7 +119,7 @@ int isThisElementNonLinear(mesh_t *myMesh, int32_t eindex) {
 }
 
 /*
- * Performs linear interpolation between to given vectors for a given value
+ * Performs linear interpolation between two given vectors for a given value
  * and gives back the corresponding pair for the requested Vs.
  *
  */
@@ -540,6 +556,7 @@ void nonlinear_elements_count(int32_t myID, mesh_t *myMesh) {
 
     for (eindex = 0; eindex < myMesh->lenum; eindex++) {
 
+
         if ( isThisElementNonLinear(myMesh, eindex) == YES ) {
             count++;
         }
@@ -833,6 +850,8 @@ void nonlinear_solver_init(int32_t myID, mesh_t *myMesh, double depth) {
 
         elementVs   = (double)edata->Vs;
         elementVp   = (double)edata->Vp;
+
+
 
         /* Calculate the lame constants and store in element */
 
@@ -3000,6 +3019,10 @@ void compute_nonlinear_state ( mesh_t     *myMesh,
 	int32_t eindex, nl_eindex;
 
 
+	// temp code (naeem)
+	printf("This is nonlinear stat \n");
+	printf("The nonlinear elemnt count is : %i\n", myNonlinElementsCount);
+
 	/* Loop over the number of local elements */
 	for (nl_eindex = 0; nl_eindex < myNonlinElementsCount; nl_eindex++) {
 
@@ -3046,7 +3069,9 @@ void compute_nonlinear_state ( mesh_t     *myMesh,
 		epstr1       = myNonlinSolver->ep1          + nl_eindex;
 		epstr2       = myNonlinSolver->ep2          + nl_eindex;
 
-		/* Capture displacements */
+		// temp code to control (naeem)
+		 printf("This is strain: %f", tstrains[1]);
+
 		if ( get_displacements(mySolver, elemp, u) == 0 ) {
 			/* If all displacements are zero go for next element */
 			continue;

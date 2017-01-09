@@ -420,7 +420,7 @@ static void read_parameters( int argc, char** argv ){
     Param.theDomainX          = double_message[7];
     Param.theDomainY          = double_message[8];
     Param.theDomainZ          = double_message[9];
-    Param.theDomainAzimuth	= double_message[10];
+    Param.theDomainAzimuth	  = double_message[10];
     Param.theThresholdDamping = double_message[11];
     Param.theThresholdVpVs    = double_message[12];
     Param.theSofteningFactor  = double_message[13];
@@ -538,6 +538,8 @@ parsetext (FILE* fp, const char* querystring, const char type, void* result)
 	    break;
 
 	name = strtok(line, delimiters);
+
+
 	if ((name != NULL) && (strcmp(name, querystring) == 0)) {
 	    found = 1;
 	    value = strtok(NULL, delimiters);
@@ -1356,12 +1358,16 @@ setrec( octant_t* leaf, double ticksize, void* data )
     int res = 0;
     edata_t* edata = (edata_t*)data;
 
+
+
     points[0] = 0.01;
     points[1] = 1;
     points[2] = 1.99;
 
     halfticks = (tick_t)1 << (PIXELLEVEL - leaf->level - 1);
     edata->edgesize = ticksize * halfticks * 2;
+
+
 
     /* Check for buildings and proceed according to the buildings setrec */
     if ( Param.includeBuildings == YES ) {
@@ -1425,9 +1431,9 @@ setrec( octant_t* leaf, double ticksize, void* data )
 		if (z_m>=125)
 			res = cvm_query( Global.theCVMEp, y_m, x_m, z_m, &g_props );
 		else {
-			double a = 250.0;
+			double a = 2.50;
 			double b = 0.0;
-			double H = 125.0;
+			double H = 1.25;
 
 			double m = 2.0 * ( a + b - b * z_m /H );
 
@@ -1949,7 +1955,7 @@ void setrec(octant_t *leaf, double ticksize, void *data)
     point_t searchpoint;
 
     edata = (edata_t *)data;
-
+    //printf("This is setrec\n");
     halfticks = (tick_t)1 << (PIXELLEVEL - leaf->level - 1);
 
     edata->edgesize = ticksize * halfticks * 2;
@@ -1985,6 +1991,8 @@ void setrec(octant_t *leaf, double ticksize, void *data)
 	edata->Vs = agghit->Vs;
 	edata->Vp = agghit->Vp;
 	edata->rho = agghit->density;
+
+
 
 	/* Adjust the Vs */
 	edata->Vs = (edata->Vs < Param.theVsCut) ? Param.theVsCut : edata->Vs;
@@ -2062,7 +2070,7 @@ mesh_generate()
 #ifdef USECVMDB
     Global.theCVMQueryStage = 0; /* Query CVM database to refine the mesh */
 #else
-     /* Use flat data record file and distibute the data in memories */
+     /* Use flat data record file and distribute the data in memories */
     if (Global.myID == 0) {
 	fprintf(stdout, "slicing CVMDB ...");
     }
@@ -3513,7 +3521,7 @@ static void solver_init()
         ep    = &Global.mySolver->eTable[eindex];
 
         /* Calculate the Lame constants */
-        mu_and_lambda(&mu, &lambda, edata, eindex);
+
 
         /* coefficients for term (deltaT_squared * Ke * Ut) */
         ep->c1 = Param.theDeltaTSquared * edata->edgesize * mu / 9;
@@ -4279,11 +4287,16 @@ solver_compute_displacement( mysolver_t* solver, mesh_t* mesh )
     Timer_Start( "Compute new displacement" );
     for (nindex = 0; nindex < mesh->nharbored; nindex++) {
 
+
+
+
         const n_t*       np         = &solver->nTable[nindex];
         fvector_t        nodalForce = solver->force[nindex];
         const fvector_t* tm1Disp    = solver->tm1 + nindex;
         fvector_t*       tm2Disp    = solver->tm2 + nindex;
         fvector_t*       tm3Disp    = solver->tm3 + nindex;
+
+
 
         /* total nodal forces */
         nodalForce.f[0] += np->mass2_minusaM[0] * tm1Disp->f[0]
@@ -4292,6 +4305,17 @@ solver_compute_displacement( mysolver_t* solver, mesh_t* mesh )
                          - np->mass_minusaM[1]  * tm2Disp->f[1];
         nodalForce.f[2] += np->mass2_minusaM[2] * tm1Disp->f[2]
                          - np->mass_minusaM[2]  * tm2Disp->f[2];
+
+
+
+    	// temp code to see the check the program(naeem)
+    	//printf("This is the nindex: %i \n", nindex);
+    	//printf("Mesh nharbored : %i \n", mesh -> nharbored);
+        // printf("This is my solver: %f \n", solver);
+
+    	if (nodalForce.f[2] > 0 ){
+    	printf("NodalForce.f[2]: %f \n", nodalForce.f[2]);
+    	}
 
         /* overwrite tm2 */
         /* mass sanity check */
@@ -4497,6 +4521,12 @@ static void solver_run()
         tmpvector     = Global.mySolver->tm2;
         Global.mySolver->tm2 = Global.mySolver->tm1;
         Global.mySolver->tm1 = tmpvector;
+
+
+
+        // temp line to check the code (naeem)
+        //printf("This is step %i \n",step);
+        //printf("This is tmpvector: %f \n",tmpvector[1]);
 
         Timer_Start( "Solver I/O" );
         solver_write_checkpoint( step, startingStep );
@@ -5675,6 +5705,12 @@ messenger_countnodes(messenger_t *first)
  */
 static void compute_K()
 {
+	// control command - delete it (Naeem)
+	// printf("computK is called. \n");
+	// printf("size of fmatrix_t = %i \n",sizeof(fmatrix_t));
+
+
+
     int i, j; /* indices of the block matrices, i for rows, j for columns */
     int k, l; /* indices of 3 x 3 matrices, k for rows, l for columns     */
 
@@ -7527,9 +7563,9 @@ mesh_correct_properties( etree_t* cvm )
             			res = cvm_query( Global.theCVMEp, east_m, north_m,
                                 depth_m, &g_props );
             		else {
-            			double a = 250.0;
+            			double a = 2.50;
             			double b = 0.0;
-            			double H = 125.0;
+            			double H = 1.250;
 
             			double m = 2.0 * ( a + b - b * depth_m /H );
 
@@ -7771,13 +7807,16 @@ int main( int argc, char** argv )
     /* Read input parameters from file */
     read_parameters(argc, argv);
 
+
     /* Create and open database */
     open_cvmdb();
 
     /* Initialize nonlinear parameters */
     if ( Param.includeNonlinearAnalysis == YES ) {
         nonlinear_init(Global.myID, Param.parameters_input_file, Param.theDeltaT, Param.theEndT);
+
     }
+
 
     if ( Param.includeBuildings == YES ){
         bldgs_init( Global.myID, Param.parameters_input_file );
