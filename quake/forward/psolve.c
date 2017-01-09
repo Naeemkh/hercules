@@ -231,6 +231,7 @@ static struct Param_t {
     noyesflag_t  includeBuildings;
     noyesflag_t  includeTopography;
     noyesflag_t  includeNonlinearAnalysis;
+    noyesflag_t  includeEqlinearAnalysis;
     noyesflag_t  useInfQk;
     noyesflag_t  includeIncidentPlaneWaves;
     int  theTimingBarriersFlag;
@@ -371,7 +372,7 @@ monitor_print( const char* format, ... )
 static void read_parameters( int argc, char** argv ){
 
 #define LOCAL_INIT_DOUBLE_MESSAGE_LENGTH 18  /* Must adjust this if adding double params */
-#define LOCAL_INIT_INT_MESSAGE_LENGTH 22     /* Must adjust this if adding int params */
+#define LOCAL_INIT_INT_MESSAGE_LENGTH 23     /* Must adjust this if adding int params */
 
     double  double_message[LOCAL_INIT_DOUBLE_MESSAGE_LENGTH];
     int     int_message[LOCAL_INIT_INT_MESSAGE_LENGTH];
@@ -452,6 +453,7 @@ static void read_parameters( int argc, char** argv ){
     int_message[19] = Param.theStepMeshingFactor;
     int_message[20] = (int)Param.includeTopography;
     int_message[21] = (int)Param.includeIncidentPlaneWaves;
+    int_message[22]  = (int)Param.includeEqlinearAnalysis;
 
     MPI_Bcast(int_message, LOCAL_INIT_INT_MESSAGE_LENGTH, MPI_INT, 0, comm_solver);
 
@@ -477,6 +479,7 @@ static void read_parameters( int argc, char** argv ){
     Param.theStepMeshingFactor           = int_message[19];
     Param.includeTopography              = int_message[20];
     Param.includeIncidentPlaneWaves      = int_message[21];
+    Param.includeEqlinearAnalysis       = int_message[22];
 
     /*Broadcast all string params*/
     MPI_Bcast (Param.parameters_input_file,  256, MPI_CHAR, 0, comm_solver);
@@ -680,12 +683,14 @@ static int32_t parse_parameters( const char* numericalin )
     		  implement_drm[64],
     		  use_infinite_qk[64],
     		  include_topography[64],
-    		  include_incident_planewaves[64];
+    		  include_incident_planewaves[64],
+			  include_eqlinear_analysis[64];
 
     damping_type_t   typeOfDamping     = -1;
     stiffness_type_t stiffness_method  = -1;
     noyesflag_t      have_buildings    = -1;
     noyesflag_t      includeNonlinear  = -1;
+    noyesflag_t      includeEqlinear   = -1;
     noyesflag_t      printMatrixK      = -1;
     noyesflag_t      printStationVels  = -1;
     noyesflag_t      printStationAccs  = -1;
@@ -779,6 +784,7 @@ static int32_t parse_parameters( const char* numericalin )
         (parsetext(fp, "mesh_etree_output_file",         's', &Param.mesh_etree_output_file) != 0) ||
         (parsetext(fp, "planes_input_file",              's', &Param.planes_input_file     ) != 0) ||
         (parsetext(fp, "include_nonlinear_analysis",     's', &include_nonlinear_analysis  ) != 0) ||
+		(parsetext(fp, "include_eqlinear_analysis",      's', &include_eqlinear_analysis   ) != 0) ||
         (parsetext(fp, "stiffness_calculation_method",   's', &stiffness_calculation_method) != 0) ||
         (parsetext(fp, "print_matrix_k",                 's', &print_matrix_k              ) != 0) ||
         (parsetext(fp, "print_station_velocities",       's', &print_station_velocities    ) != 0) ||
@@ -1083,6 +1089,7 @@ static int32_t parse_parameters( const char* numericalin )
     monitor_print("Stiffness calculation method:       %s\n", stiffness_calculation_method);
     monitor_print("Include buildings:                  %s\n", include_buildings);
     monitor_print("Include nonlinear analysis:         %s\n", include_nonlinear_analysis);
+    monitor_print("Include eqlinear analysis:          %s\n", include_eqlinear_analysis);
     monitor_print("Printing velocities on stations:    %s\n", print_station_velocities);
     monitor_print("Printing accelerations on stations: %s\n", print_station_accelerations);
     monitor_print("Mesh Coordinates For Matlab:        %s\n", mesh_coordinates_for_matlab);
