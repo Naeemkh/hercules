@@ -246,6 +246,7 @@ static struct Param_t {
     int      IO_pool_pe_count;
     int32_t  thePlanePrintRate;
     int      theNumberOfPlanes;
+    int      theNumberOfIterations;
     char     theStationsDirOut[256];
     station_t*  myStations;
     int  theCheckPointingRate;
@@ -373,7 +374,7 @@ monitor_print( const char* format, ... )
 static void read_parameters( int argc, char** argv ){
 
 #define LOCAL_INIT_DOUBLE_MESSAGE_LENGTH 18  /* Must adjust this if adding double params */
-#define LOCAL_INIT_INT_MESSAGE_LENGTH 23     /* Must adjust this if adding int params */
+#define LOCAL_INIT_INT_MESSAGE_LENGTH 24     /* Must adjust this if adding int params */
 
     double  double_message[LOCAL_INIT_DOUBLE_MESSAGE_LENGTH];
     int     int_message[LOCAL_INIT_INT_MESSAGE_LENGTH];
@@ -454,7 +455,8 @@ static void read_parameters( int argc, char** argv ){
     int_message[19] = Param.theStepMeshingFactor;
     int_message[20] = (int)Param.includeTopography;
     int_message[21] = (int)Param.includeIncidentPlaneWaves;
-    int_message[22]  = (int)Param.includeEqlinearAnalysis;
+    int_message[22] = (int)Param.includeEqlinearAnalysis;
+    int_message[23] = (int)Param.theNumberOfIterations;
 
     MPI_Bcast(int_message, LOCAL_INIT_INT_MESSAGE_LENGTH, MPI_INT, 0, comm_solver);
 
@@ -481,6 +483,7 @@ static void read_parameters( int argc, char** argv ){
     Param.includeTopography              = int_message[20];
     Param.includeIncidentPlaneWaves      = int_message[21];
     Param.includeEqlinearAnalysis       = int_message[22];
+    Param.theNumberOfIterations         = int_message[23];
 
     /*Broadcast all string params*/
     MPI_Bcast (Param.parameters_input_file,  256, MPI_CHAR, 0, comm_solver);
@@ -663,7 +666,7 @@ static int32_t parse_parameters( const char* numericalin )
     int32_t   samples, rate;
     int       number_output_planes, number_output_stations,
               damping_statistics, use_checkpoint, checkpointing_rate,
-              step_meshing;
+              step_meshing, number_iterations;
 
     double    freq, vscut,
               region_origin_latitude_deg, region_origin_longitude_deg,
@@ -773,6 +776,7 @@ static int32_t parse_parameters( const char* numericalin )
         (parsetext(fp, "use_progressive_meshing",        'i', &step_meshing                ) != 0) ||
         (parsetext(fp, "simulation_output_rate",         'i', &rate                        ) != 0) ||
         (parsetext(fp, "number_output_planes",           'i', &number_output_planes        ) != 0) ||
+		(parsetext(fp, "number_of_iterations",           'i', &number_iterations           ) != 0) ||
         (parsetext(fp, "number_output_stations",         'i', &number_output_stations      ) != 0) ||
         (parsetext(fp, "the_threshold_damping",          'd', &threshold_damping           ) != 0) ||
         (parsetext(fp, "the_threshold_Vp_over_Vs",       'd', &threshold_VpVs              ) != 0) ||
@@ -874,6 +878,14 @@ static int32_t parse_parameters( const char* numericalin )
                 number_output_planes);
         return -1;
     }
+
+    if (number_iterations < 0) {
+        fprintf(stderr, "Illegal number of iterations %d\n",
+                number_iterations);
+        return -1;
+    }
+
+
 
     if (number_output_stations < 0) {
         fprintf(stderr, "Illegal number of output stations %d\n",
@@ -1068,6 +1080,7 @@ static int32_t parse_parameters( const char* numericalin )
     Param.theRate           = rate;
 
     Param.theNumberOfPlanes	      = number_output_planes;
+    Param.theNumberOfIterations   = number_iterations;
     Param.theNumberOfStations	      = number_output_stations;
 
     Param.theSofteningFactor        = softening_factor;
@@ -8024,7 +8037,7 @@ int main( int argc, char** argv )
 //        char concat[256],concat1[256];
 //       strcat(concat,Param.theStationsDirOut);
 
-        int eq_c;
+        int eq_c  = Param.theNumberOfIterations;
         for (eq_c = 0; eq_c < 3; eq_c++){
 
 
