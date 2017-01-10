@@ -6873,10 +6873,27 @@ read_stations_info( const char* numericalin )
     }
 
     free( auxiliar );
-    if (Param.includeEqlinearAnalysis == YES){
+    if (Param.includeEqlinearAnalysis == NO){
     if ( parsetext(fp, "output_stations_directory",'s',Param.theStationsDirOut)!= 0)
 	solver_abort (fname, NULL, "Error parsing fields from %s\n",
 		      numericalin);
+    }else{
+
+        if ( parsetext(fp, "output_stations_directory",'s',Param.theStationsDirOut)!= 0)
+    	solver_abort (fname, NULL, "Error parsing fields from %s\n",
+    		      numericalin);
+
+
+        //printf("output file directory: %s \n", Param.theStationsDirOut);
+        char concat[256]="";
+        int eq_c =2;
+        strcat(concat,Param.theStationsDirOut);
+        //printf("concat is : %s \n", concat);
+        int intnumber = sprintf(concat,"%s_%i",concat,eq_c);
+        //printf("Here is the output file name (new) : %s \n", concat);
+        strcpy(Param.theStationsDirOut,concat);
+
+
     }
     return;
 }
@@ -8004,8 +8021,8 @@ int main( int argc, char** argv )
         /* start the equvalent linear method for loop */
 
     	// get the output folder name
-        char concat[256],concat1[256];
-       strcat(concat,Param.theStationsDirOut);
+//        char concat[256],concat1[256];
+//       strcat(concat,Param.theStationsDirOut);
 
         int eq_c;
         for (eq_c = 0; eq_c < 3; eq_c++){
