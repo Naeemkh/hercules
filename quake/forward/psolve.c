@@ -39,6 +39,7 @@
 #include <errno.h>
 #include <stdarg.h>
 
+
 #include "util.h"
 #include "commutil.h"
 #include "timers.h"
@@ -72,8 +73,8 @@ MPI_Comm comm_IO;
 #define PI		3.14159265358979323846264338327
 
 #define GOAHEAD_MSG     100
-#define MESH_MSG	101
-#define STAT_MSG	102
+#define MESH_MSG	    101
+#define STAT_MSG	    102
 #define OUT4D_MSG       103
 #define DN_MASS_MSG     104
 #define AN_MASS_MSG     105
@@ -921,6 +922,22 @@ static int32_t parse_parameters( const char* numericalin )
                 include_nonlinear_analysis );
     }
 
+    if ( strcasecmp(include_eqlinear_analysis, "yes") == 0 ) {
+        includeEqlinear = YES;
+    } else if ( strcasecmp(include_eqlinear_analysis, "no") == 0 ) {
+        includeEqlinear = NO;
+    } else {
+        solver_abort( __FUNCTION_NAME, NULL,
+        	"Unknown response for including"
+                "equivalent linear analysis (yes or no): %s\n",
+                include_eqlinear_analysis );
+    }
+
+
+
+
+
+
     if ( strcasecmp(stiffness_calculation_method, "effective") == 0 ) {
         stiffness_method = EFFECTIVE;
     } else if ( strcasecmp(stiffness_calculation_method, "conventional") == 0 ) {
@@ -1063,6 +1080,7 @@ static int32_t parse_parameters( const char* numericalin )
     Param.theUseCheckPoint	      = use_checkpoint;
 
     Param.includeNonlinearAnalysis  = includeNonlinear;
+    Param.includeEqlinearAnalysis  = includeEqlinear;
     Param.theStiffness              = stiffness_method;
 
     Param.printK                    = printMatrixK;
@@ -3684,6 +3702,11 @@ static void solver_init()
     /* Send mass information of anchored nodes to their owner processors*/
     schedule_senddata(Global.mySolver->an_sched, Global.mySolver->nTable,
 	      sizeof(n_t) / sizeof(solver_float), CONTRIBUTION, AN_MASS_MSG);
+
+
+
+
+
 
     return;
 }
@@ -6850,11 +6873,11 @@ read_stations_info( const char* numericalin )
     }
 
     free( auxiliar );
-
+    if (Param.includeEqlinearAnalysis == YES){
     if ( parsetext(fp, "output_stations_directory",'s',Param.theStationsDirOut)!= 0)
 	solver_abort (fname, NULL, "Error parsing fields from %s\n",
 		      numericalin);
-
+    }
     return;
 }
 
@@ -7404,7 +7427,7 @@ output_init_parameters (const char* numericalin, output_parameters_t* params)
  * \return 0 on success, -1 on error (probably aborts instead).
  */
 static int
-output_init( const char* numericalin, output_parameters_t* params )
+output_init( const char* numericalin, output_parameters_t* params)
 {
     int ret = -1;
 
@@ -7752,6 +7775,8 @@ mesh_correct_properties( etree_t* cvm )
 int main( int argc, char** argv )
 {
 
+
+
 #ifdef DEBUG
     int32_t flag;
     MPI_Status status;
@@ -7759,6 +7784,10 @@ int main( int argc, char** argv )
 
     /* MPI initialization */
     MPI_Init(&argc, &argv);
+
+
+
+
     Timer_Start("Total Wall Clock");
     MPI_Barrier(MPI_COMM_WORLD);
     MPI_Comm_rank(MPI_COMM_WORLD, &Global.myID);
@@ -7855,6 +7884,10 @@ int main( int argc, char** argv )
     // INTRODUCE BKT MODEL
     /* Init Quality Factor Table */
     constract_Quality_Factor_Table();
+
+
+
+
 
     /* Generate, partition and output unstructured octree mesh */
     mesh_generate();
@@ -7964,9 +7997,57 @@ int main( int argc, char** argv )
 
     /* Run the solver and output the results */
     MPI_Barrier(comm_solver);
-    Timer_Start("Solver");
-    solver_run();
-    Timer_Stop("Solver");
+
+
+
+    if (Param.includeEqlinearAnalysis == YES){
+        /* start the equvalent linear method for loop */
+
+    	// get the output folder name
+        char concat[256],concat1[256];
+       strcat(concat,Param.theStationsDirOut);
+
+        int eq_c;
+        for (eq_c = 0; eq_c < 3; eq_c++){
+
+
+
+
+
+//        printf("Step : %i \n",eq_c);
+//        printf("Eq analysis included.");
+
+        // change the output folder with iteration.
+            // delete this line. Naeem
+           // char combination;
+            //combination=strcat(Param.theStationsDirOut,Param.theStationsDirOut);
+            //int numchar=strlen(Param.theStationsDirOut);
+
+            //strcat(concat,eq_c);
+//            int intnumber = sprintf(concat1,"%s_%i\n",concat,eq_c);
+//            printf("Here is the output file name : %s \n", concat1);
+//            strcpy(Param.theStationsDirOut,concat1);
+
+
+        Timer_Start("Solver");
+
+
+        solver_run();
+        Timer_Stop("Solver");
+        }
+
+    }else{
+    	printf("Eq analysis does not included.");
+        Timer_Start("Solver");
+        solver_run();
+        Timer_Stop("Solver");
+
+    }
+
+
+
+
+
     MPI_Barrier(comm_solver);
 
     if ( Param.includeNonlinearAnalysis == YES ) {
@@ -8013,9 +8094,13 @@ int main( int argc, char** argv )
     if (Param.theNumberOfPlanes != 0) {
         planes_close(Global.myID, Param.IO_pool_pe_count, Param.theNumberOfPlanes);
     }
+
+
     IO_PES_REJOIN:
 
     MPI_Finalize();
+
+
 
     return 0;
 }
