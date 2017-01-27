@@ -247,6 +247,7 @@ static struct Param_t {
     int32_t  thePlanePrintRate;
     int      theNumberOfPlanes;
     int      theNumberOfIterations;
+    int      theIteration_c; //equivalent linear iteration counter
     char     theStationsDirOut[256];
     station_t*  myStations;
     int  theCheckPointingRate;
@@ -374,7 +375,7 @@ monitor_print( const char* format, ... )
 static void read_parameters( int argc, char** argv ){
 
 #define LOCAL_INIT_DOUBLE_MESSAGE_LENGTH 18  /* Must adjust this if adding double params */
-#define LOCAL_INIT_INT_MESSAGE_LENGTH 24     /* Must adjust this if adding int params */
+#define LOCAL_INIT_INT_MESSAGE_LENGTH 25     /* Must adjust this if adding int params */
 
     double  double_message[LOCAL_INIT_DOUBLE_MESSAGE_LENGTH];
     int     int_message[LOCAL_INIT_INT_MESSAGE_LENGTH];
@@ -457,6 +458,7 @@ static void read_parameters( int argc, char** argv ){
     int_message[21] = (int)Param.includeIncidentPlaneWaves;
     int_message[22] = (int)Param.includeEqlinearAnalysis;
     int_message[23] = (int)Param.theNumberOfIterations;
+    int_message[24] = (int)Param.theIteration_c;
 
     MPI_Bcast(int_message, LOCAL_INIT_INT_MESSAGE_LENGTH, MPI_INT, 0, comm_solver);
 
@@ -484,6 +486,7 @@ static void read_parameters( int argc, char** argv ){
     Param.includeIncidentPlaneWaves      = int_message[21];
     Param.includeEqlinearAnalysis       = int_message[22];
     Param.theNumberOfIterations         = int_message[23];
+    Param.theIteration_c                = int_message[24];
 
     /*Broadcast all string params*/
     MPI_Bcast (Param.parameters_input_file,  256, MPI_CHAR, 0, comm_solver);
@@ -1081,6 +1084,7 @@ static int32_t parse_parameters( const char* numericalin )
 
     Param.theNumberOfPlanes	      = number_output_planes;
     Param.theNumberOfIterations   = number_iterations;
+    Param.theIteration_c          = -1;
     Param.theNumberOfStations	      = number_output_stations;
 
     Param.theSofteningFactor        = softening_factor;
@@ -3822,15 +3826,20 @@ solver_printstat( mysolver_t* solver )
 {
     FILE* stat_out = NULL;
 
+    printf("This is the stat file name: %s", Param.theScheduleStatFilename);
+
     if (Global.myID == 0) {
+
 	stat_out = hu_fopen( Param.theScheduleStatFilename, "w" );
+
     }
 
     solver_printstat_to_stream( solver, stat_out );
 
     if (Global.myID == 0) {
 	hu_fclose( stat_out );
-	xfree_char( & Param.theScheduleStatFilename );
+	// We need the file name for the next iteration.(Naeem)
+	//xfree_char( & Param.theScheduleStatFilename );
     }
 }
 
@@ -6899,14 +6908,15 @@ read_stations_info( const char* numericalin )
 
         //printf("output file directory: %s \n", Param.theStationsDirOut);
         char concat[256]="";
-        int eq_c =2;
+        int iteration_counter = Param.theIteration_c + 1;
         strcat(concat,Param.theStationsDirOut);
         //printf("concat is : %s \n", concat);
-        int intnumber = sprintf(concat,"%s_%i",concat,eq_c);
+        int intnumber = sprintf(concat,"%s_%i",concat,iteration_counter);
         //printf("Here is the output file name (new) : %s \n", concat);
         strcpy(Param.theStationsDirOut,concat);
-
-
+        Param.theIteration_c = iteration_counter;
+        printf("\n The iteration Counter is  : %i \n", iteration_counter);
+        printf("\n The filename is : %s \n", Param.theStationsDirOut);
     }
     return;
 }
@@ -7963,12 +7973,33 @@ int main( int argc, char** argv )
     Timer_Stop("Mesh Stats Print");
     Timer_Reduce("Mesh Stats Print", MAX | MIN, comm_solver);
 
+
+    //====================
+
+    if (Param.includeEqlinearAnalysis == YES){
+        /* start the equvalent linear method for loop */
+
+    	// get the output folder name
+//        char concat[256],concat1[256];
+//       strcat(concat,Param.theStationsDirOut);
+
+        int num_iter  = Param.theNumberOfIterations;
+        for (int eq_c = 0; eq_c < num_iter; eq_c++){
+
+
+
     if ( Param.theNumberOfStations !=0 ){
+    	/*
+    	 * the program check each requested station and increment the number of stations.
+    	 * For the ELA I need to make it zero to start over.
+    	*/
+    	Param.myNumberOfStations = 0;
         output_stations_init(Param.parameters_input_file);
     }
 
     /* Initialize topography solver analysis structures */
     /* must be before solver_init() for proper treatment of the nodal mass */
+    /* Naeem: commented the topography part for now.
     if ( Param.includeTopography == YES ) {
         topo_solver_init(Global.myID, Global.myMesh);
         if ( Param.theNumberOfStations !=0 ){
@@ -7976,8 +8007,9 @@ int main( int argc, char** argv )
         }
 
     }
-
+    */
     /* Initialize the output planes */
+
     if ( Param.theNumberOfPlanes != 0 ) {
         planes_setup(Global.myID, &Param.thePlanePrintRate, Param.IO_pool_pe_count,
 		     Param.theNumberOfPlanes, Param.parameters_input_file, get_surface_shift(),
@@ -7989,13 +8021,20 @@ int main( int argc, char** argv )
 
 
     /* Initialize the solver, source and output structures */
+
     solver_init();
     Timer_Start("Solver Stats Print");
+
+
     solver_printstat( Global.mySolver );
+
+
+
     Timer_Stop("Solver Stats Print");
     Timer_Reduce("Solver Stats Print", MAX | MIN, comm_solver);
 
     /* Initialize nonlinear solver analysis structures */
+    /* Naeem: comment out the following
     if ( Param.includeNonlinearAnalysis == YES ) {
         nonlinear_solver_init(Global.myID, Global.myMesh, Param.theDomainZ);
         if ( Param.theNumberOfStations !=0 ){
@@ -8003,60 +8042,44 @@ int main( int argc, char** argv )
         }
         nonlinear_stats(Global.myID, Global.theGroupSize);
     }
+    */
     
     if ( Param.includeIncidentPlaneWaves == YES ){
     	PlaneWaves_solver_init( Global.myID, Global.myMesh, Global.mySolver );
     }
 
+    if (eq_c == 0){
     Timer_Start("Source Init");
     source_init(Param.parameters_input_file);
     Timer_Stop("Source Init");
     Timer_Reduce("Source Init", MAX | MIN, comm_solver);
-
+    }
     /* Mapping element indices for stiffness
      * This is for compatibility with nonlinear
      * \TODO a more clever way should be possible
      */
+
     stiffness_init(Global.myID, Global.myMesh);
     damp_init     (Global.myID, Global.myMesh);
 
     /* this is a little too late to check for output parameters,
      * but let's do this in the mean time
      */
+
+
+
+
+
+
+
+
     output_init (Param.parameters_input_file, &Param.theOutputParameters);
 
     /* Run the solver and output the results */
     MPI_Barrier(comm_solver);
 
 
-
-    if (Param.includeEqlinearAnalysis == YES){
-        /* start the equvalent linear method for loop */
-
-    	// get the output folder name
-//        char concat[256],concat1[256];
-//       strcat(concat,Param.theStationsDirOut);
-
-        int eq_c  = Param.theNumberOfIterations;
-        for (eq_c = 0; eq_c < 3; eq_c++){
-
-
-
-
-
-//        printf("Step : %i \n",eq_c);
-//        printf("Eq analysis included.");
-
-        // change the output folder with iteration.
-            // delete this line. Naeem
-           // char combination;
-            //combination=strcat(Param.theStationsDirOut,Param.theStationsDirOut);
-            //int numchar=strlen(Param.theStationsDirOut);
-
-            //strcat(concat,eq_c);
-//            int intnumber = sprintf(concat1,"%s_%i\n",concat,eq_c);
-//            printf("Here is the output file name : %s \n", concat1);
-//            strcpy(Param.theStationsDirOut,concat1);
+    //===========================
 
 
         Timer_Start("Solver");
@@ -8068,11 +8091,86 @@ int main( int argc, char** argv )
 
     }else{
     	printf("Eq analysis does not included.");
-        Timer_Start("Solver");
+
+    	   if ( Param.theNumberOfStations !=0 ){
+    	        output_stations_init(Param.parameters_input_file);
+    	    }
+
+    	    /* Initialize topography solver analysis structures */
+    	    /* must be before solver_init() for proper treatment of the nodal mass */
+    	    /* Naeem: commented the topography part for now.
+    	    if ( Param.includeTopography == YES ) {
+    	        topo_solver_init(Global.myID, Global.myMesh);
+    	        if ( Param.theNumberOfStations !=0 ){
+    	            topography_stations_init(Global.myMesh, Param.myStations, Param.myNumberOfStations);
+    	        }
+
+    	    }
+    	    */
+    	    /* Initialize the output planes */
+
+    	    if ( Param.theNumberOfPlanes != 0 ) {
+    	        planes_setup(Global.myID, &Param.thePlanePrintRate, Param.IO_pool_pe_count,
+    			     Param.theNumberOfPlanes, Param.parameters_input_file, get_surface_shift(),
+    			     Param.theSurfaceCornersLong, Param.theSurfaceCornersLat,
+    			     Param.theDomainX, Param.theDomainY, Param.theDomainZ,
+    			     Param.planes_input_file);
+    	    }
+
+
+
+    	    /* Initialize the solver, source and output structures */
+
+    	    solver_init();
+    	    Timer_Start("Solver Stats Print");
+    	    solver_printstat( Global.mySolver );
+    	    Timer_Stop("Solver Stats Print");
+    	    Timer_Reduce("Solver Stats Print", MAX | MIN, comm_solver);
+
+    	    /* Initialize nonlinear solver analysis structures */
+    	    /* Naeem: comment out the following
+    	    if ( Param.includeNonlinearAnalysis == YES ) {
+    	        nonlinear_solver_init(Global.myID, Global.myMesh, Param.theDomainZ);
+    	        if ( Param.theNumberOfStations !=0 ){
+    	            nonlinear_stations_init(Global.myMesh, Param.myStations, Param.myNumberOfStations);
+    	        }
+    	        nonlinear_stats(Global.myID, Global.theGroupSize);
+    	    }
+    	    */
+
+    	    if ( Param.includeIncidentPlaneWaves == YES ){
+    	    	PlaneWaves_solver_init( Global.myID, Global.myMesh, Global.mySolver );
+    	    }
+
+
+    	    Timer_Start("Source Init");
+    	    source_init(Param.parameters_input_file);
+    	    Timer_Stop("Source Init");
+    	    Timer_Reduce("Source Init", MAX | MIN, comm_solver);
+
+    	    /* Mapping element indices for stiffness
+    	     * This is for compatibility with nonlinear
+    	     * \TODO a more clever way should be possible
+    	     */
+
+    	    stiffness_init(Global.myID, Global.myMesh);
+    	    damp_init     (Global.myID, Global.myMesh);
+
+    	    /* this is a little too late to check for output parameters,
+    	     * but let's do this in the mean time
+    	     */
+    	    output_init (Param.parameters_input_file, &Param.theOutputParameters);
+
+    	    /* Run the solver and output the results */
+    	    MPI_Barrier(comm_solver);
+
+
+    	Timer_Start("Solver");
         solver_run();
         Timer_Stop("Solver");
 
     }
+
 
 
 

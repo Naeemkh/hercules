@@ -306,6 +306,7 @@ hu_fopen( const char* filename, const char* mode )
 
     fp = fopen( filename, mode );
 
+
     if (NULL == fp) {
 	hu_solver_abort( __FUNCTION_NAME, filename,
 			 "fopen( filename = \'%s\', mode = %s ) failed!",
@@ -767,6 +768,7 @@ hu_config_read(
 	ret = -1;
 	if ((name != NULL) && (strcmp( name, key ) == 0)) {
 	    char* value = strtok_r( NULL, delimiters, &strtok_state );
+
 
 	    if (value != NULL && parse_val( value, val ) == 0 ) {
 		ret = 1;
