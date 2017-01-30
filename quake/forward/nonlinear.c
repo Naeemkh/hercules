@@ -46,6 +46,7 @@ static int superflag = 0;
 /* -------------------------------------------------------------------------- */
 
 static nlsolver_t           *myNonlinSolver;
+static elsolver_t           *myEqlinSolver;
 static int32_t               thePropertiesCount;
 static materialmodel_t       theMaterialModel;
 static plasticitytype_t      thePlasticityModel;
@@ -1158,99 +1159,100 @@ void eqlinear_solver_init(int32_t myID, mesh_t *myMesh, double depth) {
       eqlinear_elements_count(myID, myMesh);
       eqlinear_elements_mapping(myID, myMesh);
 
-      //printf("my equivalent linear elments count is : %i \n", myEqlinElementsCount);
 
 //
 //    if ( theGeostaticLoadingT > 0 ) {
 //        bottom_elements_count(myID, myMesh, depth);
 //        bottom_elements_mapping(myID, myMesh, depth);
 //    }
-//
-//    /* Memory allocation for mother structure */
-//
-//    myNonlinSolver = (nlsolver_t *)malloc(sizeof(nlsolver_t));
-//
-//    if (myNonlinSolver == NULL) {
-//        fprintf(stderr, "Thread %d: nonlinear_init: out of memory\n", myID);
-//        MPI_Abort(MPI_COMM_WORLD, ERROR);
-//        exit(1);
-//    }
-//
-//    /* Memory allocation for internal structures */
-//
-//    myNonlinSolver->constants =
-//        (nlconstants_t *)calloc(myNonlinElementsCount, sizeof(nlconstants_t));
-//    myNonlinSolver->stresses =
-//        (qptensors_t *)calloc(myNonlinElementsCount, sizeof(qptensors_t));
-//    myNonlinSolver->strains =
-//        (qptensors_t *)calloc(myNonlinElementsCount, sizeof(qptensors_t));
-//    myNonlinSolver->pstrains1 =
-//        (qptensors_t *)calloc(myNonlinElementsCount, sizeof(qptensors_t));
-//    myNonlinSolver->pstrains2 =
-//        (qptensors_t *)calloc(myNonlinElementsCount, sizeof(qptensors_t));
-//    myNonlinSolver->alphastress1 =
-//        (qptensors_t *)calloc(myNonlinElementsCount, sizeof(qptensors_t));
-//    myNonlinSolver->alphastress2 =
-//        (qptensors_t *)calloc(myNonlinElementsCount, sizeof(qptensors_t));
-//    myNonlinSolver->ep1 =
-//        (qpvectors_t *)calloc(myNonlinElementsCount, sizeof(qpvectors_t));
-//    myNonlinSolver->ep2 =
-//        (qpvectors_t *)calloc(myNonlinElementsCount, sizeof(qpvectors_t));
-//
-//    if ( (myNonlinSolver->constants           == NULL) ||
-//         (myNonlinSolver->stresses            == NULL) ||
-//         (myNonlinSolver->strains             == NULL) ||
-//         (myNonlinSolver->ep1                 == NULL) ||
-//         (myNonlinSolver->ep2                 == NULL) ||
-//         (myNonlinSolver->alphastress1        == NULL) ||
-//         (myNonlinSolver->alphastress2        == NULL) ||
-//         (myNonlinSolver->pstrains1           == NULL) ||
-//         (myNonlinSolver->pstrains2           == NULL) ) {
-//
-//        fprintf(stderr, "Thread %d: nonlinear_init: out of memory\n", myID);
-//        MPI_Abort(MPI_COMM_WORLD, ERROR);
-//        exit(1);
-//    }
-//
-//    /* Initialization of element constants
-//     * Tensors have been initialized to 0 by calloc
-//     */
-//
-//    for (nl_eindex = 0; nl_eindex < myNonlinElementsCount; nl_eindex++) {
-//
-//        elem_t     *elemp;
-//        edata_t    *edata;
-//        nlconstants_t *ecp;
-//        double      mu, lambda;
-//        double      elementVs, elementVp;
-//
-//        eindex = myNonlinElementsMapping[nl_eindex];
-//
-//        elemp = &myMesh->elemTable[eindex];
-//        edata = (edata_t *)elemp->data;
-//        ecp   = myNonlinSolver->constants + nl_eindex;
-//
-//        int32_t lnid0 = elemp->lnid[0];
-//        double  zo    = myMesh->ticksize * myMesh->nodeTable[lnid0].z;
-//
-//        /* get element Vs */
-//
-//        elementVs   = (double)edata->Vs;
-//        elementVp   = (double)edata->Vp;
-//
-//
-//
-//        /* Calculate the lame constants and store in element */
-//
-//        mu_and_lambda(&mu, &lambda, edata, eindex);
-//        ecp->lambda = lambda;
-//        ecp->mu     = mu;
-//
-//        /* Calculate the vertical stress as a homogeneous half-space */
+
+    /* Memory allocation for mother structure */
+
+
+
+      myEqlinSolver = (elsolver_t *)malloc(sizeof(elsolver_t));
+
+    if (myEqlinSolver == NULL) {
+        fprintf(stderr, "Thread %d: nonlinear_init: out of memory\n", myID);
+        MPI_Abort(MPI_COMM_WORLD, ERROR);
+        exit(1);
+    }
+
+    /* Memory allocation for internal structures */
+
+    myEqlinSolver->constants =
+        (nlconstants_t *)calloc(myEqlinElementsCount, sizeof(nlconstants_t));
+    myEqlinSolver->stresses =
+        (qptensors_t *)calloc(myEqlinElementsCount, sizeof(qptensors_t));
+    myEqlinSolver->strains =
+        (qptensors_t *)calloc(myEqlinElementsCount, sizeof(qptensors_t));
+    myEqlinSolver->pstrains1 =
+        (qptensors_t *)calloc(myEqlinElementsCount, sizeof(qptensors_t));
+    myEqlinSolver->pstrains2 =
+        (qptensors_t *)calloc(myEqlinElementsCount, sizeof(qptensors_t));
+    myEqlinSolver->alphastress1 =
+        (qptensors_t *)calloc(myEqlinElementsCount, sizeof(qptensors_t));
+    myEqlinSolver->alphastress2 =
+        (qptensors_t *)calloc(myEqlinElementsCount, sizeof(qptensors_t));
+    myEqlinSolver->ep1 =
+        (qpvectors_t *)calloc(myEqlinElementsCount, sizeof(qpvectors_t));
+    myEqlinSolver->ep2 =
+        (qpvectors_t *)calloc(myEqlinElementsCount, sizeof(qpvectors_t));
+
+    if ( (myEqlinSolver->constants           == NULL) ||
+         (myEqlinSolver->stresses            == NULL) ||
+         (myEqlinSolver->strains             == NULL) ||
+         (myEqlinSolver->ep1                 == NULL) ||
+         (myEqlinSolver->ep2                 == NULL) ||
+         (myEqlinSolver->alphastress1        == NULL) ||
+         (myEqlinSolver->alphastress2        == NULL) ||
+         (myEqlinSolver->pstrains1           == NULL) ||
+         (myEqlinSolver->pstrains2           == NULL) ) {
+
+        fprintf(stderr, "Thread %d: eqlinear_init: out of memory\n", myID);
+        MPI_Abort(MPI_COMM_WORLD, ERROR);
+        exit(1);
+    }
+
+    /* Initialization of element constants
+     * Tensors have been initialized to 0 by calloc
+     */
+
+    for (el_eindex = 0; el_eindex < myEqlinElementsCount; el_eindex++) {
+
+        elem_t     *elemp;
+        edata_t    *edata;
+        nlconstants_t *ecp;
+        double      mu, lambda;
+        double      elementVs, elementVp;
+
+        eindex = myEqlinElementsMapping[el_eindex];
+
+        elemp = &myMesh->elemTable[eindex];
+        edata = (edata_t *)elemp->data;
+        ecp   = myEqlinSolver->constants + el_eindex;
+
+        int32_t lnid0 = elemp->lnid[0];
+        double  zo    = myMesh->ticksize * myMesh->nodeTable[lnid0].z;
+
+        /* get element Vs */
+
+        elementVs   = (double)edata->Vs;
+        elementVp   = (double)edata->Vp;
+
+
+
+        /* Calculate the lame constants and store in element */
+
+        mu_and_lambda(&mu, &lambda, edata, eindex);
+        ecp->lambda = lambda;
+        ecp->mu     = mu;
+
+        /* Calculate the vertical stress as a homogeneous half-space */
 //        if ( theApproxGeoState == YES )
 //        	ecp->sigmaZ_st = edata->rho * 9.80 * ( zo + edata->edgesize / 2.0 );
-//
-//        /* Calculate the yield function constants */
+
+        /* Calculate the yield function constants */
 //        switch (theMaterialModel) {
 //
 //            case LINEAR:
@@ -1314,8 +1316,8 @@ void eqlinear_solver_init(int32_t myID, mesh_t *myMesh, double depth) {
 //                exit(1);
 //                break;
 //        }
-//
-//
+
+
 //        ecp->strainrate  =
 //        		interpolate_property_value(elementVs, theStrainRates  );
 //        ecp->sensitivity =
@@ -1332,7 +1334,7 @@ void eqlinear_solver_init(int32_t myID, mesh_t *myMesh, double depth) {
 ////        }
 //
 //
-//    } /* for all elements */
+   } /* for all elements */
 
 }
 

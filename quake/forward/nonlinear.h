@@ -133,6 +133,20 @@ typedef struct nlsolver_t {
 
 } nlsolver_t;
 
+
+typedef struct elsolver_t {
+
+    nlconstants_t *constants;
+    qptensors_t   *stresses;
+    qptensors_t   *strains;
+    qptensors_t   *pstrains1;
+    qptensors_t   *pstrains2;
+    qptensors_t   *alphastress1;
+    qptensors_t   *alphastress2;
+    qpvectors_t   *ep1;         /* effective plastic strains */
+    qpvectors_t   *ep2;
+
+} elsolver_t;
 /*typedef struct nlstation_t {
 
     tensor_t stress;
