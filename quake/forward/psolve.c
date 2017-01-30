@@ -4360,14 +4360,6 @@ solver_compute_displacement( mysolver_t* solver, mesh_t* mesh )
 
 
 
-    	// temp code to see the check the program(naeem)
-    	//printf("This is the nindex: %i \n", nindex);
-    	//printf("Mesh nharbored : %i \n", mesh -> nharbored);
-        // printf("This is my solver: %f \n", solver);
-
-    	if (nodalForce.f[2] > 0 ){
-    	printf("NodalForce.f[2]: %f \n", nodalForce.f[2]);
-    	}
 
         /* overwrite tm2 */
         /* mass sanity check */
