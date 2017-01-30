@@ -174,6 +174,7 @@ static int32_t messenger_countnodes(messenger_t *first);
 
 static void    compute_K(void);
 static void constract_Quality_Factor_Table(void);
+static void constract_D_Table(void);
 
 #ifdef BOUNDARY
 static char    compute_setflag(tick_t ldb[3], tick_t ruf[3],
@@ -305,6 +306,7 @@ static struct Global_t {
     fmatrix_t  theK2[8][8];
     fmatrix_t  theK3[8][8];
     double  theQTABLE[26][6];
+    double  theGDTABLE[11][3];
     double  theABase;
     double  theBBase;
     double  theCriticalT;
@@ -5925,6 +5927,38 @@ for(i = 0; i < 18; i++)
 return;
 }
 
+static void constract_GD_Table()
+{
+	// Construct Shear modulus degredation and damping table
+
+		int i,j;
+		double local_GDtable[11][3] = {{ 0.0001,	1.000, 0.24},
+				                       { 0.0003,	1.000, 0.42},
+				                       { 0.0010,	1.000, 0.80},
+				                       { 0.0030,	0.981, 1.40},
+				                       { 0.0100,	0.941, 2.80},
+			                           { 0.0300,	0.847, 5.10},
+				                       { 0.1000,	0.656, 9.80},
+				                       { 0.3000,	0.438, 15.50},
+				                       { 1.0000,	0.238, 21.00},
+				                       { 3.0000,	0.144, 25.00},
+				                       { 10.0000,	0.110, 28.00},
+		};
+
+		for(i = 0; i < 11; i++)
+		{
+			for(j = 0; j < 2; j++)
+			{
+				Global.theGDTABLE[i][j] = local_GDtable[i][j];
+		//		printf("%f ",theQTABLE[i][j]);
+			}
+		//	printf("\n");
+		}
+return;
+}
+
+
+
 
 /**
  * compute_setflag:
@@ -7887,6 +7921,7 @@ int main( int argc, char** argv )
 
     /* Initialize eqlinear parameters */
     if ( Param.includeEqlinearAnalysis == YES ) {
+    	constract_Quality_Factor_Table();
         eqlinear_init(Global.myID, Param.parameters_input_file, Param.theDeltaT, Param.theEndT);
 
     }
