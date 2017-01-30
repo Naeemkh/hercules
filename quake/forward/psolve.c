@@ -3563,7 +3563,7 @@ static void solver_init()
         ep    = &Global.mySolver->eTable[eindex];
 
         /* Calculate the Lame constants */
-
+        mu_and_lambda(&mu, &lambda, edata, eindex);
 
         /* coefficients for term (deltaT_squared * Ke * Ut) */
         ep->c1 = Param.theDeltaTSquared * edata->edgesize * mu / 9;
