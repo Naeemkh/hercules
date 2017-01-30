@@ -159,6 +159,7 @@ double get_geostatic_total_time();
 
 
 int isThisElementNonLinear(mesh_t *myMesh, int32_t eindex);
+int isThisElementEqLinear(mesh_t *myMesh, int32_t eindex);
 
 double interpolate_property_value(double vsRequest, double *propVector);
 
@@ -195,7 +196,9 @@ int32_t nonlinear_initparameters ( const char *parametersin,
                                    double      theEndT );
 
 void nonlinear_elements_count(int32_t myID, mesh_t *myMesh);
+void eqlinear_elements_count(int32_t myID, mesh_t *myMesh);
 void nonlinear_elements_mapping(int32_t myID, mesh_t *myMesh);
+void eqlinear_elements_mapping(int32_t myID, mesh_t *myMesh);
 void bottom_elements_count(int32_t myID, mesh_t *myMesh, double depth);
 void bottom_elements_mapping(int32_t myID, mesh_t *myMesh, double depth);
 void nonlinear_print_stats(int32_t *nonlinElementsCount,

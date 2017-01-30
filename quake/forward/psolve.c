@@ -7921,7 +7921,7 @@ int main( int argc, char** argv )
 
     /* Initialize eqlinear parameters */
     if ( Param.includeEqlinearAnalysis == YES ) {
-    	constract_Quality_Factor_Table();
+    	constract_GD_Table();
         eqlinear_init(Global.myID, Param.parameters_input_file, Param.theDeltaT, Param.theEndT);
 
     }
@@ -8085,6 +8085,9 @@ int main( int argc, char** argv )
     // eqlinear_stats
 
     eqlinear_solver_init(Global.myID, Global.myMesh, Param.theDomainZ);
+
+
+
     if ( Param.theNumberOfStations !=0 ){
         eqlinear_stations_init(Global.myMesh, Param.myStations, Param.myNumberOfStations);
     }

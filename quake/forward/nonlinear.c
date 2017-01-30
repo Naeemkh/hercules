@@ -67,7 +67,9 @@ static int32_t              *myStationsElementIndices;
 static int32_t              *myNonlinStationsMapping;
 static int32_t               myNumberOfNonlinStations;
 static int32_t               myNonlinElementsCount = 0;
+static int32_t               myEqlinElementsCount = 0;
 static int32_t              *myNonlinElementsMapping;
+static int32_t              *myEqlinElementsMapping;
 static int32_t               myBottomElementsCount = 0;
 static bottomelement_t      *myBottomElements;
 static int32_t               theNonlinearFlag = 0;
@@ -117,6 +119,43 @@ int isThisElementNonLinear(mesh_t *myMesh, int32_t eindex) {
 
 	return NO;
 }
+
+
+int isThisElementEqLinear(mesh_t *myMesh, int32_t eindex) {
+
+	elem_t  *elemp;
+	edata_t *edata;
+
+	/*
+	 * If the user choose the method as equivalent linear method. In that case,
+	 * I need to define a condition to consider all elements as a nonlinear element.
+	 *
+	 * For equvalent linear model we need to keep all elements as nonlinear. Since in each simulaiton
+	 * We need to consider the max strain of each element. I will develop a funciton to give the statistics
+	 * of number of elements which considerably change the strain, however, at the current time, I don't have
+	 * a clear picture about making it efficient.
+	 *
+	 * see nonlinear_stats function for statistical report.
+	 *
+	 */
+
+
+
+//
+//	if ( theNonlinearFlag == 0 )
+//		return NO;
+//
+//	elemp = &myMesh->elemTable[eindex];
+//	edata = (edata_t *)elemp->data;
+//
+//	if ( ( edata->Vs <=  theVsLimits[thePropertiesCount-1] ) && ( edata->Vs >=  theVsLimits[0] ) )
+//		return YES;
+//
+//	return NO;
+
+	return YES;
+}
+
 
 /*
  * Performs linear interpolation between two given vectors for a given value
@@ -649,6 +688,34 @@ void nonlinear_elements_count(int32_t myID, mesh_t *myMesh) {
 }
 
 /*
+ * Counts the number of nonlinear elements in my local mesh
+ */
+void eqlinear_elements_count(int32_t myID, mesh_t *myMesh) {
+
+    int32_t eindex;
+    int32_t count = 0;
+
+    for (eindex = 0; eindex < myMesh->lenum; eindex++) {
+
+
+        if ( isThisElementEqLinear(myMesh, eindex) == YES ) {
+            count++;
+        }
+    }
+
+    if ( count > myMesh-> lenum ) {
+        fprintf(stderr,"Thread %d: nl_elements_count: "
+                "more elements than expected\n", myID);
+        MPI_Abort(MPI_COMM_WORLD, ERROR);
+        exit(1);
+    }
+
+    myEqlinElementsCount = count;
+
+    return;
+}
+
+/*
  * Re-counts and stores the nonlinear element indices to a static local array
  * that will serve as mapping tool to the local mesh elements table.
  */
@@ -676,6 +743,34 @@ void nonlinear_elements_mapping(int32_t myID, mesh_t *myMesh) {
 
     return;
 }
+
+
+
+void eqlinear_elements_mapping(int32_t myID, mesh_t *myMesh) {
+
+    int32_t eindex;
+    int32_t count = 0;
+
+    XMALLOC_VAR_N(myEqlinElementsMapping, int32_t, myEqlinElementsCount);
+
+    for (eindex = 0; eindex < myMesh->lenum; eindex++) {
+
+        if ( isThisElementEqLinear(myMesh, eindex) == YES ) {
+            myEqlinElementsMapping[count] = eindex;
+            count++;
+        }
+    }
+
+    if ( count != myEqlinElementsCount ) {
+        fprintf(stderr,"Thread %d: el_elements_mapping: "
+                "more elements than the count\n", myID);
+        MPI_Abort(MPI_COMM_WORLD, ERROR);
+        exit(1);
+    }
+
+    return;
+}
+
 
 noyesflag_t isThisElementsAtTheBottom( mesh_t  *myMesh,
                                        int32_t  eindex,
@@ -1058,10 +1153,13 @@ void nonlinear_solver_init(int32_t myID, mesh_t *myMesh, double depth) {
 
 void eqlinear_solver_init(int32_t myID, mesh_t *myMesh, double depth) {
 
-//    int32_t eindex, nl_eindex;
+      int32_t eindex, el_eindex;   // el_eindex = equivalent linear element index
 //
-//    nonlinear_elements_count(myID, myMesh);
-//    nonlinear_elements_mapping(myID, myMesh);
+      eqlinear_elements_count(myID, myMesh);
+      eqlinear_elements_mapping(myID, myMesh);
+
+      //printf("my equivalent linear elments count is : %i \n", myEqlinElementsCount);
+
 //
 //    if ( theGeostaticLoadingT > 0 ) {
 //        bottom_elements_count(myID, myMesh, depth);
