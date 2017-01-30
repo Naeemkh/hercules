@@ -386,6 +386,78 @@ void nonlinear_init( int32_t     myID,
     MPI_Bcast(theGamma0,           thePropertiesCount, MPI_DOUBLE, 0, comm_solver);
 }
 
+
+
+void eqlinear_init( int32_t     myID,
+                     const char *parametersin,
+                     double      theDeltaT,
+                     double      theEndT )
+{
+//    double  double_message[2];
+//    int     int_message[7];
+//
+//    /* Capturing data from file --- only done by PE0 */
+//    if (myID == 0) {
+//        if (nonlinear_initparameters(parametersin, theDeltaT, theEndT) != 0) {
+//            fprintf(stderr,"Thread 0: nonlinear_local_init: "
+//                    "nonlinear_initparameters error\n");
+//            MPI_Abort(MPI_COMM_WORLD, ERROR);
+//            exit(1);
+//        }
+//    }
+//
+//    /* Broadcasting data */
+//    double_message[0] = theGeostaticLoadingT;
+//    double_message[1] = theGeostaticCushionT;
+//
+//    int_message[0] = (int)theMaterialModel;
+//    int_message[1] = thePropertiesCount;
+//    int_message[2] = theGeostaticFinalStep;
+//    int_message[3] = (int)thePlasticityModel;
+//    int_message[4] = (int)theApproxGeoState;
+//    int_message[5] = (int)theNonlinearFlag;
+//    int_message[6] = (int)theTensionCutoff;
+//
+//    MPI_Bcast(double_message, 2, MPI_DOUBLE, 0, comm_solver);
+//    MPI_Bcast(int_message,    7, MPI_INT,    0, comm_solver);
+//
+//    theGeostaticLoadingT  = double_message[0];
+//    theGeostaticCushionT  = double_message[1];
+//
+//    theMaterialModel      = int_message[0];
+//    thePropertiesCount    = int_message[1];
+//    theGeostaticFinalStep = int_message[2];
+//    thePlasticityModel    = int_message[3];
+//    theApproxGeoState     = int_message[4];
+//    theNonlinearFlag      = int_message[5];
+//    theTensionCutoff      = int_message[6];
+//
+//    /* allocate table of properties for all other PEs */
+//
+//    if (myID != 0) {
+//        theVsLimits         = (double*)malloc(sizeof(double) * thePropertiesCount);
+//        theAlphaCohes       = (double*)malloc(sizeof(double) * thePropertiesCount);
+//        theKayPhis          = (double*)malloc(sizeof(double) * thePropertiesCount);
+//        theStrainRates      = (double*)malloc(sizeof(double) * thePropertiesCount);
+//        theSensitivities    = (double*)malloc(sizeof(double) * thePropertiesCount);
+//        theHardeningModulus = (double*)malloc(sizeof(double) * thePropertiesCount);
+//        theBetaDilatancy    = (double*)malloc(sizeof(double) * thePropertiesCount);
+//        theGamma0           = (double*)malloc(sizeof(double) * thePropertiesCount);
+//    }
+//
+//    /* Broadcast table of properties */
+//    MPI_Bcast(theVsLimits,         thePropertiesCount, MPI_DOUBLE, 0, comm_solver);
+//    MPI_Bcast(theAlphaCohes,       thePropertiesCount, MPI_DOUBLE, 0, comm_solver);
+//    MPI_Bcast(theKayPhis,          thePropertiesCount, MPI_DOUBLE, 0, comm_solver);
+//    MPI_Bcast(theStrainRates,      thePropertiesCount, MPI_DOUBLE, 0, comm_solver);
+//    MPI_Bcast(theSensitivities,    thePropertiesCount, MPI_DOUBLE, 0, comm_solver);
+//    MPI_Bcast(theHardeningModulus, thePropertiesCount, MPI_DOUBLE, 0, comm_solver);
+//    MPI_Bcast(theBetaDilatancy,    thePropertiesCount, MPI_DOUBLE, 0, comm_solver);
+//    MPI_Bcast(theGamma0,           thePropertiesCount, MPI_DOUBLE, 0, comm_solver);
+}
+
+
+
 /*
  * Reads from parameters.in and stores in PE0 globals.
  */
@@ -763,6 +835,37 @@ void nonlinear_stats(int32_t myID, int32_t theGroupSize) {
     return;
 }
 
+
+void eqlinear_stats(int32_t myID, int32_t theGroupSize) {
+
+//    int32_t *nonlinElementsCount = NULL;
+//    int32_t *nonlinStationsCount = NULL;
+//    int32_t *bottomElementsCount = NULL;
+//
+//    if ( myID == 0 ) {
+//        XMALLOC_VAR_N( nonlinElementsCount, int32_t, theGroupSize);
+//        XMALLOC_VAR_N( nonlinStationsCount, int32_t, theGroupSize);
+//        XMALLOC_VAR_N( bottomElementsCount, int32_t, theGroupSize);
+//    }
+//
+//    MPI_Gather( &myNonlinElementsCount,    1, MPI_INT,
+//                nonlinElementsCount,       1, MPI_INT, 0, comm_solver );
+//    MPI_Gather( &myNumberOfNonlinStations, 1, MPI_INT,
+//                nonlinStationsCount,       1, MPI_INT, 0, comm_solver );
+//    MPI_Gather( &myBottomElementsCount,    1, MPI_INT,
+//                bottomElementsCount,       1, MPI_INT, 0, comm_solver );
+//
+//    if ( myID == 0 ) {
+//
+//        nonlinear_print_stats( nonlinElementsCount, nonlinStationsCount,
+//                               bottomElementsCount, theGroupSize);
+//
+//        xfree_int32_t( &nonlinElementsCount );
+//    }
+
+    return;
+}
+
 /*
  * nonlinear_solver_init: Initialize all the structures needed for nonlinear
  *                        analysis and the material/element constants.
@@ -946,6 +1049,190 @@ void nonlinear_solver_init(int32_t myID, mesh_t *myMesh, double depth) {
 
 
     } /* for all elements */
+
+}
+
+
+
+void eqlinear_solver_init(int32_t myID, mesh_t *myMesh, double depth) {
+
+//    int32_t eindex, nl_eindex;
+//
+//    nonlinear_elements_count(myID, myMesh);
+//    nonlinear_elements_mapping(myID, myMesh);
+//
+//    if ( theGeostaticLoadingT > 0 ) {
+//        bottom_elements_count(myID, myMesh, depth);
+//        bottom_elements_mapping(myID, myMesh, depth);
+//    }
+//
+//    /* Memory allocation for mother structure */
+//
+//    myNonlinSolver = (nlsolver_t *)malloc(sizeof(nlsolver_t));
+//
+//    if (myNonlinSolver == NULL) {
+//        fprintf(stderr, "Thread %d: nonlinear_init: out of memory\n", myID);
+//        MPI_Abort(MPI_COMM_WORLD, ERROR);
+//        exit(1);
+//    }
+//
+//    /* Memory allocation for internal structures */
+//
+//    myNonlinSolver->constants =
+//        (nlconstants_t *)calloc(myNonlinElementsCount, sizeof(nlconstants_t));
+//    myNonlinSolver->stresses =
+//        (qptensors_t *)calloc(myNonlinElementsCount, sizeof(qptensors_t));
+//    myNonlinSolver->strains =
+//        (qptensors_t *)calloc(myNonlinElementsCount, sizeof(qptensors_t));
+//    myNonlinSolver->pstrains1 =
+//        (qptensors_t *)calloc(myNonlinElementsCount, sizeof(qptensors_t));
+//    myNonlinSolver->pstrains2 =
+//        (qptensors_t *)calloc(myNonlinElementsCount, sizeof(qptensors_t));
+//    myNonlinSolver->alphastress1 =
+//        (qptensors_t *)calloc(myNonlinElementsCount, sizeof(qptensors_t));
+//    myNonlinSolver->alphastress2 =
+//        (qptensors_t *)calloc(myNonlinElementsCount, sizeof(qptensors_t));
+//    myNonlinSolver->ep1 =
+//        (qpvectors_t *)calloc(myNonlinElementsCount, sizeof(qpvectors_t));
+//    myNonlinSolver->ep2 =
+//        (qpvectors_t *)calloc(myNonlinElementsCount, sizeof(qpvectors_t));
+//
+//    if ( (myNonlinSolver->constants           == NULL) ||
+//         (myNonlinSolver->stresses            == NULL) ||
+//         (myNonlinSolver->strains             == NULL) ||
+//         (myNonlinSolver->ep1                 == NULL) ||
+//         (myNonlinSolver->ep2                 == NULL) ||
+//         (myNonlinSolver->alphastress1        == NULL) ||
+//         (myNonlinSolver->alphastress2        == NULL) ||
+//         (myNonlinSolver->pstrains1           == NULL) ||
+//         (myNonlinSolver->pstrains2           == NULL) ) {
+//
+//        fprintf(stderr, "Thread %d: nonlinear_init: out of memory\n", myID);
+//        MPI_Abort(MPI_COMM_WORLD, ERROR);
+//        exit(1);
+//    }
+//
+//    /* Initialization of element constants
+//     * Tensors have been initialized to 0 by calloc
+//     */
+//
+//    for (nl_eindex = 0; nl_eindex < myNonlinElementsCount; nl_eindex++) {
+//
+//        elem_t     *elemp;
+//        edata_t    *edata;
+//        nlconstants_t *ecp;
+//        double      mu, lambda;
+//        double      elementVs, elementVp;
+//
+//        eindex = myNonlinElementsMapping[nl_eindex];
+//
+//        elemp = &myMesh->elemTable[eindex];
+//        edata = (edata_t *)elemp->data;
+//        ecp   = myNonlinSolver->constants + nl_eindex;
+//
+//        int32_t lnid0 = elemp->lnid[0];
+//        double  zo    = myMesh->ticksize * myMesh->nodeTable[lnid0].z;
+//
+//        /* get element Vs */
+//
+//        elementVs   = (double)edata->Vs;
+//        elementVp   = (double)edata->Vp;
+//
+//
+//
+//        /* Calculate the lame constants and store in element */
+//
+//        mu_and_lambda(&mu, &lambda, edata, eindex);
+//        ecp->lambda = lambda;
+//        ecp->mu     = mu;
+//
+//        /* Calculate the vertical stress as a homogeneous half-space */
+//        if ( theApproxGeoState == YES )
+//        	ecp->sigmaZ_st = edata->rho * 9.80 * ( zo + edata->edgesize / 2.0 );
+//
+//        /* Calculate the yield function constants */
+//        switch (theMaterialModel) {
+//
+//            case LINEAR:
+//                ecp->alpha    = 0.;
+//                ecp->k        = 0.;
+//                ecp->phi      = 0.;
+//                ecp->beta     = 0.;
+//                ecp->h        = 0.;
+//                ecp->Sstrain0 = 0.;
+//                break;
+//
+//            case VONMISES:
+//            	ecp->c     = get_cohesion(elementVs);
+//            	ecp->phi   = get_phi(elementVs);
+//            	ecp->dil_angle = 0.0;
+//
+//            	ecp->alpha = 0.;
+//            	ecp->beta  = 0.;
+//            	ecp->gamma = 1.0;
+//
+//            	ecp->Sstrain0    = interpolate_property_value(elementVs, theGamma0);
+//
+//            	if (ecp->Sstrain0 == 0)
+//            		ecp->k     = ecp->c;
+//            	else
+//            		ecp->k     = ecp->Sstrain0 * ecp->mu;
+//
+//            	ecp->h         = 0; /*  no isotropic hardening  in von Mises model */
+//            	break;
+//            case DRUCKERPRAGER:
+//                ecp->c         = get_cohesion(elementVs);
+//                ecp->phi       = get_phi(elementVs);
+//                ecp->dil_angle = get_dilatancy(elementVs);
+//
+//                ecp->alpha = get_alpha(elementVs, ecp->phi);
+//                ecp->beta  = get_beta(elementVs);
+//                ecp->gamma = get_gamma(elementVs,ecp->phi);
+//
+//                ecp->k         = ecp->gamma * ecp->c;
+//                ecp->h         = get_hardmod(elementVs);
+//                ecp->Sstrain0  = 0.0;
+//
+//            	break;
+//            case MOHR_COULOMB:
+//                ecp->c     = get_cohesion(elementVs);
+//                ecp->phi   = get_phi(elementVs);
+//                ecp->dil_angle = get_dilatancy(elementVs);
+//
+//                ecp->alpha = 0.;
+//                ecp->beta  = 0.;
+//                ecp->gamma = 0.;
+//
+//                ecp->h         = get_hardmod(elementVs);
+//                ecp->Sstrain0  = 0.0;
+//            	break;
+//
+//            default:
+//                fprintf(stderr, "Thread %d: nonlinear_solver_init:\n"
+//                        "\tUnexpected error with the material model\n", myID);
+//                MPI_Abort(MPI_COMM_WORLD, ERROR);
+//                exit(1);
+//                break;
+//        }
+//
+//
+//        ecp->strainrate  =
+//        		interpolate_property_value(elementVs, theStrainRates  );
+//        ecp->sensitivity =
+//        		interpolate_property_value(elementVs, theSensitivities );
+////        ecp->hardmodulus =
+////        		interpolate_property_value(elementVs, theHardeningModulus );
+//
+////        if ( theApproxGeoState == NO ) {
+////            ecp->I1_st        =  -1.;
+////            ecp->J2square_st  =   0.;
+////        } else {
+////            ecp->I1_st        = -S_zz * ( 3.0 - 2.0 * sin ( ecp->phi ) );
+////            ecp->J2square_st  =  S_zz * S_zz * sin ( ecp->phi ) * sin ( ecp->phi ) / 3.0;
+////        }
+//
+//
+//    } /* for all elements */
 
 }
 
@@ -3379,6 +3666,151 @@ void nonlinear_stations_init(mesh_t    *myMesh,
     }*/
 
 }
+
+
+void eqlinear_stations_init(mesh_t    *myMesh,
+                             station_t *myStations,
+                             int32_t    myNumberOfStations)
+{
+
+//    if ( myNumberOfStations == 0 ) {
+//        return;
+//    }
+//
+//    int32_t     eindex, nl_eindex;
+//    int32_t     iStation=0;
+//    vector3D_t  point;
+//    octant_t   *octant;
+//    int32_t     lnid0;
+//
+//    myNumberOfNonlinStations = 0;
+//    for (iStation = 0; iStation < myNumberOfStations; iStation++) {
+//
+//        for ( nl_eindex = 0; nl_eindex < myNonlinElementsCount; nl_eindex++ ) {
+//
+//            /* capture the stations coordinates */
+//            point = myStations[iStation].coords;
+//
+//            /* search the octant */
+//            if ( search_point(point, &octant) != 1 ) {
+//                fprintf(stderr,
+//                        "nonlinear_stations_init: "
+//                        "No octant with station coords\n");
+//                MPI_Abort(MPI_COMM_WORLD, ERROR);
+//                exit(1);
+//            }
+//
+//            eindex = myNonlinElementsMapping[nl_eindex];
+//
+//            lnid0 = myMesh->elemTable[eindex].lnid[0];
+//
+//            if ( (myMesh->nodeTable[lnid0].x == octant->lx) &&
+//                 (myMesh->nodeTable[lnid0].y == octant->ly) &&
+//                 (myMesh->nodeTable[lnid0].z == octant->lz) ) {
+//
+//                /* I have a match for the element's origin */
+//
+//                /* Now, perform level sanity check */
+//                if (myMesh->elemTable[eindex].level != octant->level) {
+//                    fprintf(stderr,
+//                            "nonlinear_stations_init: First pass: "
+//                            "Wrong level of octant\n");
+//                    MPI_Abort(MPI_COMM_WORLD, ERROR);
+//                    exit(1);
+//                }
+//
+//                myNumberOfNonlinStations++;
+//
+//                break;
+//            }
+//        }
+//    }
+//
+//    XMALLOC_VAR_N( myStationsElementIndices, int32_t, myNumberOfNonlinStations);
+//    XMALLOC_VAR_N( myNonlinStationsMapping, int32_t, myNumberOfNonlinStations);
+// //   XMALLOC_VAR_N( myNonlinStations, nlstation_t, myNumberOfNonlinStations);
+//
+//    int32_t nlStationsCount = 0;
+//    for (iStation = 0; iStation < myNumberOfStations; iStation++) {
+//
+//        for ( nl_eindex = 0; nl_eindex < myNonlinElementsCount; nl_eindex++ ) {
+//
+//            /* capture the stations coordinates */
+//            point = myStations[iStation].coords;
+//
+//            /* search the octant */
+//            if ( search_point(point, &octant) != 1 ) {
+//                fprintf(stderr,
+//                        "nonlinear_stations_init: "
+//                        "No octant with station coords\n");
+//                MPI_Abort(MPI_COMM_WORLD, ERROR);
+//                exit(1);
+//            }
+//
+//            eindex = myNonlinElementsMapping[nl_eindex];
+//
+//            lnid0 = myMesh->elemTable[eindex].lnid[0];
+//
+//            if ( (myMesh->nodeTable[lnid0].x == octant->lx) &&
+//                 (myMesh->nodeTable[lnid0].y == octant->ly) &&
+//                 (myMesh->nodeTable[lnid0].z == octant->lz) ) {
+//
+//                /* I have a match for the element's origin */
+//
+//                /* Now, perform level sanity check */
+//                if (myMesh->elemTable[eindex].level != octant->level) {
+//                    fprintf(stderr,
+//                            "nonlinear_stations_init: Second pass: "
+//                            "Wrong level of octant\n");
+//                    MPI_Abort(MPI_COMM_WORLD, ERROR);
+//                    exit(1);
+//                }
+//
+//                if ( nlStationsCount >= myNumberOfNonlinStations ) {
+//                    fprintf(stderr,
+//                            "nonlinear_stations_init: Second pass: "
+//                            "More stations than initially counted\n");
+//                    MPI_Abort(MPI_COMM_WORLD, ERROR);
+//                    exit(1);
+//                }
+//
+//                /* Store the element index and mapping to stations */
+//                myStationsElementIndices[nlStationsCount] = nl_eindex;
+//                myNonlinStationsMapping[nlStationsCount] = iStation;
+//
+//                nlStationsCount++;
+//
+//                break;
+//            }
+//
+//        } /* for all my elements */
+//
+//    } /* for all my stations */
+//
+///*    for ( iStation = 0; iStation < myNumberOfNonlinStations; iStation++ ) {
+//
+//        tensor_t *stress, *strain, *pstrain1, *pstrain2;
+//        double   *ep1;
+//
+//        strain   = &(myNonlinStations[iStation].strain);
+//        stress   = &(myNonlinStations[iStation].stress);
+//        pstrain1 = &(myNonlinStations[iStation].pstrain1);
+//        pstrain2 = &(myNonlinStations[iStation].pstrain2);
+//        ep1      = &(myNonlinStations[iStation].ep );
+//        *ep1     = 0.;
+//
+//        init_tensorptr(strain);
+//        init_tensorptr(stress);
+//        init_tensorptr(pstrain1);
+//        init_tensorptr(pstrain2);
+//
+//    }*/
+
+}
+
+
+
+
 
 void print_nonlinear_stations(mesh_t     *myMesh,
                               mysolver_t *mySolver,

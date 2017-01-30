@@ -7885,6 +7885,15 @@ int main( int argc, char** argv )
 
     }
 
+    /* Initialize eqlinear parameters */
+    if ( Param.includeEqlinearAnalysis == YES ) {
+        eqlinear_init(Global.myID, Param.parameters_input_file, Param.theDeltaT, Param.theEndT);
+
+    }
+
+
+    // need to define eqlinear_init to save the initial values (for example the g/gmax and damoing curves.)
+
 
     if ( Param.includeBuildings == YES ){
         bldgs_init( Global.myID, Param.parameters_input_file );
@@ -7916,10 +7925,6 @@ int main( int argc, char** argv )
     // INTRODUCE BKT MODEL
     /* Init Quality Factor Table */
     constract_Quality_Factor_Table();
-
-
-
-
 
     /* Generate, partition and output unstructured octree mesh */
     mesh_generate();
@@ -7971,9 +7976,6 @@ int main( int argc, char** argv )
     if (Param.includeEqlinearAnalysis == YES){
         /* start the equvalent linear method for loop */
 
-    	// get the output folder name
-//        char concat[256],concat1[256];
-//       strcat(concat,Param.theStationsDirOut);
 
         int num_iter  = Param.theNumberOfIterations;
         for (int eq_c = 0; eq_c < num_iter; eq_c++){
@@ -8034,8 +8036,29 @@ int main( int argc, char** argv )
         }
         nonlinear_stats(Global.myID, Global.theGroupSize);
     }
+   */
+
+    // start of section: Equivalent linear elements.
+    /*
+    I need to define all elements as linear to calculate the ordianry K.
+    Then use a condition as if eqlienarAnalysis = yes --> do other nonlinear functions (i.e. generate stain tensor and so on)
     */
     
+    // need to have following funcitons:
+    // eqlinear_solver_init
+    // eqlinear_stations_init
+    // eqlinear_stats
+
+    eqlinear_solver_init(Global.myID, Global.myMesh, Param.theDomainZ);
+    if ( Param.theNumberOfStations !=0 ){
+        eqlinear_stations_init(Global.myMesh, Param.myStations, Param.myNumberOfStations);
+    }
+
+    eqlinear_stats(Global.myID, Global.theGroupSize);
+
+    // end of section: Equivalent linear elemetns.
+
+
     if ( Param.includeIncidentPlaneWaves == YES ){
     	PlaneWaves_solver_init( Global.myID, Global.myMesh, Global.mySolver );
     }

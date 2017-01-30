@@ -185,6 +185,11 @@ void nonlinear_init ( int32_t     myID,
                       double      theDeltaT,
                       double      theEndT );
 
+void eqlinear_init ( int32_t     myID,
+                      const char *parametersin,
+                      double      theDeltaT,
+                      double      theEndT );
+
 int32_t nonlinear_initparameters ( const char *parametersin,
                                    double      theDeltaT,
                                    double      theEndT );
@@ -199,7 +204,9 @@ void nonlinear_print_stats(int32_t *nonlinElementsCount,
                            int32_t  theGroupSize);
 
 void nonlinear_stats(int32_t myID, int32_t theGroupSize);
+void eqlinear_stats(int32_t myID, int32_t theGroupSize);
 void nonlinear_solver_init(int32_t myID, mesh_t *myMesh, double depth);
+void eqlinear_solver_init(int32_t myID, mesh_t *myMesh, double depth);
 
 /* -------------------------------------------------------------------------- */
 /*                   Auxiliary tensor manipulation methods                    */
@@ -315,6 +322,10 @@ void compute_nonlinear_state ( mesh_t     *myMesh,
 /* -------------------------------------------------------------------------- */
 
 void nonlinear_stations_init ( mesh_t    *myMesh,
+                               station_t *myStations,
+                               int32_t    myNumberOfStations );
+
+void eqlinear_stations_init ( mesh_t    *myMesh,
                                station_t *myStations,
                                int32_t    myNumberOfStations );
 
