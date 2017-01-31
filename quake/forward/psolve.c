@@ -4178,6 +4178,32 @@ static void solver_eqlinear_state( mysolver_t *solver,
 }
 
 
+
+static void eqlinear_update_material( mysolver_t *solver,
+                                    mesh_t     *mesh,
+                                    fmatrix_t   k1[8][8],
+                                    fmatrix_t   k2[8][8],
+                                    int step )
+{
+    if ( Param.includeEqlinearAnalysis == YES ) {
+        Timer_Start( "Eqlinear Update Material" );
+        material_update_eq ( mesh, solver, Param.theNumberOfStations,
+                                  Param.myNumberOfStations, Param.myStations, Param.theDeltaT, step );
+//        if ( get_geostatic_total_time() > 0 ) {
+//            compute_bottom_reactions( mesh, solver, k1, k2, step, Param.theDeltaT );
+//        }
+        Timer_Stop( "Eqlinear Update Material" );
+//        if (Param.theNumberOfStations != 0) {
+//            Timer_Start( "Print Stations" );
+//            print_nonlinear_stations( mesh, solver, Param.myStations,
+//                                      Param.myNumberOfStations, Param.theDeltaT,
+//                                      step, Param.theStationsPrintRate);
+//            Timer_Stop( "Print Stations" );
+//        }
+    }
+}
+
+
 static void solver_read_source_forces( int step )
 {
     Timer_Start( "Read My Forces" );
@@ -4625,6 +4651,9 @@ static void solver_run()
 
         Timer_Stop( "Compute Physics" );
 
+
+
+
         Timer_Start( "Communication" );
         HU_COND_GLOBAL_BARRIER( Param.theTimingBarriersFlag );
         solver_send_force_dangling( Global.mySolver );
@@ -4649,6 +4678,10 @@ static void solver_run()
 
         solver_loop_hook_bottom( Global.mySolver, Global.myMesh, step );
     } /* for (step = ....): all steps */
+
+    // extract strain and update material.
+
+    eqlinear_update_material( Global.mySolver, Global.myMesh, Global.theK1, Global.theK2, step );
 
     solver_drm_close();
     solver_output_wavefield_close();
@@ -8109,9 +8142,9 @@ int main( int argc, char** argv )
     // eqlinear_solver_init
     // eqlinear_stations_init
     // eqlinear_stats
-
+    if (eq_c == 0){
     eqlinear_solver_init(Global.myID, Global.myMesh, Param.theDomainZ);
-
+    }
 
 // skip the staitons part for now.
 //    if ( Param.theNumberOfStations !=0 ){
@@ -8166,6 +8199,10 @@ int main( int argc, char** argv )
 
 
         solver_run();
+
+        // in this section I should be able to extract the strain values and update matererial.
+
+
         Timer_Stop("Solver");
         }
 

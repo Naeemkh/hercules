@@ -1183,10 +1183,12 @@ void eqlinear_solver_init(int32_t myID, mesh_t *myMesh, double depth) {
     /* Memory allocation for internal structures */
 
     myEqlinSolver->constants =
-        (nlconstants_t *)calloc(myEqlinElementsCount, sizeof(nlconstants_t));
+        (elconstants_t *)calloc(myEqlinElementsCount, sizeof(elconstants_t));
     myEqlinSolver->stresses =
         (qptensors_t *)calloc(myEqlinElementsCount, sizeof(qptensors_t));
     myEqlinSolver->strains =
+        (qptensors_t *)calloc(myEqlinElementsCount, sizeof(qptensors_t));
+    myEqlinSolver->maxstrains =
         (qptensors_t *)calloc(myEqlinElementsCount, sizeof(qptensors_t));
 //    myEqlinSolver->pstrains1 =
 //        (qptensors_t *)calloc(myEqlinElementsCount, sizeof(qptensors_t));
@@ -1201,9 +1203,10 @@ void eqlinear_solver_init(int32_t myID, mesh_t *myMesh, double depth) {
 //    myEqlinSolver->ep2 =
 //        (qpvectors_t *)calloc(myEqlinElementsCount, sizeof(qpvectors_t));
 
-    if ( //(myEqlinSolver->constants           == NULL) ||
+    if ( (myEqlinSolver->constants           == NULL) ||
          (myEqlinSolver->stresses            == NULL) ||
-         (myEqlinSolver->strains             == NULL)
+         (myEqlinSolver->strains             == NULL) ||
+		 (myEqlinSolver->maxstrains          == NULL)
 //         (myEqlinSolver->ep1                 == NULL) ||
 //         (myEqlinSolver->ep2                 == NULL) ||
 //         (myEqlinSolver->alphastress1        == NULL) ||
@@ -3462,7 +3465,7 @@ void compute_nonlinear_state ( mesh_t     *myMesh,
 		epstr2       = myNonlinSolver->ep2          + nl_eindex;
 
 		// temp code to control (naeem)
-		 printf("This is strain: %f", tstrains[1]);
+		// printf("This is strain: %f", tstrains[1]);
 
 		if ( get_displacements(mySolver, elemp, u) == 0 ) {
 			/* If all displacements are zero go for next element */
@@ -3538,7 +3541,7 @@ void compute_eqlinear_state ( mesh_t     *myMesh,
 //		double         beta;       /* Plastic flow rule constant */
 		double         XI, QC;
 		fvector_t      u[8];
-		qptensors_t   *stresses, *tstrains; //, *pstrains1, *pstrains2, *alphastress1, *alphastress2;
+		qptensors_t   *stresses, *tstrains, *maxstrains; //, *pstrains1, *pstrains2, *alphastress1, *alphastress2;
 //		qpvectors_t   *epstr1, *epstr2;
 
 		/* Capture data from the element and mesh */
@@ -3563,6 +3566,7 @@ void compute_eqlinear_state ( mesh_t     *myMesh,
 		/* Capture the current state in the element */
 		tstrains     = myEqlinSolver->strains      + el_eindex;
 		stresses     = myEqlinSolver->stresses     + el_eindex;
+		maxstrains   = myEqlinSolver->maxstrains   + el_eindex;
 //		pstrains1    = myNonlinSolver->pstrains1    + nl_eindex;   /* Previous plastic tensor  */
 //		pstrains2    = myNonlinSolver->pstrains2    + nl_eindex;   /* Current  plastic tensor  */
 //		alphastress1 = myNonlinSolver->alphastress1 + nl_eindex;   /* Previous backstress tensor  */
@@ -3590,6 +3594,20 @@ void compute_eqlinear_state ( mesh_t     *myMesh,
 
 			/* Calculate total strains */
 			tstrains->qp[i] = point_strain(u, lx, ly, lz, h);
+
+			//For each element you need to define another strain tensor, to only keep the maximum value of strain.
+
+            maxstrains->qp[i].xx = MAX(fabs(maxstrains->qp[i].xx),fabs(tstrains->qp[i].xx));
+            maxstrains->qp[i].yy = MAX(fabs(maxstrains->qp[i].yy),fabs(tstrains->qp[i].yy));
+            maxstrains->qp[i].zz = MAX(fabs(maxstrains->qp[i].zz),fabs(tstrains->qp[i].zz));
+            maxstrains->qp[i].xy = MAX(fabs(maxstrains->qp[i].xy),fabs(tstrains->qp[i].xy));
+            maxstrains->qp[i].yz = MAX(fabs(maxstrains->qp[i].yz),fabs(tstrains->qp[i].yz));
+            maxstrains->qp[i].xz = MAX(fabs(maxstrains->qp[i].xz),fabs(tstrains->qp[i].xz));
+
+
+//            printf("This is xy max strain: %.20f (node %i) \n", maxstrains->qp[i].xy, i);
+
+
 			//printf("This is strain: %f \n", tstrains[1])
 			/* strain and backstress predictor  */
 //	        pstrains1->qp[i]    = copy_tensor ( pstrains2->qp[i] );     /* The strain predictor assumes that the current plastic strains equal those from the previous step   */
@@ -3597,7 +3615,7 @@ void compute_eqlinear_state ( mesh_t     *myMesh,
 
 			/* Calculate stresses */
 //			if ( ( theMaterialModel == LINEAR ) || ( step <= theGeostaticFinalStep ) ){
-				stresses->qp[i]  = point_stress ( tstrains->qp[i], mu, lambda );
+//				stresses->qp[i]  = point_stress ( tstrains->qp[i], mu, lambda );
 //				continue;
 //			} else {
 
@@ -3609,11 +3627,152 @@ void compute_eqlinear_state ( mesh_t     *myMesh,
 //				material_update ( *enlcons,           tstrains->qp[i],      pstrains1->qp[i], alphastress1->qp[i], epstr1->qv[i], sigma0, theDeltaT,
 //						           &pstrains2->qp[i], &alphastress2->qp[i], &stresses->qp[i], &epstr2->qv[i],      &enlcons->fs[i]);
 
+
+
+
 //			}
 		} /* for all quadrature points */
 	} /* for all nonlinear elements */
 }
 
+
+
+void material_update_eq ( mesh_t     *myMesh,
+                               mysolver_t *mySolver,
+                               int32_t     theNumberOfStations,
+                               int32_t     myNumberOfStations,
+                               station_t  *myStations,
+                               double      theDeltaT,
+                               int         step )
+{
+	/* In general, j-index refers to the quadrature point in a loop (0 to 7 for
+	 * eight points), and i-index refers to the tensor component (0 to 5), with
+	 * the following order xx[0], yy[1], zz[2], xy[3], yz[4], xz[5]. i-index is
+	 * also some times used for the number of nodes (8, 0 to 7).
+	 */
+
+	int     i;
+	int32_t eindex, el_eindex;
+
+
+	/* Loop over the number of local elements */
+	for (el_eindex = 0; el_eindex < myEqlinElementsCount; el_eindex++) {
+
+		elem_t        *elemp;
+		edata_t       *edata;
+		elconstants_t *enlcons;
+
+		double         h;          /* Element edge-size in meters   */
+		double         mu, lambda; /* Elasticity material constants */
+		double         XI, QC;
+		fvector_t      u[8];
+		qptensors_t   *maxstrains;
+
+		/* Capture data from the element and mesh */
+		eindex = myEqlinElementsMapping[el_eindex];
+
+		elemp = &myMesh->elemTable[eindex];
+		edata = (edata_t *)elemp->data;
+		h     = edata->edgesize;
+
+		/* Capture data from the eqlinear element structure */
+		enlcons = myEqlinSolver->constants + el_eindex;
+
+		mu     = enlcons->mu;
+		lambda = enlcons->lambda;
+
+
+		/* Capture the maximum strain of the element */
+
+		maxstrains   = myEqlinSolver->maxstrains   + el_eindex;
+//		pstrains1    = myNonlinSolver->pstrains1    + nl_eindex;   /* Previous plastic tensor  */
+//		pstrains2    = myNonlinSolver->pstrains2    + nl_eindex;   /* Current  plastic tensor  */
+//		alphastress1 = myNonlinSolver->alphastress1 + nl_eindex;   /* Previous backstress tensor  */
+//		alphastress2 = myNonlinSolver->alphastress2 + nl_eindex;   /* Current  backstress tensor  */
+//		epstr1       = myNonlinSolver->ep1          + nl_eindex;
+//		epstr2       = myNonlinSolver->ep2          + nl_eindex;
+
+		// temp code to control (naeem)
+		// printf("This is strain: %f \n", tstrains[1]);
+
+//		if ( get_displacements(mySolver, elemp, u) == 0 ) {
+//			/* If all displacements are zero go for next element */
+//			continue;
+//		}
+        // define a temprory matrix for strain
+
+		double  strain_mat[8][6]={{0,  0,  0,  0,  0,  0},
+								  {0,  0,  0,  0,  0,  0},
+								  {0,  0,  0,  0,  0,  0},
+								  {0,  0,  0,  0,  0,  0},
+								  {0,  0,  0,  0,  0,  0},
+								  {0,  0,  0,  0,  0,  0},
+								  {0,  0,  0,  0,  0,  0},
+								  {0,  0,  0,  0,  0,  0}};
+
+		/* Loop over the quadrature points */
+		for (i = 0; i < 8; i++) {
+
+
+			strain_mat[i][0]=maxstrains->qp[i].xx;
+			strain_mat[i][1]=maxstrains->qp[i].yy;
+			strain_mat[i][2]=maxstrains->qp[i].zz;
+			strain_mat[i][3]=maxstrains->qp[i].xy;
+			strain_mat[i][4]=maxstrains->qp[i].yz;
+			strain_mat[i][5]=maxstrains->qp[i].xz;
+
+		}
+
+		//printf("Element %i - XX strain is: %.20f \n", el_eindex, strain_mat[0][0]);
+
+		// Now update the material based on strain level
+
+		enlcons->mu = mu + 100;
+
+
+
+//			/* Calculate total strains */
+//			tstrains->qp[i] = point_strain(u, lx, ly, lz, h);
+
+			//For each element you need to define another strain tensor, to only keep the maximum value of strain.
+
+//            maxstrains->qp[i].xx = MAX(fabs(maxstrains->qp[i].xx),fabs(tstrains->qp[i].xx));
+//            maxstrains->qp[i].yy = MAX(fabs(maxstrains->qp[i].yy),fabs(tstrains->qp[i].yy));
+//            maxstrains->qp[i].zz = MAX(fabs(maxstrains->qp[i].zz),fabs(tstrains->qp[i].zz));
+//            maxstrains->qp[i].xy = MAX(fabs(maxstrains->qp[i].xy),fabs(tstrains->qp[i].xy));
+//            maxstrains->qp[i].yz = MAX(fabs(maxstrains->qp[i].yz),fabs(tstrains->qp[i].yz));
+//            maxstrains->qp[i].xz = MAX(fabs(maxstrains->qp[i].xz),fabs(tstrains->qp[i].xz));
+
+
+//            printf("This is xy max strain: %.20f (node %i) \n", maxstrains->qp[i].xy, i);
+
+
+			//printf("This is strain: %f \n", tstrains[1])
+			/* strain and backstress predictor  */
+//	        pstrains1->qp[i]    = copy_tensor ( pstrains2->qp[i] );     /* The strain predictor assumes that the current plastic strains equal those from the previous step   */
+//	        alphastress1->qp[i] = copy_tensor ( alphastress2->qp[i] );
+
+			/* Calculate stresses */
+//			if ( ( theMaterialModel == LINEAR ) || ( step <= theGeostaticFinalStep ) ){
+//				stresses->qp[i]  = point_stress ( tstrains->qp[i], mu, lambda );
+//				continue;
+//			} else {
+
+//				if ( theApproxGeoState == YES )
+//					sigma0 = ApproxGravity_tensor(enlcons->sigmaZ_st, enlcons->phi, h, lz, edata->rho);
+//				else
+//					sigma0 = zero_tensor();
+
+//				material_update ( *enlcons,           tstrains->qp[i],      pstrains1->qp[i], alphastress1->qp[i], epstr1->qv[i], sigma0, theDeltaT,
+//						           &pstrains2->qp[i], &alphastress2->qp[i], &stresses->qp[i], &epstr2->qv[i],      &enlcons->fs[i]);
+
+
+
+
+//			}
+//		} /* for all quadrature points */
+	} /* for all nonlinear elements */
+}
 
 
 

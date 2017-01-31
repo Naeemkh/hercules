@@ -173,6 +173,7 @@ typedef struct elsolver_t {
     elconstants_t *constants;
     qptensors_t   *stresses;
     qptensors_t   *strains;
+    qptensors_t   *maxstrains;
 //    qptensors_t   *pstrains1;
 //    qptensors_t   *pstrains2;
 //    qptensors_t   *alphastress1;
@@ -370,6 +371,14 @@ void compute_nonlinear_state ( mesh_t     *myMesh,
 
 
 void compute_eqlinear_state ( mesh_t     *myMesh,
+                               mysolver_t *mySolver,
+                               int32_t     theNumberOfStations,
+                               int32_t     myNumberOfStations,
+                               station_t  *myStations,
+                               double      theDeltaT,
+                               int         step );
+
+void material_update_eq ( mesh_t     *myMesh,
                                mysolver_t *mySolver,
                                int32_t     theNumberOfStations,
                                int32_t     myNumberOfStations,
