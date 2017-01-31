@@ -119,6 +119,40 @@ typedef struct nlconstants_t {
 
 } nlconstants_t;
 
+typedef struct elconstants_t {
+
+    double lambda;
+    double mu;
+
+//    double alpha;        /*  yield function constants in Drucker-Prager model*/
+//    double beta;         /*  constant of the plastic potential flow law */
+//    double gamma;        /*  constant for teh hardening function in Drucker-Prager model */
+//
+//    double c;            /* soil cohesion */
+//    double phi;          /* angle of internal friction */
+//    double dil_angle;    /* angle of dilatancy */
+//
+//    double k;
+//    double h;             /*  variable used for the isotropic hardening function.
+//                              vonMises H=0. Hardening is considered Kinematic in vonMises criterion
+//                              In Drucker-Prager H = gamma(c + h*ep)  */
+//                          /*  In MohrCoulomb    H =     2(c + h*ep)cos(phi)  */
+//
+//    double Sstrain0;      /* Defines the elastic range of the vonMises model. Sy=G*Sstrain0   */
+//
+//    double fs[8];         /* F(sigma) */
+//    double dLambda[8];    /* yield control */
+//    double strainrate;
+//    double sensitivity;
+//
+//    double sigmaZ_st;    /* static vertical stress */
+//
+//    double maxFs;
+//    double avgFs;
+
+} elconstants_t;
+
+
 typedef struct nlsolver_t {
 
     nlconstants_t *constants;
@@ -136,15 +170,15 @@ typedef struct nlsolver_t {
 
 typedef struct elsolver_t {
 
-    nlconstants_t *constants;
+    elconstants_t *constants;
     qptensors_t   *stresses;
     qptensors_t   *strains;
-    qptensors_t   *pstrains1;
-    qptensors_t   *pstrains2;
-    qptensors_t   *alphastress1;
-    qptensors_t   *alphastress2;
-    qpvectors_t   *ep1;         /* effective plastic strains */
-    qpvectors_t   *ep2;
+//    qptensors_t   *pstrains1;
+//    qptensors_t   *pstrains2;
+//    qptensors_t   *alphastress1;
+//    qptensors_t   *alphastress2;
+//    qpvectors_t   *ep1;         /* effective plastic strains */
+//    qpvectors_t   *ep2;
 
 } elsolver_t;
 /*typedef struct nlstation_t {
@@ -327,6 +361,15 @@ void compute_addforce_nl ( mesh_t     *myMesh,
                            double      theDeltaTSquared);
 
 void compute_nonlinear_state ( mesh_t     *myMesh,
+                               mysolver_t *mySolver,
+                               int32_t     theNumberOfStations,
+                               int32_t     myNumberOfStations,
+                               station_t  *myStations,
+                               double      theDeltaT,
+                               int         step );
+
+
+void compute_eqlinear_state ( mesh_t     *myMesh,
                                mysolver_t *mySolver,
                                int32_t     theNumberOfStations,
                                int32_t     myNumberOfStations,

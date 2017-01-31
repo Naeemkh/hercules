@@ -66,7 +66,9 @@ static int                   theGeostaticFinalStep;
 static int32_t              *myStationsElementIndices;
 //static nlstation_t          *myNonlinStations;
 static int32_t              *myNonlinStationsMapping;
+static int32_t              *myEqlinStationsMapping;
 static int32_t               myNumberOfNonlinStations;
+static int32_t               myNumberOfEqlinStations;
 static int32_t               myNonlinElementsCount = 0;
 static int32_t               myEqlinElementsCount = 0;
 static int32_t              *myNonlinElementsMapping;
@@ -1186,28 +1188,29 @@ void eqlinear_solver_init(int32_t myID, mesh_t *myMesh, double depth) {
         (qptensors_t *)calloc(myEqlinElementsCount, sizeof(qptensors_t));
     myEqlinSolver->strains =
         (qptensors_t *)calloc(myEqlinElementsCount, sizeof(qptensors_t));
-    myEqlinSolver->pstrains1 =
-        (qptensors_t *)calloc(myEqlinElementsCount, sizeof(qptensors_t));
-    myEqlinSolver->pstrains2 =
-        (qptensors_t *)calloc(myEqlinElementsCount, sizeof(qptensors_t));
-    myEqlinSolver->alphastress1 =
-        (qptensors_t *)calloc(myEqlinElementsCount, sizeof(qptensors_t));
-    myEqlinSolver->alphastress2 =
-        (qptensors_t *)calloc(myEqlinElementsCount, sizeof(qptensors_t));
-    myEqlinSolver->ep1 =
-        (qpvectors_t *)calloc(myEqlinElementsCount, sizeof(qpvectors_t));
-    myEqlinSolver->ep2 =
-        (qpvectors_t *)calloc(myEqlinElementsCount, sizeof(qpvectors_t));
+//    myEqlinSolver->pstrains1 =
+//        (qptensors_t *)calloc(myEqlinElementsCount, sizeof(qptensors_t));
+//    myEqlinSolver->pstrains2 =
+//        (qptensors_t *)calloc(myEqlinElementsCount, sizeof(qptensors_t));
+//    myEqlinSolver->alphastress1 =
+//        (qptensors_t *)calloc(myEqlinElementsCount, sizeof(qptensors_t));
+//    myEqlinSolver->alphastress2 =
+//        (qptensors_t *)calloc(myEqlinElementsCount, sizeof(qptensors_t));
+//    myEqlinSolver->ep1 =
+//        (qpvectors_t *)calloc(myEqlinElementsCount, sizeof(qpvectors_t));
+//    myEqlinSolver->ep2 =
+//        (qpvectors_t *)calloc(myEqlinElementsCount, sizeof(qpvectors_t));
 
-    if ( (myEqlinSolver->constants           == NULL) ||
+    if ( //(myEqlinSolver->constants           == NULL) ||
          (myEqlinSolver->stresses            == NULL) ||
-         (myEqlinSolver->strains             == NULL) ||
-         (myEqlinSolver->ep1                 == NULL) ||
-         (myEqlinSolver->ep2                 == NULL) ||
-         (myEqlinSolver->alphastress1        == NULL) ||
-         (myEqlinSolver->alphastress2        == NULL) ||
-         (myEqlinSolver->pstrains1           == NULL) ||
-         (myEqlinSolver->pstrains2           == NULL) ) {
+         (myEqlinSolver->strains             == NULL)
+//         (myEqlinSolver->ep1                 == NULL) ||
+//         (myEqlinSolver->ep2                 == NULL) ||
+//         (myEqlinSolver->alphastress1        == NULL) ||
+//         (myEqlinSolver->alphastress2        == NULL) ||
+//         (myEqlinSolver->pstrains1           == NULL) ||
+//         (myEqlinSolver->pstrains2           == NULL)
+		 ) {
 
         fprintf(stderr, "Thread %d: eqlinear_init: out of memory\n", myID);
         MPI_Abort(MPI_COMM_WORLD, ERROR);
@@ -1222,7 +1225,7 @@ void eqlinear_solver_init(int32_t myID, mesh_t *myMesh, double depth) {
 
         elem_t     *elemp;
         edata_t    *edata;
-        nlconstants_t *ecp;
+        elconstants_t *ecp;
         double      mu, lambda;
         double      elementVs, elementVp;
 
@@ -3409,8 +3412,8 @@ void compute_nonlinear_state ( mesh_t     *myMesh,
 
 
 	// temp code (naeem)
-	printf("This is nonlinear stat \n");
-	printf("The nonlinear elemnt count is : %i\n", myNonlinElementsCount);
+//	printf("This is nonlinear stat \n");
+//	printf("The nonlinear elemnt count is : %i\n", myNonlinElementsCount);
 
 	/* Loop over the number of local elements */
 	for (nl_eindex = 0; nl_eindex < myNonlinElementsCount; nl_eindex++) {
@@ -3501,6 +3504,118 @@ void compute_nonlinear_state ( mesh_t     *myMesh,
 		} /* for all quadrature points */
 	} /* for all nonlinear elements */
 }
+
+
+void compute_eqlinear_state ( mesh_t     *myMesh,
+                               mysolver_t *mySolver,
+                               int32_t     theNumberOfStations,
+                               int32_t     myNumberOfStations,
+                               station_t  *myStations,
+                               double      theDeltaT,
+                               int         step )
+{
+	/* In general, j-index refers to the quadrature point in a loop (0 to 7 for
+	 * eight points), and i-index refers to the tensor component (0 to 5), with
+	 * the following order xx[0], yy[1], zz[2], xy[3], yz[4], xz[5]. i-index is
+	 * also some times used for the number of nodes (8, 0 to 7).
+	 */
+
+	int     i;
+	int32_t eindex, el_eindex;
+
+
+	/* Loop over the number of local elements */
+	for (el_eindex = 0; el_eindex < myEqlinElementsCount; el_eindex++) {
+
+		elem_t        *elemp;
+		edata_t       *edata;
+		elconstants_t *enlcons;
+
+		double         h;          /* Element edge-size in meters   */
+// 		double         alpha, k;   /* Drucker-Prager constants      */
+		double         mu, lambda; /* Elasticity material constants */
+//		double		   hrd;        /* Hardening Modulus  */
+//		double         beta;       /* Plastic flow rule constant */
+		double         XI, QC;
+		fvector_t      u[8];
+		qptensors_t   *stresses, *tstrains; //, *pstrains1, *pstrains2, *alphastress1, *alphastress2;
+//		qpvectors_t   *epstr1, *epstr2;
+
+		/* Capture data from the element and mesh */
+
+		eindex = myEqlinElementsMapping[el_eindex];
+
+		elemp = &myMesh->elemTable[eindex];
+		edata = (edata_t *)elemp->data;
+		h     = edata->edgesize;
+
+		/* Capture data from the nonlinear element structure */
+
+		enlcons = myEqlinSolver->constants + el_eindex;
+
+		mu     = enlcons->mu;
+		lambda = enlcons->lambda;
+//		alpha  = enlcons->alpha;
+//		beta   = enlcons->beta;
+//		k      = enlcons->k;
+//		hrd    = enlcons->h;
+
+		/* Capture the current state in the element */
+		tstrains     = myEqlinSolver->strains      + el_eindex;
+		stresses     = myEqlinSolver->stresses     + el_eindex;
+//		pstrains1    = myNonlinSolver->pstrains1    + nl_eindex;   /* Previous plastic tensor  */
+//		pstrains2    = myNonlinSolver->pstrains2    + nl_eindex;   /* Current  plastic tensor  */
+//		alphastress1 = myNonlinSolver->alphastress1 + nl_eindex;   /* Previous backstress tensor  */
+//		alphastress2 = myNonlinSolver->alphastress2 + nl_eindex;   /* Current  backstress tensor  */
+//		epstr1       = myNonlinSolver->ep1          + nl_eindex;
+//		epstr2       = myNonlinSolver->ep2          + nl_eindex;
+
+		// temp code to control (naeem)
+		// printf("This is strain: %f \n", tstrains[1]);
+
+		if ( get_displacements(mySolver, elemp, u) == 0 ) {
+			/* If all displacements are zero go for next element */
+			continue;
+		}
+
+		/* Loop over the quadrature points */
+		for (i = 0; i < 8; i++) {
+
+			tensor_t  sigma0;
+
+			/* Quadrature point local coordinates */
+			double lx = xi[0][i] * qc ;
+			double ly = xi[1][i] * qc ;
+			double lz = xi[2][i] * qc ;
+
+			/* Calculate total strains */
+			tstrains->qp[i] = point_strain(u, lx, ly, lz, h);
+			//printf("This is strain: %f \n", tstrains[1])
+			/* strain and backstress predictor  */
+//	        pstrains1->qp[i]    = copy_tensor ( pstrains2->qp[i] );     /* The strain predictor assumes that the current plastic strains equal those from the previous step   */
+//	        alphastress1->qp[i] = copy_tensor ( alphastress2->qp[i] );
+
+			/* Calculate stresses */
+//			if ( ( theMaterialModel == LINEAR ) || ( step <= theGeostaticFinalStep ) ){
+				stresses->qp[i]  = point_stress ( tstrains->qp[i], mu, lambda );
+//				continue;
+//			} else {
+
+//				if ( theApproxGeoState == YES )
+//					sigma0 = ApproxGravity_tensor(enlcons->sigmaZ_st, enlcons->phi, h, lz, edata->rho);
+//				else
+//					sigma0 = zero_tensor();
+
+//				material_update ( *enlcons,           tstrains->qp[i],      pstrains1->qp[i], alphastress1->qp[i], epstr1->qv[i], sigma0, theDeltaT,
+//						           &pstrains2->qp[i], &alphastress2->qp[i], &stresses->qp[i], &epstr2->qv[i],      &enlcons->fs[i]);
+
+//			}
+		} /* for all quadrature points */
+	} /* for all nonlinear elements */
+}
+
+
+
 
 /* -------------------------------------------------------------------------- */
 /*                        Nonlinear Finalize and Stats                        */
@@ -3775,138 +3890,138 @@ void eqlinear_stations_init(mesh_t    *myMesh,
                              int32_t    myNumberOfStations)
 {
 
-//    if ( myNumberOfStations == 0 ) {
-//        return;
-//    }
+    if ( myNumberOfStations == 0 ) {
+        return;
+    }
+
+    int32_t     eindex, el_eindex;
+    int32_t     iStation=0;
+    vector3D_t  point;
+    octant_t   *octant;
+    int32_t     lnid0;
+
+    myNumberOfEqlinStations = 0;
+    for (iStation = 0; iStation < myNumberOfStations; iStation++) {
+
+        for ( el_eindex = 0; el_eindex < myNonlinElementsCount; el_eindex++ ) {
+
+            /* capture the stations coordinates */
+            point = myStations[iStation].coords;
+
+            /* search the octant */
+            if ( search_point(point, &octant) != 1 ) {
+                fprintf(stderr,
+                        "eqlinear_stations_init: "
+                        "No octant with station coords\n");
+                MPI_Abort(MPI_COMM_WORLD, ERROR);
+                exit(1);
+            }
+
+            eindex = myEqlinElementsMapping[el_eindex];
+
+            lnid0 = myMesh->elemTable[eindex].lnid[0];
+
+            if ( (myMesh->nodeTable[lnid0].x == octant->lx) &&
+                 (myMesh->nodeTable[lnid0].y == octant->ly) &&
+                 (myMesh->nodeTable[lnid0].z == octant->lz) ) {
+
+                /* I have a match for the element's origin */
+
+                /* Now, perform level sanity check */
+                if (myMesh->elemTable[eindex].level != octant->level) {
+                    fprintf(stderr,
+                            "eqlinear_stations_init: First pass: "
+                            "Wrong level of octant\n");
+                    MPI_Abort(MPI_COMM_WORLD, ERROR);
+                    exit(1);
+                }
+
+                myNumberOfEqlinStations++;
+
+                break;
+            }
+        }
+    }
+
+    XMALLOC_VAR_N( myStationsElementIndices, int32_t, myNumberOfEqlinStations);
+    XMALLOC_VAR_N( myNonlinStationsMapping, int32_t, myNumberOfEqlinStations);
+// // XMALLOC_VAR_N( myNonlinStations, nlstation_t, myNumberOfNonlinStations);
 //
-//    int32_t     eindex, nl_eindex;
-//    int32_t     iStation=0;
-//    vector3D_t  point;
-//    octant_t   *octant;
-//    int32_t     lnid0;
-//
-//    myNumberOfNonlinStations = 0;
-//    for (iStation = 0; iStation < myNumberOfStations; iStation++) {
-//
-//        for ( nl_eindex = 0; nl_eindex < myNonlinElementsCount; nl_eindex++ ) {
-//
-//            /* capture the stations coordinates */
-//            point = myStations[iStation].coords;
-//
-//            /* search the octant */
-//            if ( search_point(point, &octant) != 1 ) {
-//                fprintf(stderr,
-//                        "nonlinear_stations_init: "
-//                        "No octant with station coords\n");
-//                MPI_Abort(MPI_COMM_WORLD, ERROR);
-//                exit(1);
-//            }
-//
-//            eindex = myNonlinElementsMapping[nl_eindex];
-//
-//            lnid0 = myMesh->elemTable[eindex].lnid[0];
-//
-//            if ( (myMesh->nodeTable[lnid0].x == octant->lx) &&
-//                 (myMesh->nodeTable[lnid0].y == octant->ly) &&
-//                 (myMesh->nodeTable[lnid0].z == octant->lz) ) {
-//
-//                /* I have a match for the element's origin */
-//
-//                /* Now, perform level sanity check */
-//                if (myMesh->elemTable[eindex].level != octant->level) {
-//                    fprintf(stderr,
-//                            "nonlinear_stations_init: First pass: "
-//                            "Wrong level of octant\n");
-//                    MPI_Abort(MPI_COMM_WORLD, ERROR);
-//                    exit(1);
-//                }
-//
-//                myNumberOfNonlinStations++;
-//
-//                break;
-//            }
-//        }
-//    }
-//
-//    XMALLOC_VAR_N( myStationsElementIndices, int32_t, myNumberOfNonlinStations);
-//    XMALLOC_VAR_N( myNonlinStationsMapping, int32_t, myNumberOfNonlinStations);
-// //   XMALLOC_VAR_N( myNonlinStations, nlstation_t, myNumberOfNonlinStations);
-//
-//    int32_t nlStationsCount = 0;
-//    for (iStation = 0; iStation < myNumberOfStations; iStation++) {
-//
-//        for ( nl_eindex = 0; nl_eindex < myNonlinElementsCount; nl_eindex++ ) {
-//
-//            /* capture the stations coordinates */
-//            point = myStations[iStation].coords;
-//
-//            /* search the octant */
-//            if ( search_point(point, &octant) != 1 ) {
-//                fprintf(stderr,
-//                        "nonlinear_stations_init: "
-//                        "No octant with station coords\n");
-//                MPI_Abort(MPI_COMM_WORLD, ERROR);
-//                exit(1);
-//            }
-//
-//            eindex = myNonlinElementsMapping[nl_eindex];
-//
-//            lnid0 = myMesh->elemTable[eindex].lnid[0];
-//
-//            if ( (myMesh->nodeTable[lnid0].x == octant->lx) &&
-//                 (myMesh->nodeTable[lnid0].y == octant->ly) &&
-//                 (myMesh->nodeTable[lnid0].z == octant->lz) ) {
-//
-//                /* I have a match for the element's origin */
-//
-//                /* Now, perform level sanity check */
-//                if (myMesh->elemTable[eindex].level != octant->level) {
-//                    fprintf(stderr,
-//                            "nonlinear_stations_init: Second pass: "
-//                            "Wrong level of octant\n");
-//                    MPI_Abort(MPI_COMM_WORLD, ERROR);
-//                    exit(1);
-//                }
-//
-//                if ( nlStationsCount >= myNumberOfNonlinStations ) {
-//                    fprintf(stderr,
-//                            "nonlinear_stations_init: Second pass: "
-//                            "More stations than initially counted\n");
-//                    MPI_Abort(MPI_COMM_WORLD, ERROR);
-//                    exit(1);
-//                }
-//
-//                /* Store the element index and mapping to stations */
-//                myStationsElementIndices[nlStationsCount] = nl_eindex;
-//                myNonlinStationsMapping[nlStationsCount] = iStation;
-//
-//                nlStationsCount++;
-//
-//                break;
-//            }
-//
-//        } /* for all my elements */
-//
-//    } /* for all my stations */
-//
-///*    for ( iStation = 0; iStation < myNumberOfNonlinStations; iStation++ ) {
-//
-//        tensor_t *stress, *strain, *pstrain1, *pstrain2;
-//        double   *ep1;
-//
-//        strain   = &(myNonlinStations[iStation].strain);
-//        stress   = &(myNonlinStations[iStation].stress);
-//        pstrain1 = &(myNonlinStations[iStation].pstrain1);
-//        pstrain2 = &(myNonlinStations[iStation].pstrain2);
-//        ep1      = &(myNonlinStations[iStation].ep );
-//        *ep1     = 0.;
-//
-//        init_tensorptr(strain);
-//        init_tensorptr(stress);
-//        init_tensorptr(pstrain1);
-//        init_tensorptr(pstrain2);
-//
-//    }*/
+    int32_t elStationsCount = 0;
+    for (iStation = 0; iStation < myNumberOfStations; iStation++) {
+
+        for ( el_eindex = 0; el_eindex < myEqlinElementsCount; el_eindex++ ) {
+
+            /* capture the stations coordinates */
+            point = myStations[iStation].coords;
+
+            /* search the octant */
+            if ( search_point(point, &octant) != 1 ) {
+                fprintf(stderr,
+                        "eqlinear_stations_init: "
+                        "No octant with station coords\n");
+                MPI_Abort(MPI_COMM_WORLD, ERROR);
+                exit(1);
+            }
+
+            eindex = myEqlinElementsMapping[el_eindex];
+
+            lnid0 = myMesh->elemTable[eindex].lnid[0];
+
+            if ( (myMesh->nodeTable[lnid0].x == octant->lx) &&
+                 (myMesh->nodeTable[lnid0].y == octant->ly) &&
+                 (myMesh->nodeTable[lnid0].z == octant->lz) ) {
+
+                /* I have a match for the element's origin */
+
+                /* Now, perform level sanity check */
+                if (myMesh->elemTable[eindex].level != octant->level) {
+                    fprintf(stderr,
+                            "nonlinear_stations_init: Second pass: "
+                            "Wrong level of octant\n");
+                    MPI_Abort(MPI_COMM_WORLD, ERROR);
+                    exit(1);
+                }
+
+                if ( elStationsCount >= myNumberOfNonlinStations ) {
+                    fprintf(stderr,
+                            "eqlinear_stations_init: Second pass: "
+                            "More stations than initially counted\n");
+                    MPI_Abort(MPI_COMM_WORLD, ERROR);
+                    exit(1);
+                }
+
+                /* Store the element index and mapping to stations */
+                myStationsElementIndices[elStationsCount] = el_eindex;
+                myNonlinStationsMapping[elStationsCount] = iStation;
+
+                elStationsCount++;
+
+                break;
+            }
+
+        } /* for all my elements */
+
+    } /* for all my stations */
+
+/*    for ( iStation = 0; iStation < myNumberOfNonlinStations; iStation++ ) {
+
+        tensor_t *stress, *strain, *pstrain1, *pstrain2;
+        double   *ep1;
+
+        strain   = &(myNonlinStations[iStation].strain);
+        stress   = &(myNonlinStations[iStation].stress);
+        pstrain1 = &(myNonlinStations[iStation].pstrain1);
+        pstrain2 = &(myNonlinStations[iStation].pstrain2);
+        ep1      = &(myNonlinStations[iStation].ep );
+        *ep1     = 0.;
+
+        init_tensorptr(strain);
+        init_tensorptr(stress);
+        init_tensorptr(pstrain1);
+        init_tensorptr(pstrain2);
+
+    }*/
 
 }
 

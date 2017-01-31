@@ -1475,9 +1475,9 @@ setrec( octant_t* leaf, double ticksize, void* data )
 		if (z_m>=125)
 			res = cvm_query( Global.theCVMEp, y_m, x_m, z_m, &g_props );
 		else {
-			double a = 2.50;
+			double a = 250;
 			double b = 0.0;
-			double H = 1.25;
+			double H = 125;
 
 			double m = 2.0 * ( a + b - b * z_m /H );
 
@@ -2036,7 +2036,7 @@ void setrec(octant_t *leaf, double ticksize, void *data)
 	edata->Vp = agghit->Vp;
 	edata->rho = agghit->density;
 
-
+    printf("x: %f - y: %f - z: %f, Vs= %f", searchpoint.x, searchpoint.y, searchpoint.z, edata->Vs);
 
 	/* Adjust the Vs */
 	edata->Vs = (edata->Vs < Param.theVsCut) ? Param.theVsCut : edata->Vs;
@@ -4153,6 +4153,31 @@ static void solver_nonlinear_state( mysolver_t *solver,
 }
 
 
+static void solver_eqlinear_state( mysolver_t *solver,
+                                    mesh_t     *mesh,
+                                    fmatrix_t   k1[8][8],
+                                    fmatrix_t   k2[8][8],
+                                    int step )
+{
+    if ( Param.includeEqlinearAnalysis == YES ) {
+        Timer_Start( "Compute Eqlinear Entities" );
+        compute_eqlinear_state ( mesh, solver, Param.theNumberOfStations,
+                                  Param.myNumberOfStations, Param.myStations, Param.theDeltaT, step );
+//        if ( get_geostatic_total_time() > 0 ) {
+//            compute_bottom_reactions( mesh, solver, k1, k2, step, Param.theDeltaT );
+//        }
+        Timer_Stop( "Compute Eqlinear Entities" );
+//        if (Param.theNumberOfStations != 0) {
+//            Timer_Start( "Print Stations" );
+//            print_nonlinear_stations( mesh, solver, Param.myStations,
+//                                      Param.myNumberOfStations, Param.theDeltaT,
+//                                      step, Param.theStationsPrintRate);
+//            Timer_Stop( "Print Stations" );
+//        }
+    }
+}
+
+
 static void solver_read_source_forces( int step )
 {
     Timer_Start( "Read My Forces" );
@@ -4588,6 +4613,7 @@ static void solver_run()
 
         Timer_Start( "Compute Physics" );
         solver_nonlinear_state( Global.mySolver, Global.myMesh, Global.theK1, Global.theK2, step );
+        solver_eqlinear_state( Global.mySolver, Global.myMesh, Global.theK1, Global.theK2, step );
         solver_compute_force_source( step );
         solver_compute_effective_drm_force( Global.mySolver, Global.myMesh,Global.theK1, Global.theK2, step, Param.theDeltaT );
         solver_compute_force_topography( Global.mySolver, Global.myMesh, Param.theDeltaTSquared );
@@ -7659,9 +7685,9 @@ mesh_correct_properties( etree_t* cvm )
             			res = cvm_query( Global.theCVMEp, east_m, north_m,
                                 depth_m, &g_props );
             		else {
-            			double a = 2.50;
+            			double a = 250;
             			double b = 0.0;
-            			double H = 1.250;
+            			double H = 125.0;
 
             			double m = 2.0 * ( a + b - b * depth_m /H );
 
@@ -8079,7 +8105,7 @@ int main( int argc, char** argv )
     Then use a condition as if eqlienarAnalysis = yes --> do other nonlinear functions (i.e. generate stain tensor and so on)
     */
     
-    // need to have following funcitons:
+    // need to have following functions:
     // eqlinear_solver_init
     // eqlinear_stations_init
     // eqlinear_stats
@@ -8087,12 +8113,13 @@ int main( int argc, char** argv )
     eqlinear_solver_init(Global.myID, Global.myMesh, Param.theDomainZ);
 
 
+// skip the staitons part for now.
+//    if ( Param.theNumberOfStations !=0 ){
+//        eqlinear_stations_init(Global.myMesh, Param.myStations, Param.myNumberOfStations);
+//    }
 
-    if ( Param.theNumberOfStations !=0 ){
-        eqlinear_stations_init(Global.myMesh, Param.myStations, Param.myNumberOfStations);
-    }
-
-    eqlinear_stats(Global.myID, Global.theGroupSize);
+    // skip the stats
+    // eqlinear_stats(Global.myID, Global.theGroupSize);
 
     // end of section: Equivalent linear elemetns.
 
