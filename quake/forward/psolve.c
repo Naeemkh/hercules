@@ -306,7 +306,6 @@ static struct Global_t {
     fmatrix_t  theK2[8][8];
     fmatrix_t  theK3[8][8];
     double  theQTABLE[26][6];
-    double  theGDTABLE[11][3];
     double  theABase;
     double  theBBase;
     double  theCriticalT;
@@ -4188,7 +4187,7 @@ static void eqlinear_update_material( mysolver_t *solver,
     if ( Param.includeEqlinearAnalysis == YES ) {
         Timer_Start( "Eqlinear Update Material" );
         material_update_eq ( mesh, solver, Param.theNumberOfStations,
-                                  Param.myNumberOfStations, Param.myStations, Param.theDeltaT, step );
+                                  Param.myNumberOfStations, Param.myStations, Param.theDeltaT, step);
 //        if ( get_geostatic_total_time() > 0 ) {
 //            compute_bottom_reactions( mesh, solver, k1, k2, step, Param.theDeltaT );
 //        }
@@ -5986,35 +5985,7 @@ for(i = 0; i < 18; i++)
 return;
 }
 
-static void constract_GD_Table()
-{
-	// Construct Shear modulus degredation and damping table
 
-		int i,j;
-		double local_GDtable[11][3] = {{ 0.0001,	1.000, 0.24},
-				                       { 0.0003,	1.000, 0.42},
-				                       { 0.0010,	1.000, 0.80},
-				                       { 0.0030,	0.981, 1.40},
-				                       { 0.0100,	0.941, 2.80},
-			                           { 0.0300,	0.847, 5.10},
-				                       { 0.1000,	0.656, 9.80},
-				                       { 0.3000,	0.438, 15.50},
-				                       { 1.0000,	0.238, 21.00},
-				                       { 3.0000,	0.144, 25.00},
-				                       { 10.0000,	0.110, 28.00},
-		};
-
-		for(i = 0; i < 11; i++)
-		{
-			for(j = 0; j < 2; j++)
-			{
-				Global.theGDTABLE[i][j] = local_GDtable[i][j];
-		//		printf("%f ",theQTABLE[i][j]);
-			}
-		//	printf("\n");
-		}
-return;
-}
 
 
 

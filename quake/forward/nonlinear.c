@@ -76,6 +76,7 @@ static int32_t              *myEqlinElementsMapping;
 static int32_t               myBottomElementsCount = 0;
 static bottomelement_t      *myBottomElements;
 static int32_t               theNonlinearFlag = 0;
+static double                theGDTABLE[11][3];
 
 static double totalWeight = 0;
 
@@ -1342,6 +1343,37 @@ void eqlinear_solver_init(int32_t myID, mesh_t *myMesh, double depth) {
 //
    } /* for all elements */
 
+}
+
+
+void constract_GD_Table()
+{
+	// Construct Shear modulus degredation and damping table
+
+		int i,j;
+		double local_GDtable[11][3] = {{ 0.0001,	1.000, 0.24},
+				                       { 0.0003,	1.000, 0.42},
+				                       { 0.0010,	1.000, 0.80},
+				                       { 0.0030,	0.981, 1.40},
+				                       { 0.0100,	0.941, 2.80},
+			                           { 0.0300,	0.847, 5.10},
+				                       { 0.1000,	0.656, 9.80},
+				                       { 0.3000,	0.438, 15.50},
+				                       { 1.0000,	0.238, 21.00},
+				                       { 3.0000,	0.144, 25.00},
+				                       { 10.0000,	0.110, 28.00},
+		};
+
+		for(i = 0; i < 11; i++)
+		{
+			for(j = 0; j < 2; j++)
+			{
+				theGDTABLE[i][j] = local_GDtable[i][j];
+		//		printf("%f ",theQTABLE[i][j]);
+			}
+		//	printf("\n");
+		}
+return;
 }
 
 /* -------------------------------------------------------------------------- */
@@ -3643,7 +3675,8 @@ void material_update_eq ( mesh_t     *myMesh,
                                int32_t     myNumberOfStations,
                                station_t  *myStations,
                                double      theDeltaT,
-                               int         step )
+                               int         step
+							  )
 {
 	/* In general, j-index refers to the quadrature point in a loop (0 to 7 for
 	 * eight points), and i-index refers to the tensor component (0 to 5), with

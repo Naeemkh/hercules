@@ -259,6 +259,7 @@ void nonlinear_stats(int32_t myID, int32_t theGroupSize);
 void eqlinear_stats(int32_t myID, int32_t theGroupSize);
 void nonlinear_solver_init(int32_t myID, mesh_t *myMesh, double depth);
 void eqlinear_solver_init(int32_t myID, mesh_t *myMesh, double depth);
+void constract_GD_Table();
 
 /* -------------------------------------------------------------------------- */
 /*                   Auxiliary tensor manipulation methods                    */
