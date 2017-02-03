@@ -1882,7 +1882,7 @@ void material_update ( nlconstants_t constants, tensor_t e_n, tensor_t ep, tenso
 	phi = constants.phi;
 	dil = constants.dil_angle;
 
-	mu     = constants.mu;
+
 	Lambda = constants.lambda;
 	kappa  = constants.lambda + 2.0 * mu / 3.0;
 
@@ -3675,8 +3675,9 @@ void material_update_eq ( mesh_t     *myMesh,
                                int32_t     myNumberOfStations,
                                station_t  *myStations,
                                double      theDeltaT,
-                               int         step
-							  )
+                               int         step,
+							   double      theBBase,
+							   double      theThresholdVpVs)
 {
 	/* In general, j-index refers to the quadrature point in a loop (0 to 7 for
 	 * eight points), and i-index refers to the tensor component (0 to 5), with
@@ -3694,12 +3695,14 @@ void material_update_eq ( mesh_t     *myMesh,
 		elem_t        *elemp;
 		edata_t       *edata;
 		elconstants_t *enlcons;
+		e_t           *ep;    /* pointer to the element constant table */
 
 		double         h;          /* Element edge-size in meters   */
 		double         mu, lambda; /* Elasticity material constants */
 		double         XI, QC;
 		fvector_t      u[8];
 		qptensors_t   *maxstrains;
+		double         zeta, a, b, updated_mu, updated_lambda;
 
 		/* Capture data from the element and mesh */
 		eindex = myEqlinElementsMapping[el_eindex];
@@ -3707,6 +3710,7 @@ void material_update_eq ( mesh_t     *myMesh,
 		elemp = &myMesh->elemTable[eindex];
 		edata = (edata_t *)elemp->data;
 		h     = edata->edgesize;
+		ep    = &mySolver->eTable[eindex];
 
 		/* Capture data from the eqlinear element structure */
 		enlcons = myEqlinSolver->constants + el_eindex;
@@ -3724,15 +3728,15 @@ void material_update_eq ( mesh_t     *myMesh,
 //		alphastress2 = myNonlinSolver->alphastress2 + nl_eindex;   /* Current  backstress tensor  */
 //		epstr1       = myNonlinSolver->ep1          + nl_eindex;
 //		epstr2       = myNonlinSolver->ep2          + nl_eindex;
-
-		// temp code to control (naeem)
-		// printf("This is strain: %f \n", tstrains[1]);
-
+//
+//		 temp code to control (naeem)
+//		 printf("This is strain: %f \n", tstrains[1]);
+//
 //		if ( get_displacements(mySolver, elemp, u) == 0 ) {
 //			/* If all displacements are zero go for next element */
 //			continue;
 //		}
-        // define a temprory matrix for strain
+//         define a temprory matrix for strain
 
 		double  strain_mat[8][6]={{0,  0,  0,  0,  0,  0},
 								  {0,  0,  0,  0,  0,  0},
@@ -3754,48 +3758,107 @@ void material_update_eq ( mesh_t     *myMesh,
 			strain_mat[i][4]=maxstrains->qp[i].yz;
 			strain_mat[i][5]=maxstrains->qp[i].xz;
 
-		}
+		} /* for all quadrature points */
 
 		//printf("Element %i - XX strain is: %.20f \n", el_eindex, strain_mat[0][0]);
 
 		// Now update the material based on strain level
 
-		enlcons->mu = mu + 100;
+		double myteststrain = strain_mat[1][3] * 100;
 
+//		printf("Here is the max strain of element %i : %.10f \n", el_eindex, myteststrain);
+
+		 GD_t GD = search_GD_table(myteststrain);
+
+		//printf("Results : strain = %f , G = %f, D = %f \n", myteststrain, GD.g, GD.d);
+
+
+		 updated_mu = mu * GD.g * 0.9;
+
+         /* control the poisson ratio and lambda value */
+
+
+         if ( edata->Vp > (edata->Vs * theThresholdVpVs) ) {
+             updated_lambda = edata->rho * edata->Vs * edata->Vs * theThresholdVpVs
+                    * theThresholdVpVs - 2 * updated_mu;
+         } else {
+        	 updated_lambda = edata->rho * edata->Vp * edata->Vp - 2 * updated_mu;
+         }
+
+         /* Adjust Vs, Vp to fix Poisson ratio problem, formula provided by Jacobo */
+         if ( updated_lambda < 0 ) {
+             if ( edata->Vs < 500 )
+                 edata->Vp = 2.45 * edata->Vs;
+             else if ( edata->Vs < 1200 )
+                 edata->Vp = 2 * edata->Vs;
+             else
+                 edata->Vp = 1.87 * edata->Vs;
+
+             updated_lambda = edata->rho * edata->Vp * edata->Vp;
+         }
+
+         if ( updated_lambda < 0) {
+//             fprintf(stderr, "\nThread %d: %d element produces negative lambda = %.6f; Vp = %f; Vs = %f; Rho = %f",
+//                     Global.myID, eindex, lambda, edata->Vp, edata->Vs, edata->rho);
+//             MPI_Abort(MPI_COMM_WORLD, ERROR);
+
+
+             fprintf(stderr, "\nThread : %d element produces negative lambda = %.6f; Vp = %f; Vs = %f; Rho = %f",
+                      eindex, lambda, edata->Vp, edata->Vs, edata->rho);
+             MPI_Abort(MPI_COMM_WORLD, ERROR);
+         }
+
+         /* update mu and lambda */
+
+ 		enlcons->mu = updated_mu;
+ 		enlcons->lambda = updated_lambda;
+
+ 		double old_c1 = ep->c1;
+
+
+
+         /* update c1 - c4 */
+
+         /* coefficients for term (deltaT_squared * Ke * Ut) */
+         ep->c1 = theDeltaT *  theDeltaT *  edata->edgesize * updated_mu / 9;
+         ep->c2 = theDeltaT *  theDeltaT *  edata->edgesize * updated_lambda / 9;
+
+         zeta = 10 / edata->Vs;
+
+
+         printf("Element number: %i, old c: %f, new c: %f \n", el_eindex, old_c1,ep->c1);
+
+
+
+		 b = zeta * theBBase;
+	     ep->c3 = b *theDeltaT *  theDeltaT * edata->edgesize * updated_mu / 9;
+	     ep->c4 = b * theDeltaT *  theDeltaT * edata->edgesize * updated_lambda / 9;
 
 
 //			/* Calculate total strains */
 //			tstrains->qp[i] = point_strain(u, lx, ly, lz, h);
-
-			//For each element you need to define another strain tensor, to only keep the maximum value of strain.
-
+//			For each element you need to define another strain tensor, to only keep the maximum value of strain.
 //            maxstrains->qp[i].xx = MAX(fabs(maxstrains->qp[i].xx),fabs(tstrains->qp[i].xx));
 //            maxstrains->qp[i].yy = MAX(fabs(maxstrains->qp[i].yy),fabs(tstrains->qp[i].yy));
 //            maxstrains->qp[i].zz = MAX(fabs(maxstrains->qp[i].zz),fabs(tstrains->qp[i].zz));
 //            maxstrains->qp[i].xy = MAX(fabs(maxstrains->qp[i].xy),fabs(tstrains->qp[i].xy));
 //            maxstrains->qp[i].yz = MAX(fabs(maxstrains->qp[i].yz),fabs(tstrains->qp[i].yz));
 //            maxstrains->qp[i].xz = MAX(fabs(maxstrains->qp[i].xz),fabs(tstrains->qp[i].xz));
-
-
 //            printf("This is xy max strain: %.20f (node %i) \n", maxstrains->qp[i].xy, i);
-
-
-			//printf("This is strain: %f \n", tstrains[1])
-			/* strain and backstress predictor  */
+//
+//			printf("This is strain: %f \n", tstrains[1])
+//			/* strain and backstress predictor  */
 //	        pstrains1->qp[i]    = copy_tensor ( pstrains2->qp[i] );     /* The strain predictor assumes that the current plastic strains equal those from the previous step   */
 //	        alphastress1->qp[i] = copy_tensor ( alphastress2->qp[i] );
-
-			/* Calculate stresses */
+//			/* Calculate stresses */
 //			if ( ( theMaterialModel == LINEAR ) || ( step <= theGeostaticFinalStep ) ){
 //				stresses->qp[i]  = point_stress ( tstrains->qp[i], mu, lambda );
 //				continue;
 //			} else {
-
 //				if ( theApproxGeoState == YES )
 //					sigma0 = ApproxGravity_tensor(enlcons->sigmaZ_st, enlcons->phi, h, lz, edata->rho);
 //				else
 //					sigma0 = zero_tensor();
-
 //				material_update ( *enlcons,           tstrains->qp[i],      pstrains1->qp[i], alphastress1->qp[i], epstr1->qv[i], sigma0, theDeltaT,
 //						           &pstrains2->qp[i], &alphastress2->qp[i], &stresses->qp[i], &epstr2->qv[i],      &enlcons->fs[i]);
 
@@ -3803,8 +3866,55 @@ void material_update_eq ( mesh_t     *myMesh,
 
 
 //			}
-//		} /* for all quadrature points */
+//		}
 	} /* for all nonlinear elements */
+}
+
+
+GD_t  search_GD_table(double strain){
+
+      GD_t GD;
+      int  table_r;
+
+	  double thGDtable[11][3] = {{ 0.0001,	1.000, 0.24},
+				                       { 0.0003,	1.000, 0.42},
+				                       { 0.0010,	1.000, 0.80},
+				                       { 0.0030,	0.981, 1.40},
+				                       { 0.0100,	0.941, 2.80},
+			                           { 0.0300,	0.847, 5.10},
+				                       { 0.1000,	0.656, 9.80},
+				                       { 0.3000,	0.438, 15.50},
+				                       { 1.0000,	0.238, 21.00},
+				                       { 3.0000,	0.144, 25.00},
+				                       { 10.0000,	0.110, 28.00},
+		};
+
+
+	  int GDTable_Size = (int)(sizeof(thGDtable)/( 3 * sizeof(double)));
+
+	  if (strain <= thGDtable[0][0]){
+		  GD.g = thGDtable[0][1];
+		  GD.d = thGDtable[0][2];
+	  } else if (strain >= thGDtable[GDTable_Size-1][0]) {
+		  GD.g = thGDtable[GDTable_Size-1][1];
+		  GD.d = thGDtable[GDTable_Size-1][2];
+	  } else {
+
+		  for  (table_r = 0; table_r < GDTable_Size; table_r++) {
+
+			  if (strain >= thGDtable[table_r][0] && strain < thGDtable[table_r+1][0]){
+				  GD.g = thGDtable[table_r+1][1] - ((thGDtable[table_r+1][0] - strain)*(thGDtable[table_r+1][1]-thGDtable[table_r][1])/(thGDtable[table_r+1][0]-thGDtable[table_r][0]));
+				  GD.d = thGDtable[table_r+1][2] - ((thGDtable[table_r+1][0] - strain)*(thGDtable[table_r+1][2]-thGDtable[table_r][2])/(thGDtable[table_r+1][0]-thGDtable[table_r][0]));
+				  return GD;
+			  }
+
+		  }
+
+
+	  }
+
+	  return GD;
+
 }
 
 
@@ -4300,3 +4410,5 @@ void print_nonlinear_stations(mesh_t     *myMesh,
     } /* for all my stations */
 
 }
+
+

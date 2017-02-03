@@ -4182,12 +4182,13 @@ static void eqlinear_update_material( mysolver_t *solver,
                                     mesh_t     *mesh,
                                     fmatrix_t   k1[8][8],
                                     fmatrix_t   k2[8][8],
-                                    int step )
+                                    int step
+									)
 {
     if ( Param.includeEqlinearAnalysis == YES ) {
         Timer_Start( "Eqlinear Update Material" );
         material_update_eq ( mesh, solver, Param.theNumberOfStations,
-                                  Param.myNumberOfStations, Param.myStations, Param.theDeltaT, step);
+                                  Param.myNumberOfStations, Param.myStations, Param.theDeltaT, step, Global.theBBase, Param.theThresholdVpVs);
 //        if ( get_geostatic_total_time() > 0 ) {
 //            compute_bottom_reactions( mesh, solver, k1, k2, step, Param.theDeltaT );
 //        }
@@ -8080,18 +8081,13 @@ int main( int argc, char** argv )
 
 
     /* Initialize the solver, source and output structures */
-
+    if (eq_c == 0){
     solver_init();
     Timer_Start("Solver Stats Print");
-
-
     solver_printstat( Global.mySolver );
-
-
-
     Timer_Stop("Solver Stats Print");
     Timer_Reduce("Solver Stats Print", MAX | MIN, comm_solver);
-
+    }
     /* Initialize nonlinear solver analysis structures */
     /* Naeem: comment out the following
     if ( Param.includeNonlinearAnalysis == YES ) {

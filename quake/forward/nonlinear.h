@@ -199,6 +199,13 @@ typedef struct bottomelement_t {
 
 } bottomelement_t;
 
+typedef struct GD_t {
+
+    double g;
+    double d;
+
+} GD_t;
+
 /* -------------------------------------------------------------------------- */
 /*                                 Utilities                                  */
 /* -------------------------------------------------------------------------- */
@@ -260,6 +267,7 @@ void eqlinear_stats(int32_t myID, int32_t theGroupSize);
 void nonlinear_solver_init(int32_t myID, mesh_t *myMesh, double depth);
 void eqlinear_solver_init(int32_t myID, mesh_t *myMesh, double depth);
 void constract_GD_Table();
+GD_t  search_GD_table(double strain);
 
 /* -------------------------------------------------------------------------- */
 /*                   Auxiliary tensor manipulation methods                    */
@@ -385,7 +393,10 @@ void material_update_eq ( mesh_t     *myMesh,
                                int32_t     myNumberOfStations,
                                station_t  *myStations,
                                double      theDeltaT,
-                               int         step );
+                               int         step,
+							   double      theBBase,
+							   double      theThresholdVpVs);
+
 
 /* -------------------------------------------------------------------------- */
 /*                        Nonlinear Output to Stations                        */
