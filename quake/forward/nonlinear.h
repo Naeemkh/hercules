@@ -123,6 +123,7 @@ typedef struct elconstants_t {
 
     double lambda;
     double mu;
+    double Q_value;
 
 //    double alpha;        /*  yield function constants in Drucker-Prager model*/
 //    double beta;         /*  constant of the plastic potential flow law */
