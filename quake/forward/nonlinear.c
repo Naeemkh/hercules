@@ -3780,7 +3780,7 @@ void material_update_eq ( mesh_t     *myMesh,
 		//printf("Results : strain = %f , G = %f, D = %f \n", myteststrain, GD.g, GD.d);
 
 
-		 updated_mu = mu * GD.g * 0.9;
+		 updated_mu = mu * GD.g;
 
          /* control the poisson ratio and lambda value */
 
@@ -3913,7 +3913,7 @@ void material_update_eq ( mesh_t     *myMesh,
 
 		update_Q_params(edata,index_Qs,0,QTable_Size,&(myQTABLE[0][0]),new_Q,0);
 	    control_correction_factor(edata,theFreq_Vel,theFreq);
-
+        printf("strain_level= %f, table_damping: %f, Q_orig: %f, Q_new: %f. \n",myteststrain,GD.d,enlcons->Qs_value ,new_Q);
 //			}
 //		}
 	} /* for all nonlinear elements */
