@@ -30,6 +30,7 @@
 #include "psolve.h"
 #include "quake_util.h"
 #include "util.h"
+#include "damping.h"
 
 #define  QC  qc = 0.577350269189 /* sqrt(3.0)/3.0; */
 
@@ -3675,9 +3676,14 @@ void material_update_eq ( mesh_t     *myMesh,
                                int32_t     myNumberOfStations,
                                station_t  *myStations,
                                double      theDeltaT,
-                               int         step,
+                               int         eq_it,
 							   double      theBBase,
-							   double      theThresholdVpVs)
+							   double      theThresholdVpVs,
+							   double      *theQTABLE,
+							   int         QTable_Size,
+							   double      theFreq_Vel,
+							   double      theFreq
+							   )
 {
 	/* In general, j-index refers to the quadrature point in a loop (0 to 7 for
 	 * eight points), and i-index refers to the tensor component (0 to 5), with
@@ -3703,6 +3709,7 @@ void material_update_eq ( mesh_t     *myMesh,
 		fvector_t      u[8];
 		qptensors_t   *maxstrains;
 		double         zeta, a, b, updated_mu, updated_lambda;
+		double         requested_Q, new_Q;
 
 		/* Capture data from the element and mesh */
 		eindex = myEqlinElementsMapping[el_eindex];
@@ -3862,8 +3869,50 @@ void material_update_eq ( mesh_t     *myMesh,
 //				material_update ( *enlcons,           tstrains->qp[i],      pstrains1->qp[i], alphastress1->qp[i], epstr1->qv[i], sigma0, theDeltaT,
 //						           &pstrains2->qp[i], &alphastress2->qp[i], &stresses->qp[i], &epstr2->qv[i],      &enlcons->fs[i]);
 
+         /* Damping update */
+
+	     if (eq_it == 0){
+	     enlcons->Qs_value = set_Qs(edata->Vs);
+	     enlcons->Qp_value = set_Qp(edata->Vs);
+	     }
+
+	     /* convert damping to Q */
+
+	    double anelastic_damping = 1/(2*enlcons->Qs_value);
+	    double total_requested_damping = GD.d/100 + anelastic_damping;
 
 
+
+	    new_Q = 1 / (2*total_requested_damping);
+
+
+	    /* regenerate the Q table */
+
+	    int i,k,j,l;
+	    double myQTABLE[26][6];
+
+	    int array_size=(QTable_Size*6)+1;
+
+	    // regenertate the Q_table
+	    k=0;
+	    j=0;
+		for(l = 1; l < array_size; l++)
+		{
+			i = l-1;
+			myQTABLE[k][j] = theQTABLE[i];
+	        if (l % 6 ==0){
+	        	k=k+1;
+	        }
+	        j=j+1;
+	        if (j==6){
+	        	j=0;
+	        }
+		}
+
+	    double index_Qs = Search_Quality_Table(new_Q,&(myQTABLE[0][0]), QTable_Size);
+
+		update_Q_params(edata,index_Qs,0,QTable_Size,&(myQTABLE[0][0]),new_Q,0);
+	    control_correction_factor(edata,theFreq_Vel,theFreq);
 
 //			}
 //		}

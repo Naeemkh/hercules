@@ -515,10 +515,10 @@ void constant_Q_addforce(mesh_t *myMesh, mysolver_t *mySolver, double theFreq, d
 /* setting damping parameters*/
 
 
-set_damping_params(edata_t *edata, double *theQTABLE, int QTable_Size,int  useInfQk,  double theFreq_Vel, double theFreq)
+void set_damping_params(edata_t *edata, double *theQTABLE, int QTable_Size,int  useInfQk,  double theFreq_Vel, double theFreq)
 {
 
-	double   vs, vp, rho;
+ 	double   vs, vp, rho;
     double Qs, Qp, Qk, L, vs_vp_Ratio, vksquared, w;
     int index_Qs, index_Qk,i,k,j,l;
     double QTABLE[26][6];
@@ -543,83 +543,123 @@ set_damping_params(edata_t *edata, double *theQTABLE, int QTable_Size,int  useIn
 
 
 
-    vksquared = edata->Vp * edata->Vp - 4. / 3. * edata->Vs * edata->Vs;
+//    vksquared = edata->Vp * edata->Vp - 4. / 3. * edata->Vs * edata->Vs;
 	vs_vp_Ratio = edata->Vs / edata->Vp;
 	vs = edata->Vs * 0.001;
 	L = 4. / 3. * vs_vp_Ratio * vs_vp_Ratio;
 
-	Qs = 10.5 + vs * (-16. + vs * (153. + vs * (-103. + vs * (34.7 + vs * (-5.29 + vs * 0.31)))));
-	Qp = 2. * Qs;
+	Qs = set_Qs(vs);
+	Qp = set_Qp(Qs);
 
 	if (useInfQk == YES) {
 	    Qk = 1000;
 	} else {
         Qk = (1. - L) / (1. / Qp - L / Qs);
 	}
+
+
 	index_Qs = Search_Quality_Table(Qs, &(QTABLE[0][0]), QTable_Size);
+	index_Qk = Search_Quality_Table(Qk, &(QTABLE[0][0]), QTable_Size);
+	update_Q_params(edata,index_Qs,index_Qk,QTable_Size,&(QTABLE[0][0]),Qs,Qk);
+    control_correction_factor(edata,theFreq_Vel,theFreq);
+
+
+}
+
+
+void update_Q_params(edata_t *edata, int index_Qs, int index_Qk, int QTable_Size, double *QTABLE, double Qs, double Qk){
+
+
+    int i,k,j,l;
+    double myQTABLE[26][6];
+
+    int array_size=(QTable_Size*6)+1;
+
+    // regenertate the Q_table
+    k=0;
+    j=0;
+	for(l = 1; l < array_size; l++)
+	{
+		i = l-1;
+		myQTABLE[k][j] = QTABLE[i];
+        if (l % 6 ==0){
+        	k=k+1;
+        }
+        j=j+1;
+        if (j==6){
+        	j=0;
+        }
+	}
 
 	if(index_Qs == -2 || index_Qs >= QTable_Size)
+		        	{
+		        		fprintf(stderr,"Problem with the Quality Factor Table\n Qs : %lf \n Vs : %lf\n",Qs,edata->Vs);
+		        		exit(1);
+		        	}
+		        	else if(index_Qs == -1)
+		        	{
+		        		edata->a0_shear = 0;
+		        		edata->a1_shear = 0;
+		        		edata->g0_shear = 0;
+		        		edata->g1_shear = 0;
+		        		edata->b_shear  = 0;
+		        	}
+		        	else
+		        	{
+		        		edata->a0_shear = myQTABLE[index_Qs][1];
+		        		edata->a1_shear = myQTABLE[index_Qs][2];
+		        		edata->g0_shear = myQTABLE[index_Qs][3];
+		        		edata->g1_shear = myQTABLE[index_Qs][4];
+		        		edata->b_shear  = myQTABLE[index_Qs][5];
+		        	}
+
+	if (index_Qk != 0){
+	if(index_Qk == -2 || index_Qk >= QTable_Size)
 	        	{
-	        		fprintf(stderr,"Problem with the Quality Factor Table\n Qs : %lf \n Vs : %lf\n",Qs,edata->Vs);
+	        		fprintf(stderr,"Problem with the Quality Factor Table\n Qk : %lf \n Vs : %lf\n",Qk,edata->Vs);
 	        		exit(1);
 	        	}
-	        	else if(index_Qs == -1)
+	        	else if(index_Qk == -1)
 	        	{
-	        		edata->a0_shear = 0;
-	        		edata->a1_shear = 0;
-	        		edata->g0_shear = 0;
-	        		edata->g1_shear = 0;
-	        		edata->b_shear  = 0;
+	        		edata->a0_kappa = 0;
+	        		edata->a1_kappa = 0;
+	        		edata->g0_kappa = 0;
+	        		edata->g1_kappa = 0;
+	        		edata->b_kappa  = 0;
 	        	}
 	        	else
 	        	{
-	        		edata->a0_shear = QTABLE[index_Qs][1];
-	        		edata->a1_shear = QTABLE[index_Qs][2];
-	        		edata->g0_shear = QTABLE[index_Qs][3];
-	        		edata->g1_shear = QTABLE[index_Qs][4];
-	        		edata->b_shear  = QTABLE[index_Qs][5];
+	        		edata->a0_kappa = myQTABLE[index_Qk][1];
+	        		edata->a1_kappa = myQTABLE[index_Qk][2];
+	        		edata->g0_kappa = myQTABLE[index_Qk][3];
+	        		edata->g1_kappa = myQTABLE[index_Qk][4];
+	        		edata->b_kappa  = myQTABLE[index_Qk][5];
 	        	}
+	}
+}
 
-	        	index_Qk = Search_Quality_Table(Qk, &(QTABLE[0][0]), QTable_Size);
+void control_correction_factor(edata_t *edata, double theFreq_Vel,double theFreq){
 
-	        	if(index_Qk == -2 || index_Qk >= QTable_Size)
-	        	        	{
-	        	        		fprintf(stderr,"Problem with the Quality Factor Table\n Qk : %lf \n Vs : %lf\n",Qk,edata->Vs);
-	        	        		exit(1);
-	        	        	}
-	        	        	else if(index_Qk == -1)
-	        	        	{
-	        	        		edata->a0_kappa = 0;
-	        	        		edata->a1_kappa = 0;
-	        	        		edata->g0_kappa = 0;
-	        	        		edata->g1_kappa = 0;
-	        	        		edata->b_kappa  = 0;
-	        	        	}
-	        	        	else
-	        	        	{
-	        	        		edata->a0_kappa = QTABLE[index_Qk][1];
-	        	        		edata->a1_kappa = QTABLE[index_Qk][2];
-	        	        		edata->g0_kappa = QTABLE[index_Qk][3];
-	        	        		edata->g1_kappa = QTABLE[index_Qk][4];
-	        	        		edata->b_kappa  = QTABLE[index_Qk][5];
-	        	        	}
+	double vksquared = edata->Vp * edata->Vp - 4. / 3. * edata->Vs * edata->Vs;
+	double w;
 
-	        	if(theFreq_Vel != 0.)
-	        	{
-	        		w = theFreq_Vel / theFreq;
+	if(theFreq_Vel != 0.)
+	{
+		w = theFreq_Vel / theFreq;
 
-	        		if ( (edata->a0_shear != 0) && (edata->a1_shear != 0) ) {
-	        		    double shear_vel_corr_factor;
-	        		    shear_vel_corr_factor = sqrt(1. - (edata->a0_shear * edata->g0_shear * edata->g0_shear / (edata->g0_shear * edata->g0_shear + w * w) + edata->a1_shear * edata->g1_shear * edata->g1_shear / (edata->g1_shear * edata->g1_shear + w * w)));
-	                    edata->Vs = shear_vel_corr_factor * edata->Vs;
-	        		}
+		if ( (edata->a0_shear != 0) && (edata->a1_shear != 0) ) {
+		    double shear_vel_corr_factor;
+		    shear_vel_corr_factor = sqrt(1. - (edata->a0_shear * edata->g0_shear * edata->g0_shear / (edata->g0_shear * edata->g0_shear + w * w) + edata->a1_shear * edata->g1_shear * edata->g1_shear / (edata->g1_shear * edata->g1_shear + w * w)));
+            edata->Vs = shear_vel_corr_factor * edata->Vs;
+		}
 
-	        		if ( (edata->a0_kappa != 0) && (edata->a0_kappa != 0) ) {
-	        		    double kappa_vel_corr_factor;
-	        		    kappa_vel_corr_factor = sqrt(1. - (edata->a0_kappa * edata->g0_kappa * edata->g0_kappa / (edata->g0_kappa * edata->g0_kappa + w * w) + edata->a1_kappa * edata->g1_kappa * edata->g1_kappa / (edata->g1_kappa * edata->g1_kappa + w * w)));
-	                    edata->Vp = sqrt(kappa_vel_corr_factor * kappa_vel_corr_factor * vksquared + 4. / 3. * edata->Vs * edata->Vs);
-	        		}
-	        	}
+		if ( (edata->a0_kappa != 0) && (edata->a0_kappa != 0) ) {
+		    double kappa_vel_corr_factor;
+		    kappa_vel_corr_factor = sqrt(1. - (edata->a0_kappa * edata->g0_kappa * edata->g0_kappa / (edata->g0_kappa * edata->g0_kappa + w * w) + edata->a1_kappa * edata->g1_kappa * edata->g1_kappa / (edata->g1_kappa * edata->g1_kappa + w * w)));
+            edata->Vp = sqrt(kappa_vel_corr_factor * kappa_vel_corr_factor * vksquared + 4. / 3. * edata->Vs * edata->Vs);
+		}
+	}
+
 
 }
 

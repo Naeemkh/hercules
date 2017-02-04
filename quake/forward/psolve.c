@@ -270,6 +270,7 @@ static struct Param_t {
     double  theDomainZ;
     noyesflag_t  drmImplement;
     drm_part_t   theDrmPart;
+    int     eq_it;
 
 } Param = {
     .FourDOutFp = NULL,
@@ -4182,13 +4183,16 @@ static void eqlinear_update_material( mysolver_t *solver,
                                     mesh_t     *mesh,
                                     fmatrix_t   k1[8][8],
                                     fmatrix_t   k2[8][8],
-                                    int step
+                                    int eq_it
 									)
 {
     if ( Param.includeEqlinearAnalysis == YES ) {
         Timer_Start( "Eqlinear Update Material" );
+        int QTable_Size = (int)(sizeof(Global.theQTABLE)/( 6 * sizeof(double)));
         material_update_eq ( mesh, solver, Param.theNumberOfStations,
-                                  Param.myNumberOfStations, Param.myStations, Param.theDeltaT, step, Global.theBBase, Param.theThresholdVpVs);
+                                  Param.myNumberOfStations, Param.myStations, Param.theDeltaT, eq_it,
+								  Global.theBBase, Param.theThresholdVpVs, &(Global.theQTABLE[0][0]),QTable_Size,
+								  Param.theFreq_Vel,Param.theFreq);
 //        if ( get_geostatic_total_time() > 0 ) {
 //            compute_bottom_reactions( mesh, solver, k1, k2, step, Param.theDeltaT );
 //        }
@@ -4681,7 +4685,7 @@ static void solver_run()
 
     // extract strain and update material.
 
-    eqlinear_update_material( Global.mySolver, Global.myMesh, Global.theK1, Global.theK2, step );
+    eqlinear_update_material( Global.mySolver, Global.myMesh, Global.theK1, Global.theK2, Param.eq_it);
 
     solver_drm_close();
     solver_output_wavefield_close();
@@ -8048,9 +8052,12 @@ int main( int argc, char** argv )
 
 
         int num_iter  = Param.theNumberOfIterations;
-        for (int eq_c = 0; eq_c < num_iter; eq_c++){
 
+        int eq_c = Param.eq_it;
 
+        for (eq_c = 0; eq_c < num_iter; eq_c++){
+
+        Param.eq_it = eq_c;
 
     if ( Param.theNumberOfStations !=0 ){
     	/*

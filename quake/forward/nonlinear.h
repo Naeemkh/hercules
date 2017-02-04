@@ -123,7 +123,9 @@ typedef struct elconstants_t {
 
     double lambda;
     double mu;
-    double Q_value;
+    double Qs_value;
+    double Qp_value;
+
 
 //    double alpha;        /*  yield function constants in Drucker-Prager model*/
 //    double beta;         /*  constant of the plastic potential flow law */
@@ -394,9 +396,13 @@ void material_update_eq ( mesh_t     *myMesh,
                                int32_t     myNumberOfStations,
                                station_t  *myStations,
                                double      theDeltaT,
-                               int         step,
+                               int         eq_it,
 							   double      theBBase,
-							   double      theThresholdVpVs);
+							   double      theThresholdVpVs,
+							   double      *theQTABLE,
+							   int         QTable_Size,
+							   double      theFreq_Vel,
+							   double      theFreq);
 
 
 /* -------------------------------------------------------------------------- */

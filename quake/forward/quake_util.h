@@ -44,5 +44,7 @@ int  Search_Quality_Table(double Q, double *theQTABLE, int QTable_Size);
 int  parsedarray( FILE *fp, const char *querystring,int size, double *array );
 
 int  vsrule( edata_t  *edata, double theFactor );
+double  set_Qs(double vs);
+double  set_Qp(double Qs);
 
 #endif /* QUAKE_UTIL_H_ */
