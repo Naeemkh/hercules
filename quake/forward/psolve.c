@@ -6227,11 +6227,14 @@ static void compute_setab(double freq, double *aBasePtr, double *bBasePtr)
 	/* the a over zeta target is... */
 	*aBasePtr = numer / denom;
 
+
 	/* new numerator */
 	numer = 3 * (2 * w1 * w2 * lw2 - 2 * w1 * w2 * lw1 + sw1 - sw2);
 
 	/* the b over zeta target is... */
 	*bBasePtr = numer / denom;
+
+
 
     }
     else if ( Param.theTypeOfDamping == MASS )
@@ -8099,6 +8102,8 @@ int main( int argc, char** argv )
     Timer_Stop("Solver Stats Print");
     Timer_Reduce("Solver Stats Print", MAX | MIN, comm_solver);
     }
+
+
     /* Initialize nonlinear solver analysis structures */
     /* Naeem: comment out the following
     if ( Param.includeNonlinearAnalysis == YES ) {

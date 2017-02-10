@@ -3837,6 +3837,19 @@ void material_update_eq ( mesh_t     *myMesh,
 
 
 
+         /* Damping update */
+
+   	     if (eq_it == 0){
+   	     enlcons->Qs_value = set_Qs(edata->Vs);
+   	     enlcons->Qp_value = set_Qp(edata->Vs);
+   	     }
+
+
+ 	    double anelastic_damping = 1/(2*enlcons->Qs_value);
+ 	    double total_requested_damping = GD.d/100 + anelastic_damping;
+
+
+
 		 b = zeta * theBBase;
 	     ep->c3 = b *theDeltaT *  theDeltaT * edata->edgesize * updated_mu / 9;
 	     ep->c4 = b * theDeltaT *  theDeltaT * edata->edgesize * updated_lambda / 9;
@@ -3869,17 +3882,11 @@ void material_update_eq ( mesh_t     *myMesh,
 //				material_update ( *enlcons,           tstrains->qp[i],      pstrains1->qp[i], alphastress1->qp[i], epstr1->qv[i], sigma0, theDeltaT,
 //						           &pstrains2->qp[i], &alphastress2->qp[i], &stresses->qp[i], &epstr2->qv[i],      &enlcons->fs[i]);
 
-         /* Damping update */
 
-	     if (eq_it == 0){
-	     enlcons->Qs_value = set_Qs(edata->Vs);
-	     enlcons->Qp_value = set_Qp(edata->Vs);
-	     }
 
 	     /* convert damping to Q */
 
-	    double anelastic_damping = 1/(2*enlcons->Qs_value);
-	    double total_requested_damping = GD.d/100 + anelastic_damping;
+
 
 
 
@@ -3913,6 +3920,9 @@ void material_update_eq ( mesh_t     *myMesh,
 
 		update_Q_params(edata,index_Qs,0,QTable_Size,&(myQTABLE[0][0]),new_Q,0);
 	    control_correction_factor(edata,theFreq_Vel,theFreq);
+
+
+
         printf("strain_level= %f, table_damping: %f, Q_orig: %f, Q_new: %f. \n",myteststrain,GD.d,enlcons->Qs_value ,new_Q);
 //			}
 //		}
