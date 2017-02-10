@@ -545,7 +545,7 @@ void set_damping_params(edata_t *edata, double *theQTABLE, int QTable_Size,int  
 
 //    vksquared = edata->Vp * edata->Vp - 4. / 3. * edata->Vs * edata->Vs;
 	vs_vp_Ratio = edata->Vs / edata->Vp;
-	vs = edata->Vs * 0.001;
+	vs = edata->Vs;
 	L = 4. / 3. * vs_vp_Ratio * vs_vp_Ratio;
 
 	Qs = set_Qs(vs);
