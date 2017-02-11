@@ -3771,7 +3771,14 @@ void material_update_eq ( mesh_t     *myMesh,
 
 		// Now update the material based on strain level
 
-		double myteststrain = strain_mat[1][3] * 100;
+		double myteststrain = 0;
+
+		for (i=0; i < 8; i++){
+		myteststrain = strain_mat[i][3] + myteststrain;
+		}
+
+		// mean of all xy strains.
+		myteststrain = 100* (myteststrain/8);
 
 //		printf("Here is the max strain of element %i : %.10f \n", el_eindex, myteststrain);
 
@@ -3833,7 +3840,7 @@ void material_update_eq ( mesh_t     *myMesh,
          zeta = 10 / edata->Vs;
 
 
-         printf("Element number: %i, old c: %f, new c: %f \n", el_eindex, old_c1,ep->c1);
+         //printf("Element number: %i, old c: %f, new c: %f \n", el_eindex, old_c1,ep->c1);
 
 
 
@@ -3923,7 +3930,7 @@ void material_update_eq ( mesh_t     *myMesh,
 
 
 
-        printf("strain_level= %f, table_damping: %f, Q_orig: %f, Q_new: %f. \n",myteststrain,GD.d,enlcons->Qs_value ,new_Q);
+        //printf("strain_level= %f, table_damping: %f, Q_orig: %f, Q_new: %f. \n",myteststrain,GD.d,enlcons->Qs_value ,new_Q);
 //			}
 //		}
 	} /* for all nonlinear elements */
