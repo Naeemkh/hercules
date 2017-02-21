@@ -4231,10 +4231,11 @@ static void solver_load_fixedbase_displacements( mysolver_t* solver, int step )
 
 
 /** Compute the force due to the earthquake source. */
-static void solver_compute_force_source( int step )
+static void solver_compute_force_source(int step,  mesh_t  *myMesh, mysolver_t *mySolver)
 {
     Timer_Start( "Compute addforces s" );
-    compute_addforce_s( step );
+//    compute_addforce_s( step );
+    compute_addforce_bottom(step, myMesh, mySolver);
     Timer_Stop( "Compute addforces s" );
 }
 
@@ -4644,7 +4645,7 @@ static void solver_run()
         Timer_Start( "Compute Physics" );
         solver_nonlinear_state( Global.mySolver, Global.myMesh, Global.theK1, Global.theK2, step );
         solver_eqlinear_state( Global.mySolver, Global.myMesh, Global.theK1, Global.theK2, step );
-        solver_compute_force_source( step );
+        solver_compute_force_source( step,Global.myMesh,Global.mySolver);
         solver_compute_effective_drm_force( Global.mySolver, Global.myMesh,Global.theK1, Global.theK2, step, Param.theDeltaT );
         solver_compute_force_topography( Global.mySolver, Global.myMesh, Param.theDeltaTSquared );
         solver_compute_force_stiffness( Global.mySolver, Global.myMesh, Global.theK1, Global.theK2 );
@@ -6292,7 +6293,7 @@ is_nodeloaded( int32_t iNode, char* onoff )
  * respective forces for those nodes.
  */
 static void
-compute_addforce_s( int32_t timestep )
+compute_addforce_s( int32_t timestep)
 {
     int i;	/* index for loaded nodes (from the source) */
 
@@ -6306,9 +6307,8 @@ compute_addforce_s( int32_t timestep )
 	nodalForce->f[0] = ( Global.myForces [ i ].x [0] ) * Param.theDeltaTSquared;
 	nodalForce->f[1] = ( Global.myForces [ i ].x [1] ) * Param.theDeltaTSquared;
 	nodalForce->f[2] = ( Global.myForces [ i ].x [2] ) * Param.theDeltaTSquared;
-    }
 }
-
+}
 /**
  * compute_adjust: Either distribute the values from LOCAL dangling nodes
  *                 to LOCAL anchored nodes, or assign values from LOCAL
@@ -8005,6 +8005,10 @@ int main( int argc, char** argv )
 
     /* Generate, partition and output unstructured octree mesh */
     mesh_generate();
+
+    /* count and map the bottom elements  */
+    bottom_element_force_init(Global.myID, Global.myMesh, Param.theDomainZ);
+
 
     if ( Param.includeBuildings == YES ){
         if ( get_fixedbase_flag() == YES ) {

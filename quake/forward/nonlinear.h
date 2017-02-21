@@ -268,7 +268,9 @@ void nonlinear_print_stats(int32_t *nonlinElementsCount,
 void nonlinear_stats(int32_t myID, int32_t theGroupSize);
 void eqlinear_stats(int32_t myID, int32_t theGroupSize);
 void nonlinear_solver_init(int32_t myID, mesh_t *myMesh, double depth);
+void bottom_element_force_init(int32_t myID, mesh_t *myMesh, double depth);
 void eqlinear_solver_init(int32_t myID, mesh_t *myMesh, double depth);
+void compute_addforce_bottom(int32_t timestep, mesh_t *myMesh, mysolver_t *mySolver);
 void constract_GD_Table();
 GD_t  search_GD_table(double strain);
 

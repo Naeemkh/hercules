@@ -1155,6 +1155,235 @@ void nonlinear_solver_init(int32_t myID, mesh_t *myMesh, double depth) {
 }
 
 
+void bottom_element_force_init(int32_t myID, mesh_t *myMesh, double depth) {
+
+//    int32_t eindex, nl_eindex;
+//
+//    nonlinear_elements_count(myID, myMesh);
+//    nonlinear_elements_mapping(myID, myMesh);
+//
+//    if ( theGeostaticLoadingT > 0 ) {
+
+
+
+        bottom_elements_count(myID, myMesh, depth);
+        bottom_elements_mapping(myID, myMesh, depth);
+//    }
+//
+//    /* Memory allocation for mother structure */
+//
+//    myNonlinSolver = (nlsolver_t *)malloc(sizeof(nlsolver_t));
+//
+//    if (myNonlinSolver == NULL) {
+//        fprintf(stderr, "Thread %d: nonlinear_init: out of memory\n", myID);
+//        MPI_Abort(MPI_COMM_WORLD, ERROR);
+//        exit(1);
+//    }
+//
+//    /* Memory allocation for internal structures */
+//
+//    myNonlinSolver->constants =
+//        (nlconstants_t *)calloc(myNonlinElementsCount, sizeof(nlconstants_t));
+//    myNonlinSolver->stresses =
+//        (qptensors_t *)calloc(myNonlinElementsCount, sizeof(qptensors_t));
+//    myNonlinSolver->strains =
+//        (qptensors_t *)calloc(myNonlinElementsCount, sizeof(qptensors_t));
+//    myNonlinSolver->pstrains1 =
+//        (qptensors_t *)calloc(myNonlinElementsCount, sizeof(qptensors_t));
+//    myNonlinSolver->pstrains2 =
+//        (qptensors_t *)calloc(myNonlinElementsCount, sizeof(qptensors_t));
+//    myNonlinSolver->alphastress1 =
+//        (qptensors_t *)calloc(myNonlinElementsCount, sizeof(qptensors_t));
+//    myNonlinSolver->alphastress2 =
+//        (qptensors_t *)calloc(myNonlinElementsCount, sizeof(qptensors_t));
+//    myNonlinSolver->ep1 =
+//        (qpvectors_t *)calloc(myNonlinElementsCount, sizeof(qpvectors_t));
+//    myNonlinSolver->ep2 =
+//        (qpvectors_t *)calloc(myNonlinElementsCount, sizeof(qpvectors_t));
+//
+//    if ( (myNonlinSolver->constants           == NULL) ||
+//         (myNonlinSolver->stresses            == NULL) ||
+//         (myNonlinSolver->strains             == NULL) ||
+//         (myNonlinSolver->ep1                 == NULL) ||
+//         (myNonlinSolver->ep2                 == NULL) ||
+//         (myNonlinSolver->alphastress1        == NULL) ||
+//         (myNonlinSolver->alphastress2        == NULL) ||
+//         (myNonlinSolver->pstrains1           == NULL) ||
+//         (myNonlinSolver->pstrains2           == NULL) ) {
+//
+//        fprintf(stderr, "Thread %d: nonlinear_init: out of memory\n", myID);
+//        MPI_Abort(MPI_COMM_WORLD, ERROR);
+//        exit(1);
+//    }
+//
+//    /* Initialization of element constants
+//     * Tensors have been initialized to 0 by calloc
+//     */
+//
+//    for (nl_eindex = 0; nl_eindex < myNonlinElementsCount; nl_eindex++) {
+//
+//        elem_t     *elemp;
+//        edata_t    *edata;
+//        nlconstants_t *ecp;
+//        double      mu, lambda;
+//        double      elementVs, elementVp;
+//
+//        eindex = myNonlinElementsMapping[nl_eindex];
+//
+//        elemp = &myMesh->elemTable[eindex];
+//        edata = (edata_t *)elemp->data;
+//        ecp   = myNonlinSolver->constants + nl_eindex;
+//
+//        int32_t lnid0 = elemp->lnid[0];
+//        double  zo    = myMesh->ticksize * myMesh->nodeTable[lnid0].z;
+//
+//        /* get element Vs */
+//
+//        elementVs   = (double)edata->Vs;
+//        elementVp   = (double)edata->Vp;
+//
+//
+//
+//        /* Calculate the lame constants and store in element */
+//
+//        mu_and_lambda(&mu, &lambda, edata, eindex);
+//        ecp->lambda = lambda;
+//        ecp->mu     = mu;
+//
+//        /* Calculate the vertical stress as a homogeneous half-space */
+//        if ( theApproxGeoState == YES )
+//        	ecp->sigmaZ_st = edata->rho * 9.80 * ( zo + edata->edgesize / 2.0 );
+//
+//        /* Calculate the yield function constants */
+//        switch (theMaterialModel) {
+//
+//            case LINEAR:
+//                ecp->alpha    = 0.;
+//                ecp->k        = 0.;
+//                ecp->phi      = 0.;
+//                ecp->beta     = 0.;
+//                ecp->h        = 0.;
+//                ecp->Sstrain0 = 0.;
+//                break;
+//
+//            case VONMISES:
+//            	ecp->c     = get_cohesion(elementVs);
+//            	ecp->phi   = get_phi(elementVs);
+//            	ecp->dil_angle = 0.0;
+//
+//            	ecp->alpha = 0.;
+//            	ecp->beta  = 0.;
+//            	ecp->gamma = 1.0;
+//
+//            	ecp->Sstrain0    = interpolate_property_value(elementVs, theGamma0);
+//
+//            	if (ecp->Sstrain0 == 0)
+//            		ecp->k     = ecp->c;
+//            	else
+//            		ecp->k     = ecp->Sstrain0 * ecp->mu;
+//
+//            	ecp->h         = 0; /*  no isotropic hardening  in von Mises model */
+//            	break;
+//            case DRUCKERPRAGER:
+//                ecp->c         = get_cohesion(elementVs);
+//                ecp->phi       = get_phi(elementVs);
+//                ecp->dil_angle = get_dilatancy(elementVs);
+//
+//                ecp->alpha = get_alpha(elementVs, ecp->phi);
+//                ecp->beta  = get_beta(elementVs);
+//                ecp->gamma = get_gamma(elementVs,ecp->phi);
+//
+//                ecp->k         = ecp->gamma * ecp->c;
+//                ecp->h         = get_hardmod(elementVs);
+//                ecp->Sstrain0  = 0.0;
+//
+//            	break;
+//            case MOHR_COULOMB:
+//                ecp->c     = get_cohesion(elementVs);
+//                ecp->phi   = get_phi(elementVs);
+//                ecp->dil_angle = get_dilatancy(elementVs);
+//
+//                ecp->alpha = 0.;
+//                ecp->beta  = 0.;
+//                ecp->gamma = 0.;
+//
+//                ecp->h         = get_hardmod(elementVs);
+//                ecp->Sstrain0  = 0.0;
+//            	break;
+//
+//            default:
+//                fprintf(stderr, "Thread %d: nonlinear_solver_init:\n"
+//                        "\tUnexpected error with the material model\n", myID);
+//                MPI_Abort(MPI_COMM_WORLD, ERROR);
+//                exit(1);
+//                break;
+//        }
+//
+//
+//        ecp->strainrate  =
+//        		interpolate_property_value(elementVs, theStrainRates  );
+//        ecp->sensitivity =
+//        		interpolate_property_value(elementVs, theSensitivities );
+//        ecp->hardmodulus =
+//        		interpolate_property_value(elementVs, theHardeningModulus );
+
+//        if ( theApproxGeoState == NO ) {
+//            ecp->I1_st        =  -1.;
+//            ecp->J2square_st  =   0.;
+//        } else {
+//            ecp->I1_st        = -S_zz * ( 3.0 - 2.0 * sin ( ecp->phi ) );
+//            ecp->J2square_st  =  S_zz * S_zz * sin ( ecp->phi ) * sin ( ecp->phi ) / 3.0;
+//        }
+
+//
+//    } /* for all elements */
+
+}
+
+void    compute_addforce_bottom(int32_t timestep, mesh_t *myMesh, mysolver_t *mySolver)
+{
+    int       i;
+    int32_t   beindex, eindex;
+
+    /* Loop on the number of elements */
+    for (beindex = 0; beindex < myBottomElementsCount; beindex++) {
+
+        elem_t    *elemp;
+
+        eindex = myBottomElements[beindex].element_id;
+        elemp  = &myMesh->elemTable[eindex];
+
+        for (i = 4; i < 8; i++) {
+
+            int32_t    lnid;
+            fvector_t *nodalForce;
+
+            lnid = elemp->lnid[i];
+            nodalForce = mySolver->force + lnid;
+
+            //
+            double fc =0.8,zp=0.04,Vs=200.0,Ts=3.0;
+            double t=timestep*0.02;
+        	double alfa1 = ( PI * fc ) * ( PI * fc ) * ( t - zp / Vs - Ts) * ( t - zp / Vs - Ts);
+        	double alfa2 = ( PI * fc ) * ( PI * fc ) * ( t + zp / Vs - Ts) * ( t + zp / Vs - Ts);
+
+        	double uo1 = ( 2.0 * alfa1 - 1.0 ) * exp(-alfa1);
+        	double uo2 = ( 2.0 * alfa2 - 1.0 ) * exp(-alfa2);
+
+        	double force = (uo1+uo2);
+
+
+//           nodalForce->f[2] += myBottomElements[beindex].nodal_force[i-4];
+        	 nodalForce->f[2] = force;
+
+
+        } /* element nodes */
+
+}
+}
+
+
+
 
 void eqlinear_solver_init(int32_t myID, mesh_t *myMesh, double depth) {
 
