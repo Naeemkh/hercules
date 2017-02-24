@@ -1362,8 +1362,8 @@ void    compute_addforce_bottom(int32_t timestep, mesh_t *myMesh, mysolver_t *my
             nodalForce = mySolver->force + lnid;
 
             //
-            double fc =0.8,zp=0.04,Vs=200.0,Ts=3.0;
-            double t=timestep*0.02;
+            double fc =0.8,zp=0.5,Vs=20.0,Ts=3.0;
+            double t=timestep*0.004;
         	double alfa1 = ( PI * fc ) * ( PI * fc ) * ( t - zp / Vs - Ts) * ( t - zp / Vs - Ts);
         	double alfa2 = ( PI * fc ) * ( PI * fc ) * ( t + zp / Vs - Ts) * ( t + zp / Vs - Ts);
 
@@ -1374,7 +1374,7 @@ void    compute_addforce_bottom(int32_t timestep, mesh_t *myMesh, mysolver_t *my
 
 
 //           nodalForce->f[2] += myBottomElements[beindex].nodal_force[i-4];
-        	 nodalForce->f[2] = force;
+        	 nodalForce->f[0] = force;
 
 
         } /* element nodes */
