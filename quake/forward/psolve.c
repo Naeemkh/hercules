@@ -1344,137 +1344,144 @@ replicateDB(const char *dbname)
 static void
 setrec( octant_t* leaf, double ticksize, void* data )
 {
-    double x_m, y_m, z_m;	/* x:south-north, y:east-west, z:depth */
-    tick_t halfticks;
-    cvmpayload_t g_props;	/* cvm record with ground properties */
-    cvmpayload_t g_props_min;	/* cvm record with the min Vs found */
+	double x_m, y_m, z_m;	/* x:south-north, y:east-west, z:depth */
+	tick_t halfticks;
+	cvmpayload_t g_props;	/* cvm record with ground properties */
+	cvmpayload_t g_props_min;	/* cvm record with the min Vs found */
 
-    int i_x, i_y, i_z, n_points = 3;
-    double points[3];
+	int i_x, i_y, i_z, n_points = 3;
+	double points[3];
 
-    int res = 0;
-    edata_t* edata = (edata_t*)data;
+	int res = 0;
+	edata_t* edata = (edata_t*)data;
 
-    points[0] = 0.01;
-    points[1] = 1;
-    points[2] = 1.99;
+	points[0] = 0.01;
+	points[1] = 1;
+	points[2] = 1.99;
 
-    halfticks = (tick_t)1 << (PIXELLEVEL - leaf->level - 1);
-    edata->edgesize = ticksize * halfticks * 2;
+	halfticks = (tick_t)1 << (PIXELLEVEL - leaf->level - 1);
+	edata->edgesize = ticksize * halfticks * 2;
 
-    /* Check for buildings and proceed according to the buildings setrec */
-    if ( Param.includeBuildings == YES ) {
+	/* Check for buildings and proceed according to the buildings setrec */
+	if ( Param.includeBuildings == YES ) {
 		if ( bldgs_setrec( leaf, ticksize, edata, Global.theCVMEp,Global.theXForMeshOrigin,Global.theYForMeshOrigin,Global.theZForMeshOrigin ) ) {
-            return;
-        }
-    }
-
-    if ( Param.includeTopography == YES ) {
-        if ( topo_setrec( leaf, ticksize, edata, Global.theCVMEp ) ) {
-            return;
-        }
-    }
-
-    g_props_min.Vs  = FLT_MAX;
-    g_props_min.Vp  = NAN;
-    g_props_min.rho = NAN;
-
-    for ( i_x = 0; i_x < n_points; i_x++ ) {
-
-	x_m = (Global.theXForMeshOrigin
-	       + (leaf->lx + points[i_x] * halfticks) * ticksize);
-
-	for ( i_y = 0; i_y < n_points; i_y++ ) {
-
-	    y_m  = Global.theYForMeshOrigin
-		+ (leaf->ly + points[i_y] * halfticks) * ticksize;
-
-	    for ( i_z = 0; i_z < n_points; i_z++) {
-
-		z_m = Global.theZForMeshOrigin
-		    + (leaf->lz +  points[i_z] * halfticks) * ticksize;
-
-		/* Shift the domain if topography with squashed etree is considered */
-		if ( ( Param.includeTopography == YES ) && ( get_theetree_type() == SQD )  ) {
-                    z_m -=   point_elevation ( x_m, y_m ) ;
-                    if ( z_m < 0 ) /* get air properties */
-                    {
-                    	edata_t* airedata = (edata_t*)data;
-                    	get_airprops_topo( airedata );
-                    	g_props.Vp  = airedata->Vp;
-                    	g_props.Vs  = airedata->Vs;
-                    	g_props.rho = airedata->rho;
-
-                		if ( g_props.Vs < g_props_min.Vs ) {
-                		    /* assign minimum value of vs to produce elements
-                		     * that are small enough to rightly represent the model */
-                		    g_props_min = g_props;
-                		}
-
-                		continue;
-                    }
+			return;
 		}
-
-		/* Shift the domain if buildings are considered */
-		if ( Param.includeBuildings == YES ) {
-                    z_m -= get_surface_shift();
-		}
-
-		/* Reset Shear Velocities. Doriam */
-		if (z_m>=125)
-			res = cvm_query( Global.theCVMEp, y_m, x_m, z_m, &g_props );
-		else {
-			double a = 250.0;
-			double b = 0.0;
-			double H = 125.0;
-
-			double m = 2.0 * ( a + b - b * z_m /H );
-
-			if ( ( y_m <= ( 1000 + m / 2.0 ) ) &&
-			     ( y_m >= ( 1000 - m / 2.0 ) ) &&
-			     ( x_m <= ( 1000 + m / 2.0   ) ) &&
-			     ( x_m >= ( 1000 - m / 2.0  ) ) ) {
-				res = cvm_query( Global.theCVMEp, 1000.00, 1000.0, 0.10, &g_props );
-			} else
-				res = cvm_query( Global.theCVMEp, 1000.00, 1000.0, 300.0, &g_props );
-		}
-
-		if (res != 0) {
-		    continue;
-		}
-
-		if ( g_props.Vs < g_props_min.Vs ) {
-		    /* assign minimum value of vs to produce elements
-		     * that are small enough to rightly represent the model */
-		    g_props_min = g_props;
-		}
-
-		if (g_props.Vs <= Param.theVsCut) {
-		    /* stop early if needed, completely break out of all
-		     * the loops, the label is just outside the loop */
-		    goto outer_loop_label;
-		}
-	    }
 	}
-    }
- outer_loop_label: /* in order to completely break out from the inner loop */
 
-    edata->Vp  = g_props_min.Vp;
-    edata->Vs  = g_props_min.Vs;
-    edata->rho = g_props_min.rho;
+	if ( Param.includeTopography == YES ) {
+		if ( topo_setrec( leaf, ticksize, edata, Global.theCVMEp ) ) {
+			return;
+		}
+	}
 
-    if (res != 0 && g_props_min.Vs == DBL_MAX) {
-	/* all the queries failed, then center out of bound point. Set Vs
-	 * to force split */
-	edata->Vs = Param.theFactor * edata->edgesize / 2;
-    } else if (edata->Vs <= Param.theVsCut) {	/* adjust Vs and Vp */
-	double VpVsRatio = edata->Vp / edata->Vs;
+	g_props_min.Vs  = FLT_MAX;
+	g_props_min.Vp  = NAN;
+	g_props_min.rho = NAN;
 
-	edata->Vs = Param.theVsCut;
-	edata->Vp = Param.theVsCut * VpVsRatio;
-    }
+	for ( i_x = 0; i_x < n_points; i_x++ ) {
 
-    return;
+		x_m = (Global.theXForMeshOrigin
+				+ (leaf->lx + points[i_x] * halfticks) * ticksize);
+
+		for ( i_y = 0; i_y < n_points; i_y++ ) {
+
+			y_m  = Global.theYForMeshOrigin
+					+ (leaf->ly + points[i_y] * halfticks) * ticksize;
+
+			for ( i_z = 0; i_z < n_points; i_z++) {
+
+				z_m = Global.theZForMeshOrigin
+						+ (leaf->lz +  points[i_z] * halfticks) * ticksize;
+
+				/* Shift the domain if topography with squashed etree is considered */
+				if ( ( Param.includeTopography == YES ) && ( get_theetree_type() == SQD )  ) {
+					z_m -=   point_elevation ( x_m, y_m ) ;
+					if ( z_m < 0 ) /* get air properties */
+					{
+						edata_t* airedata = (edata_t*)data;
+						get_airprops_topo( airedata );
+						g_props.Vp  = airedata->Vp;
+						g_props.Vs  = airedata->Vs;
+						g_props.rho = airedata->rho;
+
+						if ( g_props.Vs < g_props_min.Vs ) {
+							/* assign minimum value of vs to produce elements
+							 * that are small enough to rightly represent the model */
+							g_props_min = g_props;
+						}
+
+						continue;
+					}
+				}
+
+				/* Shift the domain if buildings are considered */
+				if ( Param.includeBuildings == YES ) {
+					z_m -= get_surface_shift();
+				}
+
+				/* Reset Shear Velocities. Doriam */
+				/* comment to have homogeneous domain */
+//				if (z_m>=125)
+//					res = cvm_query( Global.theCVMEp, y_m, x_m, z_m, &g_props );
+//				else {
+//					double a = 250.0;
+//					double b = 0.0;
+//					double H = 125.0;
+//
+//					double m = 2.0 * ( a + b - b * z_m /H );
+//
+//					if ( ( y_m <= ( 1000 + m / 2.0 ) ) &&
+//							( y_m >= ( 1000 - m / 2.0 ) ) &&
+//							( x_m <= ( 1000 + m / 2.0   ) ) &&
+//							( x_m >= ( 1000 - m / 2.0  ) ) ) {
+//						res = cvm_query( Global.theCVMEp, 1000.00, 1000.0, 0.10, &g_props );
+//					} else
+//						res = cvm_query( Global.theCVMEp, 1000.00, 1000.0, 300.0, &g_props );
+//				}
+				//*/
+        		g_props.Vs  = 150;
+        		g_props.Vp  = 259.8076;
+        		g_props.rho = 2700;
+                res = 0;
+				//
+				//        res=0;
+				if (res != 0) {
+					continue;
+				}
+
+				if ( g_props.Vs < g_props_min.Vs ) {
+					/* assign minimum value of vs to produce elements
+					 * that are small enough to rightly represent the model */
+					g_props_min = g_props;
+				}
+
+				if (g_props.Vs <= Param.theVsCut) {
+					/* stop early if needed, completely break out of all
+					 * the loops, the label is just outside the loop */
+					goto outer_loop_label;
+				}
+			}
+		}
+	}
+	outer_loop_label: /* in order to completely break out from the inner loop */
+
+	edata->Vp  = g_props_min.Vp;
+	edata->Vs  = g_props_min.Vs;
+	edata->rho = g_props_min.rho;
+
+	if (res != 0 && g_props_min.Vs == DBL_MAX) {
+		/* all the queries failed, then center out of bound point. Set Vs
+		 * to force split */
+		edata->Vs = Param.theFactor * edata->edgesize / 2;
+	} else if (edata->Vs <= Param.theVsCut) {	/* adjust Vs and Vp */
+		double VpVsRatio = edata->Vp / edata->Vs;
+
+		edata->Vs = Param.theVsCut;
+		edata->Vp = Param.theVsCut * VpVsRatio;
+	}
+
+	return;
 }
 
 #else /* USECVMDB */
@@ -7522,25 +7529,32 @@ mesh_correct_properties( etree_t* cvm )
                       //               depth_m, &g_props );
 
             		/* Reset Shear Velocities. Doriam */
-            		if (depth_m>=125)
-            			res = cvm_query( Global.theCVMEp, east_m, north_m,
-                                depth_m, &g_props );
-            		else {
-            			double a = 250.0;
-            			double b = 0.0;
-            			double H = 125.0;
 
-            			double m = 2.0 * ( a + b - b * depth_m /H );
+/* comment to have homogeneous domain */
+//            		if (depth_m>=125)
+//            			res = cvm_query( Global.theCVMEp, east_m, north_m,
+//                                depth_m, &g_props );
+//            		else {
+//            			double a = 250.0;
+//            			double b = 0.0;
+//            			double H = 125.0;
+//
+//            			double m = 2.0 * ( a + b - b * depth_m /H );
+//
+//            			if ( ( east_m <= ( 1000 + m / 2.0 ) ) &&
+//            			     ( east_m >= ( 1000 - m / 2.0 ) ) &&
+//            			     ( north_m <= ( 1000 + m / 2.0   ) ) &&
+//            			     ( north_m >= ( 1000 - m / 2.0   ) ) ) {
+//            				res = cvm_query( Global.theCVMEp, 1000.00, 1000.0, 0.10, &g_props );
+//            			} else
+//            				res = cvm_query( Global.theCVMEp, 1000.00, 1000.0, 300.0, &g_props );
+//            		}
 
-            			if ( ( east_m <= ( 1000 + m / 2.0 ) ) &&
-            			     ( east_m >= ( 1000 - m / 2.0 ) ) &&
-            			     ( north_m <= ( 1000 + m / 2.0   ) ) &&
-            			     ( north_m >= ( 1000 - m / 2.0   ) ) ) {
-            				res = cvm_query( Global.theCVMEp, 1000.00, 1000.0, 0.10, &g_props );
-            			} else
-            				res = cvm_query( Global.theCVMEp, 1000.00, 1000.0, 300.0, &g_props );
-            		}
 
+            		g_props.Vs  = 150;
+            		g_props.Vp  = 259.8076;
+            		g_props.rho = 2700;
+                    res = 0;
 
 
                     if (res != 0) {
@@ -7560,6 +7574,8 @@ mesh_correct_properties( etree_t* cvm )
         edata->Vp  =  vp;
         edata->Vs  =  vs;
         edata->rho = rho;
+
+
 
 
         if (cnt != 0 ) {
