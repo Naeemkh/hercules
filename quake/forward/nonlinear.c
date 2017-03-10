@@ -1363,14 +1363,14 @@ void    compute_addforce_bottom(int32_t timestep, mesh_t *myMesh, mysolver_t *my
 
             //
             double fc =0.8,zp=0.5,Vs=20.0,Ts=3.0;
-            double t=timestep*0.004;
+            double t=timestep*0.001;
         	double alfa1 = ( PI * fc ) * ( PI * fc ) * ( t - zp / Vs - Ts) * ( t - zp / Vs - Ts);
         	double alfa2 = ( PI * fc ) * ( PI * fc ) * ( t + zp / Vs - Ts) * ( t + zp / Vs - Ts);
 
         	double uo1 = ( 2.0 * alfa1 - 1.0 ) * exp(-alfa1);
         	double uo2 = ( 2.0 * alfa2 - 1.0 ) * exp(-alfa2);
 
-        	double force = (uo1+uo2);
+        	double force = (uo1+uo2)/4.5729e+03;
 
 
 //           nodalForce->f[2] += myBottomElements[beindex].nodal_force[i-4];
@@ -4007,7 +4007,7 @@ void material_update_eq ( mesh_t     *myMesh,
 		}
 
 		// mean of all xy strains.
-		myteststrain = 100* (myteststrain/8);
+		myteststrain = 100* (myteststrain/8)*0.65;
 
 //		printf("Here is the max strain of element %i : %.10f \n", el_eindex, myteststrain);
 
@@ -4172,16 +4172,16 @@ GD_t  search_GD_table(double strain){
       int  table_r;
 
 	  double thGDtable[11][3] = {{ 0.0001,	1.000, 0.24},
-				                       { 0.0003,	1.000, 0.42},
-				                       { 0.0010,	1.000, 0.80},
-				                       { 0.0030,	0.981, 1.40},
-				                       { 0.0100,	0.941, 2.80},
-			                           { 0.0300,	0.847, 5.10},
-				                       { 0.1000,	0.656, 9.80},
-				                       { 0.3000,	0.438, 15.50},
-				                       { 1.0000,	0.238, 21.00},
-				                       { 3.0000,	0.144, 25.00},
-				                       { 10.0000,	0.110, 28.00},
+				                 { 0.0003,	1.000, 0.42},
+				                 { 0.0010,	1.000, 0.80},
+				                 { 0.0030,	0.981, 1.40},
+				                 { 0.0100,	0.941, 2.80},
+			                     { 0.0300,	0.847, 5.10},
+				                 { 0.1000,	0.656, 9.80},
+				                 { 0.3000,	0.438, 15.50},
+				                 { 1.0000,	0.238, 21.00},
+				                 { 3.0000,	0.144, 25.00},
+				                 { 10.0000,	0.110, 28.00},
 		};
 
 
