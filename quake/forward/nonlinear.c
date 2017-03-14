@@ -1342,24 +1342,24 @@ void bottom_element_force_init(int32_t myID, mesh_t *myMesh, double depth) {
 
 void    compute_addforce_bottom(int32_t timestep, mesh_t *myMesh, mysolver_t *mySolver)
 {
-    int       i;
-    int32_t   beindex, eindex;
-
-    /* Loop on the number of elements */
-    for (beindex = 0; beindex < myBottomElementsCount; beindex++) {
-
-        elem_t    *elemp;
-
-        eindex = myBottomElements[beindex].element_id;
-        elemp  = &myMesh->elemTable[eindex];
-
-        for (i = 4; i < 8; i++) {
-
-            int32_t    lnid;
-            fvector_t *nodalForce;
-
-            lnid = elemp->lnid[i];
-            nodalForce = mySolver->force + lnid;
+//    int       i;
+//    int32_t   beindex, eindex;
+//
+//    /* Loop on the number of elements */
+//    for (beindex = 0; beindex < myBottomElementsCount; beindex++) {
+//
+//        elem_t    *elemp;
+//
+//        eindex = myBottomElements[beindex].element_id;
+//        elemp  = &myMesh->elemTable[eindex];
+//
+//        for (i = 4; i < 8; i++) {
+//
+//            int32_t    lnid;
+//            fvector_t *nodalForce;
+//
+//            lnid = elemp->lnid[i];
+//            nodalForce = mySolver->force + lnid;
 
             //
             double fc =0.8,zp=0.5,Vs=20.0,Ts=3.0;
@@ -1374,13 +1374,28 @@ void    compute_addforce_bottom(int32_t timestep, mesh_t *myMesh, mysolver_t *my
 
 
 //           nodalForce->f[2] += myBottomElements[beindex].nodal_force[i-4];
-        	 nodalForce->f[0] = force;
+//        	 nodalForce->f[0] = force;
 
 
-        } /* element nodes */
+//        } /* element nodes */
+
+
+        int32_t nindex;
+
+            for ( nindex = 0; nindex < myMesh->nharbored; nindex++ ) {
+
+                double z_m = (myMesh->ticksize)*(double)myMesh->nodeTable[nindex].z;
+
+                if ( z_m == 500 ) {
+                    fvector_t *nodalForce;
+                    nodalForce = mySolver->force + nindex;
+                    nodalForce->f[0] += force;
+                }
+            }
+
 
 }
-}
+//}
 
 
 
