@@ -236,5 +236,15 @@ int vsrule( edata_t *edata, double theFactor )
 }
 
 
+double set_Qs(double vs){
+	vs = vs*0.001;
+	double Qs = 10.5 + vs * (-16. + vs * (153. + vs * (-103. + vs * (34.7 + vs * (-5.29 + vs * 0.31)))));
+	return Qs;
+}
+
+double set_Qp(double Qs){
+	double Qp = Qs * 2;
+	return Qp;
+}
 
 

@@ -20,6 +20,7 @@
 #ifndef DAMPING_H_
 #define DAMPING_H_
 
+
 /* physics related */
 
 typedef enum
@@ -32,5 +33,9 @@ typedef enum
 void damping_addforce(mesh_t *myMesh, mysolver_t *mySolver, fmatrix_t (*theK1)[8], fmatrix_t (*theK2)[8]);
 void calc_conv(mesh_t *myMesh, mysolver_t *mySolver, double theFreq, double theDeltaT, double theDeltaTSquared, damping_type_t typeOfDamping);
 void constant_Q_addforce(mesh_t *myMesh, mysolver_t *mySolver, double theFreq, double theDeltaT, double theDeltaTSquared, damping_type_t typeOfDamping);
+void damp_init(int32_t myID, mesh_t *myMesh);
+void set_damping_params(edata_t *edata, double *theQTABLE, int QTable_Size,int  useInfQk,  double theFreq_Vel, double theFreq);
+void update_Q_params(edata_t *edata, int index_Qs, int index_Qk, int QTable_Size, double *QTABLE, double Qs,double Qk);
+void control_correction_factor(edata_t *edata, double theFreq_Vel,double theFreq);
 
 #endif /* DAMPING_H_ */
