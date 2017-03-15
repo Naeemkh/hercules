@@ -245,10 +245,10 @@ void nonlinear_init ( int32_t     myID,
                       double      theDeltaT,
                       double      theEndT );
 
-void eqlinear_init ( int32_t     myID,
-                      const char *parametersin,
-                      double      theDeltaT,
-                      double      theEndT );
+//void eqlinear_init ( int32_t     myID,
+//                      const char *parametersin,
+//                      double      theDeltaT,
+//                      double      theEndT );
 
 int32_t nonlinear_initparameters ( const char *parametersin,
                                    double      theDeltaT,
