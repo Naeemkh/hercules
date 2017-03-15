@@ -7988,6 +7988,13 @@ int main( int argc, char** argv )
         nonlinear_init(Global.myID, Param.parameters_input_file, Param.theDeltaT, Param.theEndT);
     }
 
+    /* Initialize eqlinear parameters */
+    if ( Param.includeEqlinearAnalysis == YES ) {
+    	constract_GD_Table();
+        eqlinear_init(Global.myID, Param.parameters_input_file, Param.theDeltaT, Param.theEndT);
+
+    }
+
     if ( Param.includeBuildings == YES ){
         bldgs_init( Global.myID, Param.parameters_input_file );
     }
@@ -8047,6 +8054,24 @@ int main( int argc, char** argv )
     Timer_Stop("Mesh Stats Print");
     Timer_Reduce("Mesh Stats Print", MAX | MIN, comm_solver);
 
+
+    //====================
+
+    if (Param.includeEqlinearAnalysis == YES){
+        /* start the equvalent linear method for loop */
+
+
+        int num_iter  = Param.theNumberOfIterations;
+
+        int eq_c = Param.eq_it;
+
+        for (eq_c = 0; eq_c < num_iter; eq_c++){
+
+        Param.eq_it = eq_c;
+
+
+
+
     /* Initialize the output planes */
     if ( Param.theNumberOfPlanes != 0 ) {
         planes_setup(Global.myID, &Param.thePlanePrintRate, Param.IO_pool_pe_count,
@@ -8068,6 +8093,7 @@ int main( int argc, char** argv )
     Timer_Reduce("Solver Stats Print", MAX | MIN, comm_solver);
 
     /* Initialize nonlinear solver analysis structures */
+    /*
     if ( Param.includeNonlinearAnalysis == YES ) {
         nonlinear_solver_init(Global.myID, Global.myMesh, Param.theDomainZ);
         if ( Param.theNumberOfStations !=0 ){
@@ -8075,11 +8101,17 @@ int main( int argc, char** argv )
         }
         nonlinear_stats(Global.myID, Global.theGroupSize);
     }
+    */
 
+    if (eq_c == 0){
+    eqlinear_solver_init(Global.myID, Global.myMesh, Param.theDomainZ);
     Timer_Start("Source Init");
     source_init(Param.parameters_input_file);
     Timer_Stop("Source Init");
     Timer_Reduce("Source Init", MAX | MIN, comm_solver);
+    }
+
+
 
     /* Mapping element indices for stiffness
      * This is for compatibility with nonlinear
@@ -8097,6 +8129,81 @@ int main( int argc, char** argv )
     Timer_Start("Solver");
     solver_run();
     Timer_Stop("Solver");
+        }
+    }else{
+
+    	   if ( Param.theNumberOfStations !=0 ){
+    	        output_stations_init(Param.parameters_input_file);
+    	    }
+
+    	    /* Initialize topography solver analysis structures */
+    	    /* must be before solver_init() for proper treatment of the nodal mass */
+    	    /* Naeem: commented the topography part for now.
+    	    if ( Param.includeTopography == YES ) {
+    	        topo_solver_init(Global.myID, Global.myMesh);
+    	        if ( Param.theNumberOfStations !=0 ){
+    	            topography_stations_init(Global.myMesh, Param.myStations, Param.myNumberOfStations);
+    	        }
+
+    	    }
+    	    */
+    	    /* Initialize the output planes */
+
+    	    if ( Param.theNumberOfPlanes != 0 ) {
+    	        planes_setup(Global.myID, &Param.thePlanePrintRate, Param.IO_pool_pe_count,
+    			     Param.theNumberOfPlanes, Param.parameters_input_file, get_surface_shift(),
+    			     Param.theSurfaceCornersLong, Param.theSurfaceCornersLat,
+    			     Param.theDomainX, Param.theDomainY, Param.theDomainZ,
+    			     Param.planes_input_file);
+    	    }
+
+
+
+    	    /* Initialize the solver, source and output structures */
+
+    	    solver_init();
+    	    Timer_Start("Solver Stats Print");
+    	    solver_printstat( Global.mySolver );
+    	    Timer_Stop("Solver Stats Print");
+    	    Timer_Reduce("Solver Stats Print", MAX | MIN, comm_solver);
+
+    	    /* Initialize nonlinear solver analysis structures */
+    	    /* Naeem: comment out the following
+    	    if ( Param.includeNonlinearAnalysis == YES ) {
+    	        nonlinear_solver_init(Global.myID, Global.myMesh, Param.theDomainZ);
+    	        if ( Param.theNumberOfStations !=0 ){
+    	            nonlinear_stations_init(Global.myMesh, Param.myStations, Param.myNumberOfStations);
+    	        }
+    	        nonlinear_stats(Global.myID, Global.theGroupSize);
+    	    }
+    	    */
+
+    	    Timer_Start("Source Init");
+    	    source_init(Param.parameters_input_file);
+    	    Timer_Stop("Source Init");
+    	    Timer_Reduce("Source Init", MAX | MIN, comm_solver);
+
+    	    /* Mapping element indices for stiffness
+    	     * This is for compatibility with nonlinear
+    	     * \TODO a more clever way should be possible
+    	     */
+
+    	    stiffness_init(Global.myID, Global.myMesh);
+    	    damp_init     (Global.myID, Global.myMesh);
+
+    	    /* this is a little too late to check for output parameters,
+    	     * but let's do this in the mean time
+    	     */
+    	    output_init (Param.parameters_input_file, &Param.theOutputParameters);
+
+    	    /* Run the solver and output the results */
+    	    MPI_Barrier(comm_solver);
+
+
+    	Timer_Start("Solver");
+        solver_run();
+        Timer_Stop("Solver");
+    }
     MPI_Barrier(comm_solver);
 
     if ( Param.includeNonlinearAnalysis == YES ) {
