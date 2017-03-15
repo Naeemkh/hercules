@@ -25,7 +25,7 @@
 #include <gsl/gsl_poly.h>
 
 #include "geometrics.h"
-#include "nonlinear.h"
+//#include "nonlinear.h"
 #include "eqlinear.h"
 #include "octor.h"
 #include "psolve.h"
@@ -360,11 +360,81 @@ return;
 }
 
 
+void eqlinear_stats(int32_t myID, int32_t theGroupSize) {
 
+//    int32_t *nonlinElementsCount = NULL;
+//    int32_t *nonlinStationsCount = NULL;
+//    int32_t *bottomElementsCount = NULL;
+//
+//    if ( myID == 0 ) {
+//        XMALLOC_VAR_N( nonlinElementsCount, int32_t, theGroupSize);
+//        XMALLOC_VAR_N( nonlinStationsCount, int32_t, theGroupSize);
+//        XMALLOC_VAR_N( bottomElementsCount, int32_t, theGroupSize);
+//    }
+//
+//    MPI_Gather( &myNonlinElementsCount,    1, MPI_INT,
+//                nonlinElementsCount,       1, MPI_INT, 0, comm_solver );
+//    MPI_Gather( &myNumberOfNonlinStations, 1, MPI_INT,
+//                nonlinStationsCount,       1, MPI_INT, 0, comm_solver );
+//    MPI_Gather( &myBottomElementsCount,    1, MPI_INT,
+//                bottomElementsCount,       1, MPI_INT, 0, comm_solver );
+//
+//    if ( myID == 0 ) {
+//
+//        nonlinear_print_stats( nonlinElementsCount, nonlinStationsCount,
+//                               bottomElementsCount, theGroupSize);
+//
+//        xfree_int32_t( &nonlinElementsCount );
+//    }
+
+    return;
+}
 
 /* -------------------------------------------------------------------------- */
 /*                   Auxiliary tensor manipulation methods                    */
 /* -------------------------------------------------------------------------- */
+tensor_t point_strain_eq (fvector_t *u, double lx, double ly, double lz, double h) {
+
+    int i;
+
+    tensor_t strain = init_tensor_eq();
+
+    /* Contribution of each node */
+    for (i = 0; i < 8; i++) {
+
+        double dx, dy, dz;
+
+        point_dxi(&dx, &dy, &dz, lx, ly, lz, h, i);
+
+        strain.xx += dx * u[i].f[0];
+        strain.yy += dy * u[i].f[1];
+        strain.zz += dz * u[i].f[2];
+
+        strain.xy += 0.5 * ( dy * u[i].f[0] + dx * u[i].f[1] );
+        strain.yz += 0.5 * ( dz * u[i].f[1] + dy * u[i].f[2] );
+        strain.xz += 0.5 * ( dz * u[i].f[0] + dx * u[i].f[2] );
+
+    } /* nodes contribution */
+
+    return strain;
+}
+
+/*
+ * Resets a tensor to zero in all its components.
+ */
+tensor_t init_tensor_eq() {
+
+    tensor_t tensor;
+
+    tensor.xx = 0.0;
+    tensor.yy = 0.0;
+    tensor.zz = 0.0;
+    tensor.xy = 0.0;
+    tensor.yz = 0.0;
+    tensor.xz = 0.0;
+
+    return tensor;
+}
 
 
 
@@ -508,7 +578,7 @@ void compute_eqlinear_state ( mesh_t     *myMesh,
 			double lz = xi[2][i] * qc ;
 
 			/* Calculate total strains */
-			tstrains->qp[i] = point_strain(u, lx, ly, lz, h);
+			tstrains->qp[i] = point_strain_eq(u, lx, ly, lz, h);
 
 			//For each element you need to define another strain tensor, to only keep the maximum value of strain.
 

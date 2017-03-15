@@ -266,7 +266,7 @@ void nonlinear_print_stats(int32_t *nonlinElementsCount,
                            int32_t  theGroupSize);
 
 void nonlinear_stats(int32_t myID, int32_t theGroupSize);
-void eqlinear_stats(int32_t myID, int32_t theGroupSize);
+//void eqlinear_stats(int32_t myID, int32_t theGroupSize);
 void nonlinear_solver_init(int32_t myID, mesh_t *myMesh, double depth);
 //void eqlinear_solver_init(int32_t myID, mesh_t *myMesh, double depth);
 //void constract_GD_Table();
@@ -413,9 +413,9 @@ void nonlinear_stations_init ( mesh_t    *myMesh,
                                station_t *myStations,
                                int32_t    myNumberOfStations );
 
-void eqlinear_stations_init ( mesh_t    *myMesh,
-                               station_t *myStations,
-                               int32_t    myNumberOfStations );
+//void eqlinear_stations_init ( mesh_t    *myMesh,
+//                               station_t *myStations,
+//                               int32_t    myNumberOfStations );
 
 void print_nonlinear_stations ( mesh_t     *myMesh,
                                 mysolver_t *mySolver,

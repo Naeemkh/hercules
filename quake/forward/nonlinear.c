@@ -26,7 +26,7 @@
 
 #include "geometrics.h"
 #include "nonlinear.h"
-#include "eqlinear.h"
+//#include "eqlinear.h"
 #include "octor.h"
 #include "psolve.h"
 #include "quake_util.h"
@@ -927,35 +927,35 @@ void nonlinear_stats(int32_t myID, int32_t theGroupSize) {
 }
 
 
-void eqlinear_stats(int32_t myID, int32_t theGroupSize) {
-
-//    int32_t *nonlinElementsCount = NULL;
-//    int32_t *nonlinStationsCount = NULL;
-//    int32_t *bottomElementsCount = NULL;
+//void eqlinear_stats(int32_t myID, int32_t theGroupSize) {
 //
-//    if ( myID == 0 ) {
-//        XMALLOC_VAR_N( nonlinElementsCount, int32_t, theGroupSize);
-//        XMALLOC_VAR_N( nonlinStationsCount, int32_t, theGroupSize);
-//        XMALLOC_VAR_N( bottomElementsCount, int32_t, theGroupSize);
-//    }
+////    int32_t *nonlinElementsCount = NULL;
+////    int32_t *nonlinStationsCount = NULL;
+////    int32_t *bottomElementsCount = NULL;
+////
+////    if ( myID == 0 ) {
+////        XMALLOC_VAR_N( nonlinElementsCount, int32_t, theGroupSize);
+////        XMALLOC_VAR_N( nonlinStationsCount, int32_t, theGroupSize);
+////        XMALLOC_VAR_N( bottomElementsCount, int32_t, theGroupSize);
+////    }
+////
+////    MPI_Gather( &myNonlinElementsCount,    1, MPI_INT,
+////                nonlinElementsCount,       1, MPI_INT, 0, comm_solver );
+////    MPI_Gather( &myNumberOfNonlinStations, 1, MPI_INT,
+////                nonlinStationsCount,       1, MPI_INT, 0, comm_solver );
+////    MPI_Gather( &myBottomElementsCount,    1, MPI_INT,
+////                bottomElementsCount,       1, MPI_INT, 0, comm_solver );
+////
+////    if ( myID == 0 ) {
+////
+////        nonlinear_print_stats( nonlinElementsCount, nonlinStationsCount,
+////                               bottomElementsCount, theGroupSize);
+////
+////        xfree_int32_t( &nonlinElementsCount );
+////    }
 //
-//    MPI_Gather( &myNonlinElementsCount,    1, MPI_INT,
-//                nonlinElementsCount,       1, MPI_INT, 0, comm_solver );
-//    MPI_Gather( &myNumberOfNonlinStations, 1, MPI_INT,
-//                nonlinStationsCount,       1, MPI_INT, 0, comm_solver );
-//    MPI_Gather( &myBottomElementsCount,    1, MPI_INT,
-//                bottomElementsCount,       1, MPI_INT, 0, comm_solver );
-//
-//    if ( myID == 0 ) {
-//
-//        nonlinear_print_stats( nonlinElementsCount, nonlinStationsCount,
-//                               bottomElementsCount, theGroupSize);
-//
-//        xfree_int32_t( &nonlinElementsCount );
-//    }
-
-    return;
-}
+//    return;
+//}
 
 /*
  * nonlinear_solver_init: Initialize all the structures needed for nonlinear

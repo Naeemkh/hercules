@@ -24,6 +24,30 @@
 /*                        Structures and definitions                          */
 /* -------------------------------------------------------------------------- */
 
+typedef struct tensor_t {
+
+    double xx;
+    double yy;
+    double zz;
+    double xy;
+    double yz;
+    double xz;
+
+} tensor_t;
+
+typedef struct qpvectors_t {
+
+    double qv[8];
+
+} qpvectors_t;
+
+typedef struct qptensors_t {
+
+    tensor_t qp[8];
+
+} qptensors_t;
+
+
 
 
 typedef struct elconstants_t {
@@ -97,13 +121,16 @@ int isThisElementEqLinear(mesh_t *myMesh, int32_t eindex);
 /*       Initialization of parameters, structures and memory allocations      */
 /* -------------------------------------------------------------------------- */
 void eqlinear_solver_init(int32_t myID, mesh_t *myMesh, double depth);
+void eqlinear_stats(int32_t myID, int32_t theGroupSize);
 void constract_GD_Table();
 GD_t  search_GD_table(double strain);
 /* -------------------------------------------------------------------------- */
 /*                   Auxiliary tensor manipulation methods                    */
 /* -------------------------------------------------------------------------- */
 
-
+tensor_t point_strain_eq    ( fvector_t *u, double lx, double ly, double lz,
+                           double h);
+tensor_t init_tensor_eq     ( );
 /* -------------------------------------------------------------------------- */
 /*                              Stability methods                             */
 /* -------------------------------------------------------------------------- */
