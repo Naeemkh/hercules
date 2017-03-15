@@ -39,6 +39,7 @@
 #include <errno.h>
 #include <stdarg.h>
 
+
 #include "util.h"
 #include "commutil.h"
 #include "timers.h"
@@ -59,7 +60,6 @@
 #include "drm.h"
 #include "meshformatlab.h"
 
-
 /* ONLY GLOBAL VARIABLES ALLOWED OUTSIDE OF PARAM. and GLOBAL. IN ALL OF PSOLVE!! */
 MPI_Comm comm_solver;
 MPI_Comm comm_IO;
@@ -71,8 +71,8 @@ MPI_Comm comm_IO;
 #define PI		3.14159265358979323846264338327
 
 #define GOAHEAD_MSG     100
-#define MESH_MSG	101
-#define STAT_MSG	102
+#define MESH_MSG	    101
+#define STAT_MSG	    102
 #define OUT4D_MSG       103
 #define DN_MASS_MSG     104
 #define AN_MASS_MSG     105
@@ -231,6 +231,7 @@ static struct Param_t {
     noyesflag_t  includeBuildings;
     noyesflag_t  useParametricQ;
     noyesflag_t  includeNonlinearAnalysis;
+    noyesflag_t  includeEqlinearAnalysis;
     noyesflag_t  useInfQk;
     int  theTimingBarriersFlag;
     stiffness_type_t   theStiffness;
@@ -243,6 +244,8 @@ static struct Param_t {
     int      IO_pool_pe_count;
     int32_t  thePlanePrintRate;
     int      theNumberOfPlanes;
+    int      theNumberOfIterations;
+    int      theIteration_c; //equivalent linear iteration counter
     char     theStationsDirOut[256];
     station_t*  myStations;
     int  theCheckPointingRate;
@@ -264,6 +267,7 @@ static struct Param_t {
     double  theDomainZ;
     noyesflag_t  drmImplement;
     drm_part_t   theDrmPart;
+    int     eq_it;
     noyesflag_t  useProfile;
     int32_t      theNumberOfLayers;
     double*  theProfileZ;
@@ -382,7 +386,7 @@ monitor_print( const char* format, ... )
 static void read_parameters( int argc, char** argv ){
 
 #define LOCAL_INIT_DOUBLE_MESSAGE_LENGTH 21  /* Must adjust this if adding double params */
-#define LOCAL_INIT_INT_MESSAGE_LENGTH 22     /* Must adjust this if adding int params */
+#define LOCAL_INIT_INT_MESSAGE_LENGTH 25     /* Must adjust this if adding int params */
 
     double  double_message[LOCAL_INIT_DOUBLE_MESSAGE_LENGTH];
     int     int_message[LOCAL_INIT_INT_MESSAGE_LENGTH];
@@ -434,7 +438,7 @@ static void read_parameters( int argc, char** argv ){
     Param.theDomainX          = double_message[7];
     Param.theDomainY          = double_message[8];
     Param.theDomainZ          = double_message[9];
-    Param.theDomainAzimuth	= double_message[10];
+    Param.theDomainAzimuth	  = double_message[10];
     Param.theThresholdDamping = double_message[11];
     Param.theThresholdVpVs    = double_message[12];
     Param.theSofteningFactor  = double_message[13];
@@ -469,6 +473,9 @@ static void read_parameters( int argc, char** argv ){
     int_message[19] = Param.theStepMeshingFactor;
     int_message[20] = (int)Param.useProfile;
     int_message[21] = (int)Param.useParametricQ;
+    int_message[22] = (int)Param.includeEqlinearAnalysis;
+    int_message[23] = (int)Param.theNumberOfIterations;
+    int_message[24] = (int)Param.theIteration_c;
 
     MPI_Bcast(int_message, LOCAL_INIT_INT_MESSAGE_LENGTH, MPI_INT, 0, comm_solver);
 
@@ -494,6 +501,9 @@ static void read_parameters( int argc, char** argv ){
     Param.theStepMeshingFactor           = int_message[19];
     Param.useProfile                     = int_message[20];
     Param.useParametricQ                 = int_message[21];
+    Param.includeEqlinearAnalysis        = int_message[22];
+    Param.theNumberOfIterations          = int_message[23];
+    Param.theIteration_c                 = int_message[24];
 
     /*Broadcast all string params*/
     MPI_Bcast (Param.parameters_input_file,  256, MPI_CHAR, 0, comm_solver);
@@ -555,6 +565,8 @@ parsetext (FILE* fp, const char* querystring, const char type, void* result)
 	    break;
 
 	name = strtok(line, delimiters);
+
+
 	if ((name != NULL) && (strcmp(name, querystring) == 0)) {
 	    found = 1;
 	    value = strtok(NULL, delimiters);
@@ -674,7 +686,7 @@ static int32_t parse_parameters( const char* numericalin )
     int32_t   samples, rate;
     int       number_output_planes, number_output_stations,
               damping_statistics, use_checkpoint, checkpointing_rate,
-              step_meshing;
+              step_meshing, number_iterations;
 
     double    freq, vscut,
               region_origin_latitude_deg, region_origin_longitude_deg,
@@ -695,13 +707,17 @@ static int32_t parse_parameters( const char* numericalin )
               print_station_accelerations[64],
 	      	  mesh_coordinates_for_matlab[64],
     		  implement_drm[64],
-    		  use_infinite_qk[64];
+    		  use_infinite_qk[64],
+    		  include_topography[64],
+    		  include_incident_planewaves[64],
+			  include_eqlinear_analysis[64];
 
     damping_type_t   typeOfDamping     = -1;
     stiffness_type_t stiffness_method  = -1;
     noyesflag_t      have_buildings    = -1;
     noyesflag_t      have_parametricq  = -1;
     noyesflag_t      includeNonlinear  = -1;
+    noyesflag_t      includeEqlinear   = -1;
     noyesflag_t      printMatrixK      = -1;
     noyesflag_t      printStationVels  = -1;
     noyesflag_t      printStationAccs  = -1;
@@ -791,6 +807,7 @@ static int32_t parse_parameters( const char* numericalin )
         (parsetext(fp, "use_progressive_meshing",        'i', &step_meshing                ) != 0) ||
         (parsetext(fp, "simulation_output_rate",         'i', &rate                        ) != 0) ||
         (parsetext(fp, "number_output_planes",           'i', &number_output_planes        ) != 0) ||
+		(parsetext(fp, "number_of_iterations",           'i', &number_iterations           ) != 0) ||
         (parsetext(fp, "number_output_stations",         'i', &number_output_stations      ) != 0) ||
         (parsetext(fp, "the_threshold_damping",          'd', &threshold_damping           ) != 0) ||
         (parsetext(fp, "the_threshold_Vp_over_Vs",       'd', &threshold_VpVs              ) != 0) ||
@@ -803,6 +820,7 @@ static int32_t parse_parameters( const char* numericalin )
         (parsetext(fp, "mesh_etree_output_file",         's', &Param.mesh_etree_output_file) != 0) ||
         (parsetext(fp, "planes_input_file",              's', &Param.planes_input_file     ) != 0) ||
         (parsetext(fp, "include_nonlinear_analysis",     's', &include_nonlinear_analysis  ) != 0) ||
+		(parsetext(fp, "include_eqlinear_analysis",      's', &include_eqlinear_analysis   ) != 0) ||
         (parsetext(fp, "stiffness_calculation_method",   's', &stiffness_calculation_method) != 0) ||
         (parsetext(fp, "print_matrix_k",                 's', &print_matrix_k              ) != 0) ||
         (parsetext(fp, "print_station_velocities",       's', &print_station_velocities    ) != 0) ||
@@ -891,6 +909,14 @@ static int32_t parse_parameters( const char* numericalin )
         return -1;
     }
 
+    if (number_iterations < 0) {
+        fprintf(stderr, "Illegal number of iterations %d\n",
+                number_iterations);
+        return -1;
+    }
+
+
+
     if (number_output_stations < 0) {
         fprintf(stderr, "Illegal number of output stations %d\n",
                 number_output_planes);
@@ -937,6 +963,22 @@ static int32_t parse_parameters( const char* numericalin )
                 "nonlinear analysis (yes or no): %s\n",
                 include_nonlinear_analysis );
     }
+
+    if ( strcasecmp(include_eqlinear_analysis, "yes") == 0 ) {
+        includeEqlinear = YES;
+    } else if ( strcasecmp(include_eqlinear_analysis, "no") == 0 ) {
+        includeEqlinear = NO;
+    } else {
+        solver_abort( __FUNCTION_NAME, NULL,
+        	"Unknown response for including"
+                "equivalent linear analysis (yes or no): %s\n",
+                include_eqlinear_analysis );
+    }
+
+
+
+
+
 
     if ( strcasecmp(stiffness_calculation_method, "effective") == 0 ) {
         stiffness_method = EFFECTIVE;
@@ -1071,6 +1113,8 @@ static int32_t parse_parameters( const char* numericalin )
     Param.theRate           = rate;
 
     Param.theNumberOfPlanes	      = number_output_planes;
+    Param.theNumberOfIterations   = number_iterations;
+    Param.theIteration_c          = -1;
     Param.theNumberOfStations	      = number_output_stations;
 
     Param.theSofteningFactor        = softening_factor;
@@ -1083,6 +1127,7 @@ static int32_t parse_parameters( const char* numericalin )
     Param.theUseCheckPoint	      = use_checkpoint;
 
     Param.includeNonlinearAnalysis  = includeNonlinear;
+    Param.includeEqlinearAnalysis  = includeEqlinear;
     Param.theStiffness              = stiffness_method;
 
     Param.printK                    = printMatrixK;
@@ -1106,6 +1151,7 @@ static int32_t parse_parameters( const char* numericalin )
     monitor_print("Stiffness calculation method:       %s\n", stiffness_calculation_method);
     monitor_print("Include buildings:                  %s\n", include_buildings);
     monitor_print("Include nonlinear analysis:         %s\n", include_nonlinear_analysis);
+    monitor_print("Include eqlinear analysis:          %s\n", include_eqlinear_analysis);
     monitor_print("Printing velocities on stations:    %s\n", print_station_velocities);
     monitor_print("Printing accelerations on stations: %s\n", print_station_accelerations);
     monitor_print("Mesh Coordinates For Matlab:        %s\n", mesh_coordinates_for_matlab);
@@ -1467,12 +1513,16 @@ setrec( octant_t* leaf, double ticksize, void* data )
     int res = 0;
     edata_t* edata = (edata_t*)data;
 
+
+
     points[0] = 0.01;
     points[1] = 1;
     points[2] = 1.99;
 
     halfticks = (tick_t)1 << (PIXELLEVEL - leaf->level - 1);
     edata->edgesize = ticksize * halfticks * 2;
+
+
 
     /* Check for buildings and proceed according to the buildings setrec */
     if ( (Param.includeBuildings == YES) && (Param.useProfile == NO) ) {
@@ -3671,6 +3721,11 @@ static void solver_init()
     schedule_senddata(Global.mySolver->an_sched, Global.mySolver->nTable,
 	      sizeof(n_t) / sizeof(solver_float), CONTRIBUTION, AN_MASS_MSG);
 
+
+
+
+
+
     return;
 }
 
@@ -3780,7 +3835,8 @@ solver_printstat( mysolver_t* solver )
 
     if (Global.myID == 0) {
 	hu_fclose( stat_out );
-	xfree_char( & Param.theScheduleStatFilename );
+	// We need the file name for the next iteration.(Naeem)
+	//xfree_char( & Param.theScheduleStatFilename );
     }
 }
 
@@ -4091,6 +4147,59 @@ static void solver_nonlinear_state( mysolver_t *solver,
     }
 }
 
+static void solver_eqlinear_state( mysolver_t *solver,
+                                    mesh_t     *mesh,
+                                    fmatrix_t   k1[8][8],
+                                    fmatrix_t   k2[8][8],
+                                    int step )
+{
+    if ( Param.includeEqlinearAnalysis == YES ) {
+        Timer_Start( "Compute Eqlinear Entities" );
+        compute_eqlinear_state ( mesh, solver, Param.theNumberOfStations,
+                                  Param.myNumberOfStations, Param.myStations, Param.theDeltaT, step );
+//        if ( get_geostatic_total_time() > 0 ) {
+//            compute_bottom_reactions( mesh, solver, k1, k2, step, Param.theDeltaT );
+//        }
+        Timer_Stop( "Compute Eqlinear Entities" );
+//        if (Param.theNumberOfStations != 0) {
+//            Timer_Start( "Print Stations" );
+//            print_nonlinear_stations( mesh, solver, Param.myStations,
+//                                      Param.myNumberOfStations, Param.theDeltaT,
+//                                      step, Param.theStationsPrintRate);
+//            Timer_Stop( "Print Stations" );
+//        }
+    }
+}
+
+static void eqlinear_update_material( mysolver_t *solver,
+                                    mesh_t     *mesh,
+                                    fmatrix_t   k1[8][8],
+                                    fmatrix_t   k2[8][8],
+                                    int eq_it
+									)
+{
+    if ( Param.includeEqlinearAnalysis == YES ) {
+        Timer_Start( "Eqlinear Update Material" );
+        int QTable_Size = (int)(sizeof(Global.theQTABLE)/( 6 * sizeof(double)));
+        material_update_eq ( mesh, solver, Param.theNumberOfStations,
+                                  Param.myNumberOfStations, Param.myStations, Param.theDeltaT, eq_it,
+								  Global.theBBase, Param.theThresholdVpVs, &(Global.theQTABLE[0][0]),QTable_Size,
+								  Param.theFreq_Vel,Param.theFreq);
+//        if ( get_geostatic_total_time() > 0 ) {
+//            compute_bottom_reactions( mesh, solver, k1, k2, step, Param.theDeltaT );
+//        }
+        Timer_Stop( "Eqlinear Update Material" );
+//        if (Param.theNumberOfStations != 0) {
+//            Timer_Start( "Print Stations" );
+//            print_nonlinear_stations( mesh, solver, Param.myStations,
+//                                      Param.myNumberOfStations, Param.theDeltaT,
+//                                      step, Param.theStationsPrintRate);
+//            Timer_Stop( "Print Stations" );
+//        }
+    }
+}
+
+
 
 static void solver_read_source_forces( int step )
 {
@@ -4250,6 +4359,9 @@ solver_compute_displacement( mysolver_t* solver, mesh_t* mesh )
 
     Timer_Start( "Compute new displacement" );
     for (nindex = 0; nindex < mesh->nharbored; nindex++) {
+
+
+
 
         const n_t*       np         = &solver->nTable[nindex];
         fvector_t        nodalForce = solver->force[nindex];
@@ -4459,6 +4571,7 @@ static void solver_run()
 
         Timer_Start( "Compute Physics" );
         solver_nonlinear_state( Global.mySolver, Global.myMesh, Global.theK1, Global.theK2, step );
+        solver_eqlinear_state( Global.mySolver, Global.myMesh, Global.theK1, Global.theK2, step );
         solver_compute_force_source( step );
         solver_compute_effective_drm_force( Global.mySolver, Global.myMesh,Global.theK1, Global.theK2, step, Param.theDeltaT );
         solver_compute_force_stiffness( Global.mySolver, Global.myMesh, Global.theK1, Global.theK2 );
@@ -4466,6 +4579,9 @@ static void solver_run()
         solver_compute_force_gravity( Global.mySolver, Global.myMesh, step );
         solver_compute_force_nonlinear( Global.mySolver, Global.myMesh, Param.theDeltaTSquared );
         Timer_Stop( "Compute Physics" );
+
+
+
 
         Timer_Start( "Communication" );
         HU_COND_GLOBAL_BARRIER( Param.theTimingBarriersFlag );
@@ -4491,6 +4607,10 @@ static void solver_run()
 
         solver_loop_hook_bottom( Global.mySolver, Global.myMesh, step );
     } /* for (step = ....): all steps */
+
+    // extract strain and update material.
+
+    eqlinear_update_material( Global.mySolver, Global.myMesh, Global.theK1, Global.theK2, Param.eq_it);
 
     solver_drm_close();
     solver_output_wavefield_close();
@@ -5790,6 +5910,10 @@ static void constract_Quality_Factor_Table() {
 }
 
 
+
+
+
+
 /**
  * compute_setflag:
  *
@@ -6693,11 +6817,29 @@ read_stations_info( const char* numericalin )
     }
 
     free( auxiliar );
-
+    if (Param.includeEqlinearAnalysis == NO){
     if ( parsetext(fp, "output_stations_directory",'s',Param.theStationsDirOut)!= 0)
 	solver_abort (fname, NULL, "Error parsing fields from %s\n",
 		      numericalin);
+    }else{
 
+        if ( parsetext(fp, "output_stations_directory",'s',Param.theStationsDirOut)!= 0)
+    	solver_abort (fname, NULL, "Error parsing fields from %s\n",
+    		      numericalin);
+
+
+        //printf("output file directory: %s \n", Param.theStationsDirOut);
+        char concat[256]="";
+        int iteration_counter = Param.theIteration_c + 1;
+        strcat(concat,Param.theStationsDirOut);
+        //printf("concat is : %s \n", concat);
+        int intnumber = sprintf(concat,"%s_%i",concat,iteration_counter);
+        //printf("Here is the output file name (new) : %s \n", concat);
+        strcpy(Param.theStationsDirOut,concat);
+        Param.theIteration_c = iteration_counter;
+        printf("\n The iteration Counter is  : %i \n", iteration_counter);
+        printf("\n The filename is : %s \n", Param.theStationsDirOut);
+    }
     return;
 }
 
@@ -8001,9 +8143,13 @@ int main( int argc, char** argv )
     if (Param.theNumberOfPlanes != 0) {
         planes_close(Global.myID, Param.IO_pool_pe_count, Param.theNumberOfPlanes);
     }
+
+
     IO_PES_REJOIN:
 
     MPI_Finalize();
+
+
 
     return 0;
 }
