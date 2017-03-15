@@ -124,6 +124,10 @@ void eqlinear_solver_init(int32_t myID, mesh_t *myMesh, double depth);
 void eqlinear_stats(int32_t myID, int32_t theGroupSize);
 void constract_GD_Table();
 GD_t  search_GD_table(double strain);
+void eqlinear_init ( int32_t     myID,
+                      const char *parametersin,
+                      double      theDeltaT,
+                      double      theEndT );
 /* -------------------------------------------------------------------------- */
 /*                   Auxiliary tensor manipulation methods                    */
 /* -------------------------------------------------------------------------- */

@@ -390,6 +390,79 @@ void eqlinear_stats(int32_t myID, int32_t theGroupSize) {
     return;
 }
 
+void eqlinear_init( int32_t     myID,
+                     const char *parametersin,
+                     double      theDeltaT,
+                     double      theEndT )
+{
+
+
+//    double  double_message[2];
+//    int     int_message[7];
+//
+//    /* Capturing data from file --- only done by PE0 */
+//    if (myID == 0) {
+//        if (nonlinear_initparameters(parametersin, theDeltaT, theEndT) != 0) {
+//            fprintf(stderr,"Thread 0: nonlinear_local_init: "
+//                    "nonlinear_initparameters error\n");
+//            MPI_Abort(MPI_COMM_WORLD, ERROR);
+//            exit(1);
+//        }
+//    }
+//
+//    /* Broadcasting data */
+//    double_message[0] = theGeostaticLoadingT;
+//    double_message[1] = theGeostaticCushionT;
+//
+//    int_message[0] = (int)theMaterialModel;
+//    int_message[1] = thePropertiesCount;
+//    int_message[2] = theGeostaticFinalStep;
+//    int_message[3] = (int)thePlasticityModel;
+//    int_message[4] = (int)theApproxGeoState;
+//    int_message[5] = (int)theNonlinearFlag;
+//    int_message[6] = (int)theTensionCutoff;
+//
+//    MPI_Bcast(double_message, 2, MPI_DOUBLE, 0, comm_solver);
+//    MPI_Bcast(int_message,    7, MPI_INT,    0, comm_solver);
+//
+//    theGeostaticLoadingT  = double_message[0];
+//    theGeostaticCushionT  = double_message[1];
+//
+//    theMaterialModel      = int_message[0];
+//    thePropertiesCount    = int_message[1];
+//    theGeostaticFinalStep = int_message[2];
+//    thePlasticityModel    = int_message[3];
+//    theApproxGeoState     = int_message[4];
+//    theNonlinearFlag      = int_message[5];
+//    theTensionCutoff      = int_message[6];
+//
+//    /* allocate table of properties for all other PEs */
+//
+//    if (myID != 0) {
+//        theVsLimits         = (double*)malloc(sizeof(double) * thePropertiesCount);
+//        theAlphaCohes       = (double*)malloc(sizeof(double) * thePropertiesCount);
+//        theKayPhis          = (double*)malloc(sizeof(double) * thePropertiesCount);
+//        theStrainRates      = (double*)malloc(sizeof(double) * thePropertiesCount);
+//        theSensitivities    = (double*)malloc(sizeof(double) * thePropertiesCount);
+//        theHardeningModulus = (double*)malloc(sizeof(double) * thePropertiesCount);
+//        theBetaDilatancy    = (double*)malloc(sizeof(double) * thePropertiesCount);
+//        theGamma0           = (double*)malloc(sizeof(double) * thePropertiesCount);
+//    }
+//
+//    /* Broadcast table of properties */
+//    MPI_Bcast(theVsLimits,         thePropertiesCount, MPI_DOUBLE, 0, comm_solver);
+//    MPI_Bcast(theAlphaCohes,       thePropertiesCount, MPI_DOUBLE, 0, comm_solver);
+//    MPI_Bcast(theKayPhis,          thePropertiesCount, MPI_DOUBLE, 0, comm_solver);
+//    MPI_Bcast(theStrainRates,      thePropertiesCount, MPI_DOUBLE, 0, comm_solver);
+//    MPI_Bcast(theSensitivities,    thePropertiesCount, MPI_DOUBLE, 0, comm_solver);
+//    MPI_Bcast(theHardeningModulus, thePropertiesCount, MPI_DOUBLE, 0, comm_solver);
+//    MPI_Bcast(theBetaDilatancy,    thePropertiesCount, MPI_DOUBLE, 0, comm_solver);
+//    MPI_Bcast(theGamma0,           thePropertiesCount, MPI_DOUBLE, 0, comm_solver);
+}
+
+
+
+
 /* -------------------------------------------------------------------------- */
 /*                   Auxiliary tensor manipulation methods                    */
 /* -------------------------------------------------------------------------- */
