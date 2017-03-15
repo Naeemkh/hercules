@@ -8189,7 +8189,7 @@ int main( int argc, char** argv )
     	     */
 
     	    stiffness_init(Global.myID, Global.myMesh);
-    	    damp_init     (Global.myID, Global.myMesh);
+//    	    damp_init     (Global.myID, Global.myMesh);
 
     	    /* this is a little too late to check for output parameters,
     	     * but let's do this in the mean time
