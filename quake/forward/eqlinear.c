@@ -962,6 +962,69 @@ void material_update_eq ( mesh_t     *myMesh,
 }
 
 
+void    compute_addforce_bottom(int32_t timestep, mesh_t *myMesh, mysolver_t *mySolver)
+ {
+//     int       i;
+//     int32_t   beindex, eindex;
+//
+//     /* Loop on the number of elements */
+//     for (beindex = 0; beindex < myBottomElementsCount; beindex++) {
+//
+//         elem_t    *elemp;
+//
+//         eindex = myBottomElements[beindex].element_id;
+//         elemp  = &myMesh->elemTable[eindex];
+//
+//         for (i = 4; i < 8; i++) {
+//
+//             int32_t    lnid;
+//             fvector_t *nodalForce;
+//
+//             lnid = elemp->lnid[i];
+//             nodalForce = mySolver->force + lnid;
+
+             //
+             double fc =0.8,zp=0.04,Vs=200.0,Ts=3.0;
+             double t=timestep*0.02;
+         	double alfa1 = ( PI * fc ) * ( PI * fc ) * ( t - zp / Vs - Ts) * ( t - zp / Vs - Ts);
+         	double alfa2 = ( PI * fc ) * ( PI * fc ) * ( t + zp / Vs - Ts) * ( t + zp / Vs - Ts);
+
+         	double uo1 = ( 2.0 * alfa1 - 1.0 ) * exp(-alfa1);
+         	double uo2 = ( 2.0 * alfa2 - 1.0 ) * exp(-alfa2);
+
+         	double force = (uo1+uo2);
+
+
+ //           nodalForce->f[2] += myBottomElements[beindex].nodal_force[i-4];
+//         	 nodalForce->f[2] = force;
+
+
+//         } /* element nodes */
+
+// }
+
+
+         	int32_t nindex;
+
+         	             for ( nindex = 0; nindex < myMesh->nharbored; nindex++ ) {
+
+         	                 double z_m = (myMesh->ticksize)*(double)myMesh->nodeTable[nindex].z;
+
+         	                 if ( z_m == 500 ) {
+         	                     fvector_t *nodalForce;
+         	                     nodalForce = mySolver->force + nindex;
+         	                     nodalForce->f[0] += force;
+         	                 }
+         	             }
+
+
+
+
+
+ }
+
+
+
 /* -------------------------------------------------------------------------- */
 /*                        Nonlinear Finalize and Stats                        */
 /* -------------------------------------------------------------------------- */
