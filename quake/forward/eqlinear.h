@@ -24,7 +24,7 @@
 /*                        Structures and definitions                          */
 /* -------------------------------------------------------------------------- */
 
-typedef struct tensor_t {
+typedef struct eq_tensor_t {
 
     double xx;
     double yy;
@@ -33,19 +33,19 @@ typedef struct tensor_t {
     double yz;
     double xz;
 
-} tensor_t;
+} eq_tensor_t;
 
-typedef struct qpvectors_t {
+typedef struct eq_qpvectors_t {
 
     double qv[8];
 
-} qpvectors_t;
+} eq_qpvectors_t;
 
-typedef struct qptensors_t {
+typedef struct eq_qptensors_t {
 
-    tensor_t qp[8];
+    eq_tensor_t qp[8];
 
-} qptensors_t;
+} eq_qptensors_t;
 
 
 
@@ -90,9 +90,9 @@ typedef struct elconstants_t {
 typedef struct elsolver_t {
 
     elconstants_t *constants;
-    qptensors_t   *stresses;
-    qptensors_t   *strains;
-    qptensors_t   *maxstrains;
+    eq_qptensors_t   *stresses;
+    eq_qptensors_t   *strains;
+    eq_qptensors_t   *maxstrains;
 //    qptensors_t   *pstrains1;
 //    qptensors_t   *pstrains2;
 //    qptensors_t   *alphastress1;
@@ -132,9 +132,9 @@ void eqlinear_init ( int32_t     myID,
 /*                   Auxiliary tensor manipulation methods                    */
 /* -------------------------------------------------------------------------- */
 
-tensor_t point_strain_eq    ( fvector_t *u, double lx, double ly, double lz,
+eq_tensor_t point_strain_eq    ( fvector_t *u, double lx, double ly, double lz,
                            double h);
-tensor_t init_tensor_eq     ( );
+eq_tensor_t init_tensor_eq     ( );
 /* -------------------------------------------------------------------------- */
 /*                              Stability methods                             */
 /* -------------------------------------------------------------------------- */

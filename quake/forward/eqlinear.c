@@ -168,11 +168,11 @@ void eqlinear_solver_init(int32_t myID, mesh_t *myMesh, double depth) {
     myEqlinSolver->constants =
         (elconstants_t *)calloc(myEqlinElementsCount, sizeof(elconstants_t));
     myEqlinSolver->stresses =
-        (qptensors_t *)calloc(myEqlinElementsCount, sizeof(qptensors_t));
+        (eq_qptensors_t *)calloc(myEqlinElementsCount, sizeof(eq_qptensors_t));
     myEqlinSolver->strains =
-        (qptensors_t *)calloc(myEqlinElementsCount, sizeof(qptensors_t));
+        (eq_qptensors_t *)calloc(myEqlinElementsCount, sizeof(eq_qptensors_t));
     myEqlinSolver->maxstrains =
-        (qptensors_t *)calloc(myEqlinElementsCount, sizeof(qptensors_t));
+        (eq_qptensors_t *)calloc(myEqlinElementsCount, sizeof(eq_qptensors_t));
 //    myEqlinSolver->pstrains1 =
 //        (qptensors_t *)calloc(myEqlinElementsCount, sizeof(qptensors_t));
 //    myEqlinSolver->pstrains2 =
@@ -466,11 +466,11 @@ void eqlinear_init( int32_t     myID,
 /* -------------------------------------------------------------------------- */
 /*                   Auxiliary tensor manipulation methods                    */
 /* -------------------------------------------------------------------------- */
-tensor_t point_strain_eq (fvector_t *u, double lx, double ly, double lz, double h) {
+eq_tensor_t point_strain_eq (fvector_t *u, double lx, double ly, double lz, double h) {
 
     int i;
 
-    tensor_t strain = init_tensor_eq();
+    eq_tensor_t strain = init_tensor_eq();
 
     /* Contribution of each node */
     for (i = 0; i < 8; i++) {
@@ -495,9 +495,9 @@ tensor_t point_strain_eq (fvector_t *u, double lx, double ly, double lz, double 
 /*
  * Resets a tensor to zero in all its components.
  */
-tensor_t init_tensor_eq() {
+eq_tensor_t init_tensor_eq() {
 
-    tensor_t tensor;
+    eq_tensor_t tensor;
 
     tensor.xx = 0.0;
     tensor.yy = 0.0;
@@ -599,7 +599,7 @@ void compute_eqlinear_state ( mesh_t     *myMesh,
 //		double         beta;       /* Plastic flow rule constant */
 		double         XI, QC;
 		fvector_t      u[8];
-		qptensors_t   *stresses, *tstrains, *maxstrains; //, *pstrains1, *pstrains2, *alphastress1, *alphastress2;
+		eq_qptensors_t   *stresses, *tstrains, *maxstrains; //, *pstrains1, *pstrains2, *alphastress1, *alphastress2;
 //		qpvectors_t   *epstr1, *epstr2;
 
 		/* Capture data from the element and mesh */
@@ -643,7 +643,7 @@ void compute_eqlinear_state ( mesh_t     *myMesh,
 		/* Loop over the quadrature points */
 		for (i = 0; i < 8; i++) {
 
-			tensor_t  sigma0;
+			eq_tensor_t  sigma0;
 
 			/* Quadrature point local coordinates */
 			double lx = xi[0][i] * qc ;
@@ -732,7 +732,7 @@ void material_update_eq ( mesh_t     *myMesh,
 		double         mu, lambda; /* Elasticity material constants */
 		double         XI, QC;
 		fvector_t      u[8];
-		qptensors_t   *maxstrains;
+		eq_qptensors_t   *maxstrains;
 		double         zeta, a, b, updated_mu, updated_lambda;
 		double         requested_Q, new_Q;
 

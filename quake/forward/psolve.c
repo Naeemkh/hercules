@@ -51,6 +51,7 @@
 #include "quakesource.h"
 #include "output.h"
 #include "nonlinear.h"
+#include "eqlinear.h"
 #include "io_planes.h"
 #include "io_checkpoint.h"
 #include "stiffness.h"
