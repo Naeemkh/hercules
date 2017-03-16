@@ -63,10 +63,8 @@ static double                theGDTABLE[11][3];
 
 int isThisElementEqLinear(mesh_t *myMesh, int32_t eindex) {
 
-	elem_t  *elemp;
-	edata_t *edata;
-
-
+//	elem_t  *elemp;
+//	edata_t *edata;
 
 	return YES;
 }
@@ -144,12 +142,6 @@ void eqlinear_solver_init(int32_t myID, mesh_t *myMesh, double depth) {
       eqlinear_elements_count(myID, myMesh);
       eqlinear_elements_mapping(myID, myMesh);
 
-
-//
-//    if ( theGeostaticLoadingT > 0 ) {
-//        bottom_elements_count(myID, myMesh, depth);
-//        bottom_elements_mapping(myID, myMesh, depth);
-//    }
 
     /* Memory allocation for mother structure */
 
@@ -953,39 +945,15 @@ void material_update_eq ( mesh_t     *myMesh,
 		update_Q_params(edata,index_Qs,0,QTable_Size,&(myQTABLE[0][0]),new_Q,0);
 	    control_correction_factor(edata,theFreq_Vel,theFreq);
 
-
-
-        //printf("strain_level= %f, table_damping: %f, Q_orig: %f, Q_new: %f. \n",myteststrain,GD.d,enlcons->Qs_value ,new_Q);
-//			}
-//		}
 	} /* for all nonlinear elements */
 }
 
 
 void    compute_addforce_bottom(int32_t timestep, mesh_t *myMesh, mysolver_t *mySolver)
  {
-//     int       i;
-//     int32_t   beindex, eindex;
-//
-//     /* Loop on the number of elements */
-//     for (beindex = 0; beindex < myBottomElementsCount; beindex++) {
-//
-//         elem_t    *elemp;
-//
-//         eindex = myBottomElements[beindex].element_id;
-//         elemp  = &myMesh->elemTable[eindex];
-//
-//         for (i = 4; i < 8; i++) {
-//
-//             int32_t    lnid;
-//             fvector_t *nodalForce;
-//
-//             lnid = elemp->lnid[i];
-//             nodalForce = mySolver->force + lnid;
 
-             //
-             double fc =0.8,zp=0.04,Vs=200.0,Ts=3.0;
-             double t=timestep*0.02;
+            double fc =0.8,zp=0.04,Vs=400.0,Ts=3.0;
+            double t=timestep*0.001;
          	double alfa1 = ( PI * fc ) * ( PI * fc ) * ( t - zp / Vs - Ts) * ( t - zp / Vs - Ts);
          	double alfa2 = ( PI * fc ) * ( PI * fc ) * ( t + zp / Vs - Ts) * ( t + zp / Vs - Ts);
 
@@ -995,27 +963,18 @@ void    compute_addforce_bottom(int32_t timestep, mesh_t *myMesh, mysolver_t *my
          	double force = (uo1+uo2);
 
 
- //           nodalForce->f[2] += myBottomElements[beindex].nodal_force[i-4];
-//         	 nodalForce->f[2] = force;
-
-
-//         } /* element nodes */
-
-// }
-
-
          	int32_t nindex;
 
-         	             for ( nindex = 0; nindex < myMesh->nharbored; nindex++ ) {
+         	for ( nindex = 0; nindex < myMesh->nharbored; nindex++ ) {
 
-         	                 double z_m = (myMesh->ticksize)*(double)myMesh->nodeTable[nindex].z;
+         	    double z_m = (myMesh->ticksize)*(double)myMesh->nodeTable[nindex].z;
 
-         	                 if ( z_m == 500 ) {
-         	                     fvector_t *nodalForce;
-         	                     nodalForce = mySolver->force + nindex;
-         	                     nodalForce->f[0] += force;
-         	                 }
-         	             }
+         	    if ( z_m == 500 ) {
+         	         fvector_t *nodalForce;
+         	         nodalForce = mySolver->force + nindex;
+         	         nodalForce->f[0] += force;
+         	    }
+           }
 
 
 
