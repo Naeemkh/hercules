@@ -4225,10 +4225,12 @@ static void solver_load_fixedbase_displacements( mysolver_t* solver, int step )
 
 
 /** Compute the force due to the earthquake source. */
-static void solver_compute_force_source( int step )
+//static void solver_compute_force_source( int step )
+static void solver_compute_force_source(int step,  mesh_t  *myMesh, mysolver_t *mySolver)
 {
     Timer_Start( "Compute addforces s" );
-    compute_addforce_s( step );
+//    compute_addforce_s( step );
+    compute_addforce_bottom(step, myMesh, mySolver);
     Timer_Stop( "Compute addforces s" );
 }
 
@@ -4573,7 +4575,8 @@ static void solver_run()
         Timer_Start( "Compute Physics" );
         solver_nonlinear_state( Global.mySolver, Global.myMesh, Global.theK1, Global.theK2, step );
         solver_eqlinear_state( Global.mySolver, Global.myMesh, Global.theK1, Global.theK2, step );
-        solver_compute_force_source( step );
+//        solver_compute_force_source( step );
+        solver_compute_force_source( step,Global.myMesh,Global.mySolver);
         solver_compute_effective_drm_force( Global.mySolver, Global.myMesh,Global.theK1, Global.theK2, step, Param.theDeltaT );
         solver_compute_force_stiffness( Global.mySolver, Global.myMesh, Global.theK1, Global.theK2 );
         solver_compute_force_damping( Global.mySolver, Global.myMesh, Global.theK1, Global.theK2 );
