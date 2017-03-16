@@ -8083,6 +8083,12 @@ int main( int argc, char** argv )
     }
 
     if ( Param.theNumberOfStations !=0 ){
+
+    	/*
+    	 * the program check each requested station and increment the number of stations.
+    	 * For the ELA I need to make it zero to start over.
+    	*/
+    	Param.myNumberOfStations = 0;
         output_stations_init(Param.parameters_input_file);
     }
 
