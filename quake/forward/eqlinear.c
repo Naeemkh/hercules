@@ -964,18 +964,22 @@ void    compute_addforce_bottom(int32_t timestep, mesh_t *myMesh, mysolver_t *my
 
 
          	int32_t nindex;
+            int k=1;
+
 
          	for ( nindex = 0; nindex < myMesh->nharbored; nindex++ ) {
 
          	    double z_m = (myMesh->ticksize)*(double)myMesh->nodeTable[nindex].z;
 
-         	    if ( z_m == 1000 ) {
+         	    if ( z_m == 500 ) {
          	         fvector_t *nodalForce;
          	         nodalForce = mySolver->force + nindex;
          	         nodalForce->f[0] += force;
+         	         k=k+1;
+
          	    }
            }
-
+           printf("Number of bottom nodes are : %i",k);
 
 
 
