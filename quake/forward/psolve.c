@@ -4179,7 +4179,7 @@ static void eqlinear_update_material( mysolver_t *solver,
                                     int eq_it
 									)
 {
-    if ( Param.includeEqlinearAnalysis == YES ) {
+
         Timer_Start( "Eqlinear Update Material" );
         int QTable_Size = (int)(sizeof(Global.theQTABLE)/( 6 * sizeof(double)));
         material_update_eq ( mesh, solver, Param.theNumberOfStations,
@@ -4197,7 +4197,7 @@ static void eqlinear_update_material( mysolver_t *solver,
 //                                      step, Param.theStationsPrintRate);
 //            Timer_Stop( "Print Stations" );
 //        }
-    }
+
 }
 
 
@@ -4613,8 +4613,9 @@ static void solver_run()
     } /* for (step = ....): all steps */
 
     // extract strain and update material.
-
+    if ( Param.includeEqlinearAnalysis == YES ) {
     eqlinear_update_material( Global.mySolver, Global.myMesh, Global.theK1, Global.theK2, Param.eq_it);
+    }
 
     solver_drm_close();
     solver_output_wavefield_close();

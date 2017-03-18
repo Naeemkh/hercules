@@ -964,7 +964,7 @@ void    compute_addforce_bottom(int32_t timestep, mesh_t *myMesh, mysolver_t *my
 
 
          	int32_t nindex;
-            int k=1;
+         	int32_t k=1;
 
 
          	for ( nindex = 0; nindex < myMesh->nharbored; nindex++ ) {
@@ -979,6 +979,8 @@ void    compute_addforce_bottom(int32_t timestep, mesh_t *myMesh, mysolver_t *my
 
          	    }
            }
+
+
            printf("Number of bottom nodes are : %i",k);
 
 
