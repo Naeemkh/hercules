@@ -952,7 +952,7 @@ void material_update_eq ( mesh_t     *myMesh,
 void    compute_addforce_bottom(int32_t timestep, mesh_t *myMesh, mysolver_t *mySolver)
  {
 
-            double fc =0.8,zp=0.04,Vs=200.0,Ts=2.0;
+            double fc =0.8,zp=0.04,Vs=500.0,Ts=3.0;
             double t=timestep*0.001;
          	double alfa1 = ( PI * fc ) * ( PI * fc ) * ( t - zp / Vs - Ts) * ( t - zp / Vs - Ts);
          	double alfa2 = ( PI * fc ) * ( PI * fc ) * ( t + zp / Vs - Ts) * ( t + zp / Vs - Ts);
@@ -969,7 +969,7 @@ void    compute_addforce_bottom(int32_t timestep, mesh_t *myMesh, mysolver_t *my
 
          	    double z_m = (myMesh->ticksize)*(double)myMesh->nodeTable[nindex].z;
 
-         	    if ( z_m == 500 ) {
+         	    if ( z_m == 1000 ) {
          	         fvector_t *nodalForce;
          	         nodalForce = mySolver->force + nindex;
          	         nodalForce->f[0] += force;
