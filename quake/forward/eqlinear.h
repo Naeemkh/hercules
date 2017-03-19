@@ -114,6 +114,8 @@ typedef struct GD_t {
 /*                                 Utilities                                  */
 /* -------------------------------------------------------------------------- */
 int isThisElementEqLinear(mesh_t *myMesh, int32_t eindex);
+//void generateRickerForce(double  RickerForce);
+void generateRickerForce(double *forceVector);
 
 
 /* -------------------------------------------------------------------------- */
@@ -122,7 +124,7 @@ int isThisElementEqLinear(mesh_t *myMesh, int32_t eindex);
 void eqlinear_solver_init(int32_t myID, mesh_t *myMesh, double depth);
 void eqlinear_stats(int32_t myID, int32_t theGroupSize);
 void constract_GD_Table();
-void compute_addforce_bottom(int32_t timestep, mesh_t *myMesh, mysolver_t *mySolver);
+void compute_addforce_bottom(int32_t timestep, mesh_t *myMesh, mysolver_t *mySolver,double *forcevector);
 GD_t  search_GD_table(double strain);
 void eqlinear_init ( int32_t     myID,
                       const char *parametersin,

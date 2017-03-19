@@ -56,6 +56,7 @@ static double                theGDTABLE[11][3];
 
 
 
+
 /* -------------------------------------------------------------------------- */
 /*                                 Utilities                                  */
 /* -------------------------------------------------------------------------- */
@@ -67,6 +68,52 @@ int isThisElementEqLinear(mesh_t *myMesh, int32_t eindex) {
 //	edata_t *edata;
 
 	return YES;
+}
+
+
+//void generateRickerForce(double RickerForce){
+//
+//	int i;
+//
+//	for (i=0;i<10000;i++){
+//
+//
+//	double fc =0.8,zp=0.04,Vs=500.0,Ts=3.0;
+//    double t=i*0.001;
+// 	double alfa1 = ( PI * fc ) * ( PI * fc ) * ( t - zp / Vs - Ts) * ( t - zp / Vs - Ts);
+// 	double alfa2 = ( PI * fc ) * ( PI * fc ) * ( t + zp / Vs - Ts) * ( t + zp / Vs - Ts);
+//
+// 	double uo1 = ( 2.0 * alfa1 - 1.0 ) * exp(-alfa1);
+// 	double uo2 = ( 2.0 * alfa2 - 1.0 ) * exp(-alfa2);
+//
+// 	double force = (uo1+uo2);
+//
+// 	&RickerForce[i][1] = force;
+//
+//	}
+//}
+
+void generateRickerForce(double *forceVector){
+
+	for (int i=0;i<10000;i++){
+
+
+			double fc =0.8,zp=0.04,Vs=500.0,Ts=3.0;
+		    double t=i*0.001;
+		 	double alfa1 = ( PI * fc ) * ( PI * fc ) * ( t - zp / Vs - Ts) * ( t - zp / Vs - Ts);
+		 	double alfa2 = ( PI * fc ) * ( PI * fc ) * ( t + zp / Vs - Ts) * ( t + zp / Vs - Ts);
+
+		 	double uo1 = ( 2.0 * alfa1 - 1.0 ) * exp(-alfa1);
+		 	double uo2 = ( 2.0 * alfa2 - 1.0 ) * exp(-alfa2);
+
+		 	double force = (uo1+uo2);
+
+
+
+		forceVector[i]=force;
+
+	}
+
 }
 
 
@@ -949,22 +996,23 @@ void material_update_eq ( mesh_t     *myMesh,
 }
 
 
-void    compute_addforce_bottom(int32_t timestep, mesh_t *myMesh, mysolver_t *mySolver)
+void    compute_addforce_bottom(int32_t timestep, mesh_t *myMesh, mysolver_t *mySolver, double *forceVector)
  {
 
-            double fc =0.8,zp=0.04,Vs=500.0,Ts=3.0;
-            double t=timestep*0.001;
-         	double alfa1 = ( PI * fc ) * ( PI * fc ) * ( t - zp / Vs - Ts) * ( t - zp / Vs - Ts);
-         	double alfa2 = ( PI * fc ) * ( PI * fc ) * ( t + zp / Vs - Ts) * ( t + zp / Vs - Ts);
-
-         	double uo1 = ( 2.0 * alfa1 - 1.0 ) * exp(-alfa1);
-         	double uo2 = ( 2.0 * alfa2 - 1.0 ) * exp(-alfa2);
-
-         	double force = (uo1+uo2);
+//            double fc =0.8,zp=0.04,Vs=500.0,Ts=3.0;
+//            double t=timestep*0.001;
+//         	double alfa1 = ( PI * fc ) * ( PI * fc ) * ( t - zp / Vs - Ts) * ( t - zp / Vs - Ts);
+//         	double alfa2 = ( PI * fc ) * ( PI * fc ) * ( t + zp / Vs - Ts) * ( t + zp / Vs - Ts);
+//
+//         	double uo1 = ( 2.0 * alfa1 - 1.0 ) * exp(-alfa1);
+//         	double uo2 = ( 2.0 * alfa2 - 1.0 ) * exp(-alfa2);
+//
+//         	double force = (uo1+uo2);
 
 
          	int32_t nindex;
          	int32_t k=1;
+
 
 
          	for ( nindex = 0; nindex < myMesh->nharbored; nindex++ ) {
@@ -974,14 +1022,15 @@ void    compute_addforce_bottom(int32_t timestep, mesh_t *myMesh, mysolver_t *my
          	    if ( z_m == 500 ) {
          	         fvector_t *nodalForce;
          	         nodalForce = mySolver->force + nindex;
-         	         nodalForce->f[0] += force;
+//         	         nodalForce->f[0] += RickerForce[timestep];
+         	         nodalForce->f[0] += forceVector[timestep];
          	         k=k+1;
 
          	    }
            }
 
 
-           printf("Number of bottom nodes are : %i",k);
+          // printf("Number of bottom nodes are : %i",k);
 
 
 

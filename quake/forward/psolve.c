@@ -336,6 +336,7 @@ static struct Global_t {
     cvmrecord_t*  theCVMRecord;
     int  theCVMRecordSize;
     int  theCVMRecordCount;
+    double RickerForce[10000];
 
 } Global = {
     .myID = -1,
@@ -4230,7 +4231,8 @@ static void solver_compute_force_source(int step,  mesh_t  *myMesh, mysolver_t *
 {
     Timer_Start( "Compute addforces s" );
 //    compute_addforce_s( step );
-    compute_addforce_bottom(step, myMesh, mySolver);
+    double *forcevector = &Global.RickerForce;
+    compute_addforce_bottom(step, myMesh, mySolver, forcevector);
     Timer_Stop( "Compute addforces s" );
 }
 
@@ -8067,8 +8069,20 @@ int main( int argc, char** argv )
 
 
         int num_iter  = Param.theNumberOfIterations;
-
         int eq_c = Param.eq_it;
+
+
+        // Generate the source vector
+        if (Global.myID == 0) {
+        double *RickerForceAd;
+        RickerForceAd = &Global.RickerForce;
+        generateRickerForce(RickerForceAd);
+
+//        for (int i=0;i<10000;i++){
+//        	printf("Time step = %i - Value= %f \n",i, Global.RickerForce[i]);
+//        }
+        }
+
 
         for (eq_c = 0; eq_c < num_iter; eq_c++){
 
