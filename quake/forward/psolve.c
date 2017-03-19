@@ -8061,6 +8061,18 @@ int main( int argc, char** argv )
     Timer_Stop("Mesh Stats Print");
     Timer_Reduce("Mesh Stats Print", MAX | MIN, comm_solver);
 
+    // Generate the source vector
+     if (Global.myID == 0) {
+     double *RickerForceAd;
+     RickerForceAd = &Global.RickerForce;
+     generateRickerForce(RickerForceAd);
+
+//        for (int i=0;i<10000;i++){
+//        	printf("Time step = %i - Value= %f \n",i, Global.RickerForce[i]);
+//        }
+     }
+
+
 
     //====================
 
@@ -8072,16 +8084,7 @@ int main( int argc, char** argv )
         int eq_c = Param.eq_it;
 
 
-        // Generate the source vector
-        if (Global.myID == 0) {
-        double *RickerForceAd;
-        RickerForceAd = &Global.RickerForce;
-        generateRickerForce(RickerForceAd);
 
-//        for (int i=0;i<10000;i++){
-//        	printf("Time step = %i - Value= %f \n",i, Global.RickerForce[i]);
-//        }
-        }
 
 
         for (eq_c = 0; eq_c < num_iter; eq_c++){

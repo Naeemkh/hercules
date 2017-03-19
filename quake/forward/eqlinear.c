@@ -95,7 +95,9 @@ int isThisElementEqLinear(mesh_t *myMesh, int32_t eindex) {
 
 void generateRickerForce(double *forceVector){
 
-	for (int i=0;i<10000;i++){
+	int i;
+
+	for ( i=0;i<10000;i++){
 
 
 			double fc =0.8,zp=0.04,Vs=500.0,Ts=3.0;
