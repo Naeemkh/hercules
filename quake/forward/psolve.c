@@ -8064,7 +8064,7 @@ int main( int argc, char** argv )
     // Generate the source vector
      if (Global.myID == 0) {
      double *RickerForceAd;
-     RickerForceAd = &Global.RickerForce;
+     RickerForceAd = Global.RickerForce;
      generateRickerForce(RickerForceAd);
 
 //        for (int i=0;i<10000;i++){

@@ -115,7 +115,7 @@ typedef struct GD_t {
 /* -------------------------------------------------------------------------- */
 int isThisElementEqLinear(mesh_t *myMesh, int32_t eindex);
 //void generateRickerForce(double  RickerForce);
-void generateRickerForce(double *forceVector);
+void generateRickerForce(double forceVector[]);
 
 
 /* -------------------------------------------------------------------------- */

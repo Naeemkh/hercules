@@ -93,29 +93,26 @@ int isThisElementEqLinear(mesh_t *myMesh, int32_t eindex) {
 //	}
 //}
 
-void generateRickerForce(double *forceVector){
+void generateRickerForce(double forceVector[]){
 
 	int i;
 
 	for ( i=0;i<10000;i++){
 
 
-			double fc =0.8,zp=0.04,Vs=500.0,Ts=3.0;
-		    double t=i*0.001;
-		 	double alfa1 = ( PI * fc ) * ( PI * fc ) * ( t - zp / Vs - Ts) * ( t - zp / Vs - Ts);
-		 	double alfa2 = ( PI * fc ) * ( PI * fc ) * ( t + zp / Vs - Ts) * ( t + zp / Vs - Ts);
+		double fc =0.8,zp=0.04,Vs=500.0,Ts=3;
+		double t=i*0.001;
+		double alfa1 = ( PI * fc ) * ( PI * fc ) * ( t - zp / Vs - Ts) * ( t - zp / Vs - Ts);
+		double alfa2 = ( PI * fc ) * ( PI * fc ) * ( t + zp / Vs - Ts) * ( t + zp / Vs - Ts);
 
-		 	double uo1 = ( 2.0 * alfa1 - 1.0 ) * exp(-alfa1);
-		 	double uo2 = ( 2.0 * alfa2 - 1.0 ) * exp(-alfa2);
+		double uo1 = ( 2.0 * alfa1 - 1.0 ) * exp(-alfa1);
+		double uo2 = ( 2.0 * alfa2 - 1.0 ) * exp(-alfa2);
 
-		 	double force = (uo1+uo2);
+		double force = (uo1+uo2);
 
-
-
-		forceVector[i]=force;
+		forceVector[i] = force;
 
 	}
-
 }
 
 
