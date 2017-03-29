@@ -90,7 +90,7 @@ typedef struct elconstants_t {
 
 typedef struct elsolver_t {
 
-    elconstants_t *constants;
+    elconstants_t    *constants;
     eq_qptensors_t   *stresses;
     eq_qptensors_t   *strains;
     eq_qptensors_t   *maxstrains;
@@ -165,8 +165,8 @@ void material_update_eq ( mesh_t     *myMesh,
 							   double      *theQTABLE,
 							   int         QTable_Size,
 							   double      theFreq_Vel,
-							   double      theFreq,
-							   int         eq_it);
+							   double      theFreq
+							   );
 /* -------------------------------------------------------------------------- */
 /*                        Nonlinear Output to Stations                        */
 /* -------------------------------------------------------------------------- */

@@ -4185,7 +4185,7 @@ static void eqlinear_update_material( mysolver_t *solver,
         material_update_eq ( mesh, solver, Param.theNumberOfStations,
                                   Param.myNumberOfStations, Param.myStations, Param.theDeltaT, eq_it,
 								  Global.theBBase, Param.theThresholdVpVs, &(Global.theQTABLE[0][0]),QTable_Size,
-								  Param.theFreq_Vel,Param.theFreq, eq_it);
+								  Param.theFreq_Vel,Param.theFreq);
 //        if ( get_geostatic_total_time() > 0 ) {
 //            compute_bottom_reactions( mesh, solver, k1, k2, step, Param.theDeltaT );
 //        }

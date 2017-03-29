@@ -687,7 +687,7 @@ void compute_eqlinear_state ( mesh_t     *myMesh,
 
 
 
-void material_update_eq ( mesh_t     *myMesh,
+void material_update_eq (      mesh_t     *myMesh,
                                mysolver_t *mySolver,
                                int32_t     theNumberOfStations,
                                int32_t     myNumberOfStations,
@@ -699,8 +699,7 @@ void material_update_eq ( mesh_t     *myMesh,
 							   double      *theQTABLE,
 							   int         QTable_Size,
 							   double      theFreq_Vel,
-							   double      theFreq,
-							   int         eq_it
+							   double      theFreq
 							   )
 {
 	/* In general, j-index refers to the quadrature point in a loop (0 to 7 for
@@ -747,13 +746,13 @@ void material_update_eq ( mesh_t     *myMesh,
 		/* Keep the original mu in other variable and don't change it.
 		 *
 		 */
-		if (eq_it == 1){
+		if (eq_it == 0){
 			enlcons->original_mu = enlcons -> mu;
 		}
 
 		printf("Element number: %i, old Vs: %f \n", el_eindex, edata->Vs);
 
-		mu     = enlcons->original_mu;
+		original_mu     = enlcons->original_mu;
 		lambda = enlcons->lambda;
 
 
@@ -818,7 +817,7 @@ void material_update_eq ( mesh_t     *myMesh,
 		//printf("Results : strain = %f , G = %f, D = %f \n", myteststrain, GD.g, GD.d);
 
 
-		 updated_mu = mu * GD.g;
+		 updated_mu = original_mu * GD.g;
 
          /* control the poisson ratio and lambda value */
 
@@ -854,7 +853,7 @@ void material_update_eq ( mesh_t     *myMesh,
          }
 
          /* update mu and lambda */
-        double old_mu = enlcons->mu;
+
  		enlcons->mu = updated_mu;
  		enlcons->lambda = updated_lambda;
  		edata -> Vs =  sqrt(updated_mu/edata ->rho);
@@ -885,7 +884,7 @@ void material_update_eq ( mesh_t     *myMesh,
    	     }
 
    	     printf("Element number: %i, new Vs: %f \n", el_eindex, edata->Vs);
-   	     printf("Element number: %i, Mu: %f, and updated Mu: %f \n", el_eindex, old_mu, enlcons->mu);
+   	     printf("Element number: %i, Mu: %f, and updated Mu: %f \n", el_eindex, original_mu, enlcons->mu);
 
  	    double anelastic_damping = 1/(2*enlcons->Qs_value);
  	    double total_requested_damping = GD.d/100 + anelastic_damping;
@@ -931,7 +930,6 @@ void material_update_eq ( mesh_t     *myMesh,
 
 
 
-
 	    new_Q = 1 / (2*total_requested_damping);
 
 
@@ -960,10 +958,11 @@ void material_update_eq ( mesh_t     *myMesh,
 
 	    double index_Qs = Search_Quality_Table(new_Q,&(myQTABLE[0][0]), QTable_Size);
 
-		update_Q_params(edata,index_Qs,0,QTable_Size,&(myQTABLE[0][0]),new_Q,0);
+		update_Q_params(edata,index_Qs,0,QTable_Size,&(myQTABLE[0][0]),new_Q,0, theFreq);
 	    control_correction_factor(edata,theFreq_Vel,theFreq);
 
 	} /* for all nonlinear elements */
+
 }
 
 
@@ -978,7 +977,7 @@ void    compute_addforce_bottom(int32_t timestep, mesh_t *myMesh, mysolver_t *my
          	double uo1 = ( 2.0 * alfa1 - 1.0 ) * exp(-alfa1);
          	double uo2 = ( 2.0 * alfa2 - 1.0 ) * exp(-alfa2);
 
-         	double force = (uo1+uo2)*10000;
+         	double force = (uo1+uo2)*100000;
 
 
          	int32_t nindex;
@@ -988,13 +987,31 @@ void    compute_addforce_bottom(int32_t timestep, mesh_t *myMesh, mysolver_t *my
          	for ( nindex = 0; nindex < myMesh->nharbored; nindex++ ) {
 
          	    double z_m = (myMesh->ticksize)*(double)myMesh->nodeTable[nindex].z;
+         	    double x_m = (myMesh->ticksize)*(double)myMesh->nodeTable[nindex].x;
+         	    double y_m = (myMesh->ticksize)*(double)myMesh->nodeTable[nindex].y;
 
-         	    if ( z_m == 512 ) {
+         	    if ( z_m == 512 ){
+
+         	    if (((x_m == 0 && y_m == 0) || (x_m == 0 && y_m == 2048) || (x_m == 2048 && y_m == 0) || (x_m == 2048 && y_m == 2048))) {
          	         fvector_t *nodalForce;
          	         nodalForce = mySolver->force + nindex;
-         	         nodalForce->f[0] += force;
+         	         nodalForce->f[0] += force/4;
          	         k=k+1;
 
+         	    } else if (((x_m == 0 && (y_m != 0 && y_m != 2048 )) || (x_m == 2048 && (y_m != 0 && y_m != 2048 )) || (y_m == 0 && (x_m != 0 && x_m != 2048 )) || (y_m == 2048 && (x_m != 0 && x_m != 2048 )))) {
+
+       	             fvector_t *nodalForce;
+        	         nodalForce = mySolver->force + nindex;
+        	         nodalForce->f[0] += force/2;
+        	         k=k+1;
+
+         	    }else {
+      	         fvector_t *nodalForce;
+       	         nodalForce = mySolver->force + nindex;
+       	         nodalForce->f[0] += force;
+       	         k=k+1;
+
+         	    }
          	    }
            }
 
