@@ -699,7 +699,8 @@ void material_update_eq ( mesh_t     *myMesh,
 							   double      *theQTABLE,
 							   int         QTable_Size,
 							   double      theFreq_Vel,
-							   double      theFreq
+							   double      theFreq,
+							   int         eq_it
 							   )
 {
 	/* In general, j-index refers to the quadrature point in a loop (0 to 7 for
@@ -721,12 +722,14 @@ void material_update_eq ( mesh_t     *myMesh,
 		e_t           *ep;    /* pointer to the element constant table */
 
 		double         h;          /* Element edge-size in meters   */
-		double         mu, lambda; /* Elasticity material constants */
+		double         mu, lambda, original_mu; /* Elasticity material constants */
 		double         XI, QC;
 		fvector_t      u[8];
 		eq_qptensors_t   *maxstrains;
 		double         zeta, a, b, updated_mu, updated_lambda;
 		double         requested_Q, new_Q;
+
+
 
 		/* Capture data from the element and mesh */
 		eindex = myEqlinElementsMapping[el_eindex];
@@ -739,7 +742,18 @@ void material_update_eq ( mesh_t     *myMesh,
 		/* Capture data from the eqlinear element structure */
 		enlcons = myEqlinSolver->constants + el_eindex;
 
-		mu     = enlcons->mu;
+
+
+		/* Keep the original mu in other variable and don't change it.
+		 *
+		 */
+		if (eq_it == 1){
+			enlcons->original_mu = enlcons -> mu;
+		}
+
+		printf("Element number: %i, old Vs: %f \n", el_eindex, edata->Vs);
+
+		mu     = enlcons->original_mu;
 		lambda = enlcons->lambda;
 
 
@@ -840,9 +854,11 @@ void material_update_eq ( mesh_t     *myMesh,
          }
 
          /* update mu and lambda */
-
+        double old_mu = enlcons->mu;
  		enlcons->mu = updated_mu;
  		enlcons->lambda = updated_lambda;
+ 		edata -> Vs =  sqrt(updated_mu/edata ->rho);
+ 		edata -> Vp =  sqrt((updated_lambda+2*updated_mu)/edata ->rho);
 
  		double old_c1 = ep->c1;
 
@@ -868,6 +884,8 @@ void material_update_eq ( mesh_t     *myMesh,
    	     enlcons->Qp_value = set_Qp(edata->Vs);
    	     }
 
+   	     printf("Element number: %i, new Vs: %f \n", el_eindex, edata->Vs);
+   	     printf("Element number: %i, Mu: %f, and updated Mu: %f \n", el_eindex, old_mu, enlcons->mu);
 
  	    double anelastic_damping = 1/(2*enlcons->Qs_value);
  	    double total_requested_damping = GD.d/100 + anelastic_damping;
@@ -953,14 +971,14 @@ void    compute_addforce_bottom(int32_t timestep, mesh_t *myMesh, mysolver_t *my
  {
 
             double fc =0.8,zp=0.04,Vs=500.0,Ts=3.0;
-            double t=timestep*0.001;
+            double t=timestep*0.005;
          	double alfa1 = ( PI * fc ) * ( PI * fc ) * ( t - zp / Vs - Ts) * ( t - zp / Vs - Ts);
          	double alfa2 = ( PI * fc ) * ( PI * fc ) * ( t + zp / Vs - Ts) * ( t + zp / Vs - Ts);
 
          	double uo1 = ( 2.0 * alfa1 - 1.0 ) * exp(-alfa1);
          	double uo2 = ( 2.0 * alfa2 - 1.0 ) * exp(-alfa2);
 
-         	double force = (uo1+uo2);
+         	double force = (uo1+uo2)*10000;
 
 
          	int32_t nindex;
@@ -971,7 +989,7 @@ void    compute_addforce_bottom(int32_t timestep, mesh_t *myMesh, mysolver_t *my
 
          	    double z_m = (myMesh->ticksize)*(double)myMesh->nodeTable[nindex].z;
 
-         	    if ( z_m == 500 ) {
+         	    if ( z_m == 512 ) {
          	         fvector_t *nodalForce;
          	         nodalForce = mySolver->force + nindex;
          	         nodalForce->f[0] += force;
@@ -981,7 +999,7 @@ void    compute_addforce_bottom(int32_t timestep, mesh_t *myMesh, mysolver_t *my
            }
 
 
-           printf("Number of bottom nodes are : %i",k);
+         // printf("Number of bottom nodes are : %i",k);
 
 
 

@@ -54,6 +54,7 @@ typedef struct elconstants_t {
 
     double lambda;
     double mu;
+    double original_mu;
     double Qs_value;
     double Qp_value;
 
@@ -164,7 +165,8 @@ void material_update_eq ( mesh_t     *myMesh,
 							   double      *theQTABLE,
 							   int         QTable_Size,
 							   double      theFreq_Vel,
-							   double      theFreq);
+							   double      theFreq,
+							   int         eq_it);
 /* -------------------------------------------------------------------------- */
 /*                        Nonlinear Output to Stations                        */
 /* -------------------------------------------------------------------------- */
