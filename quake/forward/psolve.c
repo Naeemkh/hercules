@@ -4394,6 +4394,9 @@ solver_compute_displacement( mysolver_t* solver, mesh_t* mesh )
         tm2Disp->f[1] = nodalForce.f[1] / np->mass_simple;
         tm2Disp->f[2] = nodalForce.f[2] / np->mass_simple;
 
+        tm2Disp ->f[1] = 0;
+        tm2Disp ->f[2] = 0;
+
     } /* for (nindex ...): all my harbored nodes */
 
     /* zero out the force vector for all nodes */

@@ -970,18 +970,18 @@ void    compute_addforce_bottom(int32_t timestep, mesh_t *myMesh, mysolver_t *my
  {
 
             double fc =0.8,zp=0.04,Vs=500.0,Ts=3.0;
-            double t=timestep*0.005;
+            double t=timestep*0.001;
          	double alfa1 = ( PI * fc ) * ( PI * fc ) * ( t - zp / Vs - Ts) * ( t - zp / Vs - Ts);
          	double alfa2 = ( PI * fc ) * ( PI * fc ) * ( t + zp / Vs - Ts) * ( t + zp / Vs - Ts);
 
          	double uo1 = ( 2.0 * alfa1 - 1.0 ) * exp(-alfa1);
          	double uo2 = ( 2.0 * alfa2 - 1.0 ) * exp(-alfa2);
 
-         	double force = (uo1+uo2)*100000;
+         	double force = (uo1+uo2)*1;
 
 
          	int32_t nindex;
-         	int32_t k=1;
+         	int32_t k1=0,k2=0;
 
 
          	for ( nindex = 0; nindex < myMesh->nharbored; nindex++ ) {
@@ -996,27 +996,27 @@ void    compute_addforce_bottom(int32_t timestep, mesh_t *myMesh, mysolver_t *my
          	         fvector_t *nodalForce;
          	         nodalForce = mySolver->force + nindex;
          	         nodalForce->f[0] += force/4;
-         	         k=k+1;
+
 
          	    } else if (((x_m == 0 && (y_m != 0 && y_m != 2048 )) || (x_m == 2048 && (y_m != 0 && y_m != 2048 )) || (y_m == 0 && (x_m != 0 && x_m != 2048 )) || (y_m == 2048 && (x_m != 0 && x_m != 2048 )))) {
 
        	             fvector_t *nodalForce;
         	         nodalForce = mySolver->force + nindex;
         	         nodalForce->f[0] += force/2;
-        	         k=k+1;
+        	         k1=k1+1;
 
          	    }else {
       	         fvector_t *nodalForce;
        	         nodalForce = mySolver->force + nindex;
        	         nodalForce->f[0] += force;
-       	         k=k+1;
+       	         k2=k2+1;
 
          	    }
          	    }
            }
 
 
-         // printf("Number of bottom nodes are : %i",k);
+//          printf("Number of bottom nodes are : %i - %i",k1,k2);
 
 
 
