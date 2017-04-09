@@ -136,6 +136,8 @@ void eqlinear_init ( int32_t     myID,
 eq_tensor_t point_strain_eq    ( fvector_t *u, double lx, double ly, double lz,
                            double h);
 eq_tensor_t init_tensor_eq     ( );
+int get_displacements_eq ( mysolver_t *solver, elem_t *elemp, fvector_t *u );
+
 /* -------------------------------------------------------------------------- */
 /*                              Stability methods                             */
 /* -------------------------------------------------------------------------- */

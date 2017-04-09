@@ -228,7 +228,7 @@ void eqlinear_solver_init(int32_t myID, mesh_t *myMesh, double depth) {
         mu_and_lambda(&mu, &lambda, edata, eindex);
         ecp->lambda = lambda;
         ecp->mu     = mu;
-
+       // printf("element_num : %i, mu: %f \n",el_eindex,mu);
         /* Calculate the vertical stress as a homogeneous half-space */
 //        if ( theApproxGeoState == YES )
 //        	ecp->sigmaZ_st = edata->rho * 9.80 * ( zo + edata->edgesize / 2.0 );
@@ -453,6 +453,33 @@ void eqlinear_init( int32_t     myID,
 }
 
 
+noyesflag_t isThisElementsAtTheBottom_eq( mesh_t  *myMesh,
+                                       int32_t  eindex,
+                                       double   depth )
+{
+    elem_t  *elemp;
+    int32_t  nindex;
+    double   x_m,y_m,z_m;
+
+    /* Capture the element's last node at the bottom */
+    elemp  = &myMesh->elemTable[eindex];
+    nindex = elemp->lnid[7];
+
+    x_m = (myMesh->ticksize)*(double)myMesh->nodeTable[nindex].x;
+    y_m = (myMesh->ticksize)*(double)myMesh->nodeTable[nindex].y;
+    z_m = (myMesh->ticksize)*(double)myMesh->nodeTable[nindex].z;
+
+
+  //  if ( z_m == depth && x_m < 1024 + 32 && x_m > 1024 - 32 && y_m < 1024 + 32 && y_m > 1024 - 32  ) {
+    if ( z_m == depth && x_m == 992 && y_m == 992  ) {
+        return YES;
+    }
+
+    return NO;
+}
+
+
+
 
 
 /* -------------------------------------------------------------------------- */
@@ -501,6 +528,31 @@ eq_tensor_t init_tensor_eq() {
     return tensor;
 }
 
+
+int get_displacements_eq(mysolver_t *solver, elem_t *elemp, fvector_t *u) {
+
+    int i;
+    int res = 0;
+
+    /* Capture displacements for each node */
+    for (i = 0; i < 8; i++) {
+
+        int32_t    lnid;
+        fvector_t *dis;
+
+        lnid = elemp->lnid[i];
+        dis  = solver->tm1 + lnid;
+
+        res += vector_is_all_zero( dis );
+
+        u[i].f[0] = dis->f[0];
+        u[i].f[1] = dis->f[1];
+        u[i].f[2] = dis->f[2];
+
+    }
+
+    return res;
+}
 
 
 /* -------------------------------------------------------------------------- */
@@ -627,10 +679,16 @@ void compute_eqlinear_state ( mesh_t     *myMesh,
 		// temp code to control (naeem)
 		// printf("This is strain: %f \n", tstrains[1]);
 
-		if ( get_displacements(mySolver, elemp, u) == 0 ) {
+
+
+		if ( get_displacements_eq(mySolver, elemp, u) == 0 ) {
 			/* If all displacements are zero go for next element */
 			continue;
 		}
+
+
+
+
 
 		/* Loop over the quadrature points */
 		for (i = 0; i < 8; i++) {
@@ -644,6 +702,16 @@ void compute_eqlinear_state ( mesh_t     *myMesh,
 
 			/* Calculate total strains */
 			tstrains->qp[i] = point_strain_eq(u, lx, ly, lz, h);
+
+
+
+//			if ( isThisElementsAtTheBottom_eq(myMesh, el_eindex, 512) == YES) {
+//				printf("STST el_eindex = %i,node =%i,timestep = %i ,xz = %.20f \n",el_eindex,i,step,tstrains->qp[i].xz);
+//
+//			        }
+
+
+
 
 			//For each element you need to define another strain tensor, to only keep the maximum value of strain.
 
@@ -977,7 +1045,7 @@ void    compute_addforce_bottom(int32_t timestep, mesh_t *myMesh, mysolver_t *my
          	double uo1 = ( 2.0 * alfa1 - 1.0 ) * exp(-alfa1);
          	double uo2 = ( 2.0 * alfa2 - 1.0 ) * exp(-alfa2);
 
-         	double force = (uo1+uo2)*1;
+         	double force = (uo1+uo2)*(100000)/65536;
 
 
          	int32_t nindex;
