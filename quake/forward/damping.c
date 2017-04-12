@@ -461,6 +461,9 @@ void constant_Q_addforce(mesh_t *myMesh, mysolver_t *mySolver, double theFreq, d
 			lnid = elemp->lnid[i];
 
 			nodalForce = mySolver->force + lnid;
+
+			//Naeem: Commented three follow line
+
 			nodalForce->f[0] += localForce[i].f[0];
 			nodalForce->f[1] += localForce[i].f[1];
 			nodalForce->f[2] += localForce[i].f[2];

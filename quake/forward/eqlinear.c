@@ -471,8 +471,10 @@ noyesflag_t isThisElementsAtTheBottom_eq( mesh_t  *myMesh,
 
 
   //  if ( z_m == depth && x_m < 1024 + 32 && x_m > 1024 - 32 && y_m < 1024 + 32 && y_m > 1024 - 32  ) {
-    if ( z_m == depth && x_m == 992 && y_m == 992  ) {
-        return YES;
+  // important: This shows all elements in the middle column not bottom
+  //  if ( z_m == depth && x_m == 992 && y_m == 992  ) {
+    if ( x_m == 1000 && y_m == 1000  ) {
+    return YES;
     }
 
     return NO;
@@ -705,10 +707,23 @@ void compute_eqlinear_state ( mesh_t     *myMesh,
 
 
 
-//			if ( isThisElementsAtTheBottom_eq(myMesh, el_eindex, 512) == YES) {
-//				printf("STST el_eindex = %i,node =%i,timestep = %i ,xz = %.20f \n",el_eindex,i,step,tstrains->qp[i].xz);
-//
-//			        }
+		    int32_t  nindex;
+		    double   x_m,y_m,z_m;
+
+		    /* Capture the element's last node at the bottom */
+		    elemp  = &myMesh->elemTable[eindex];
+		    nindex = elemp->lnid[7];
+
+//		    x_m = (myMesh->ticksize)*(double)myMesh->nodeTable[nindex].x;
+//		    y_m = (myMesh->ticksize)*(double)myMesh->nodeTable[nindex].y;
+		    z_m = (myMesh->ticksize)*(double)myMesh->nodeTable[nindex].z;
+
+
+
+			if ( isThisElementsAtTheBottom_eq(myMesh, el_eindex, 512) == YES  && (step==3228 || step==4807)) {
+				printf("STST el_eindex = %i,node =%i,depth = %f, timestep = %i ,xz = %.20f \n",el_eindex,i,z_m,step,tstrains->qp[i].xz);
+
+			        }
 
 
 
@@ -818,7 +833,7 @@ void material_update_eq (      mesh_t     *myMesh,
 			enlcons->original_mu = enlcons -> mu;
 		}
 
-		printf("Element number: %i, old Vs: %f \n", el_eindex, edata->Vs);
+//		printf("Element number: %i, old Vs: %f \n", el_eindex, edata->Vs);
 
 		original_mu     = enlcons->original_mu;
 		lambda = enlcons->lambda;
@@ -951,8 +966,8 @@ void material_update_eq (      mesh_t     *myMesh,
    	     enlcons->Qp_value = set_Qp(edata->Vs);
    	     }
 
-   	     printf("Element number: %i, new Vs: %f \n", el_eindex, edata->Vs);
-   	     printf("Element number: %i, Mu: %f, and updated Mu: %f \n", el_eindex, original_mu, enlcons->mu);
+//   	     printf("Element number: %i, new Vs: %f \n", el_eindex, edata->Vs);
+//   	     printf("Element number: %i, Mu: %f, and updated Mu: %f \n", el_eindex, original_mu, enlcons->mu);
 
  	    double anelastic_damping = 1/(2*enlcons->Qs_value);
  	    double total_requested_damping = GD.d/100 + anelastic_damping;
@@ -1038,6 +1053,8 @@ void    compute_addforce_bottom(int32_t timestep, mesh_t *myMesh, mysolver_t *my
  {
 
             double fc =0.8,zp=0.04,Vs=500.0,Ts=3.0;
+
+            // first node
             double t=timestep*0.001;
          	double alfa1 = ( PI * fc ) * ( PI * fc ) * ( t - zp / Vs - Ts) * ( t - zp / Vs - Ts);
          	double alfa2 = ( PI * fc ) * ( PI * fc ) * ( t + zp / Vs - Ts) * ( t + zp / Vs - Ts);
@@ -1045,7 +1062,18 @@ void    compute_addforce_bottom(int32_t timestep, mesh_t *myMesh, mysolver_t *my
          	double uo1 = ( 2.0 * alfa1 - 1.0 ) * exp(-alfa1);
          	double uo2 = ( 2.0 * alfa2 - 1.0 ) * exp(-alfa2);
 
-         	double force = (uo1+uo2)*(100000)/65536;
+         	double force_1 = (uo1+uo2)*(1);
+
+         	// second node
+            t=(timestep+64)*0.001;
+         	alfa1 = ( PI * fc ) * ( PI * fc ) * ( t - zp / Vs - Ts) * ( t - zp / Vs - Ts);
+         	alfa2 = ( PI * fc ) * ( PI * fc ) * ( t + zp / Vs - Ts) * ( t + zp / Vs - Ts);
+
+         	uo1 = ( 2.0 * alfa1 - 1.0 ) * exp(-alfa1);
+         	uo2 = ( 2.0 * alfa2 - 1.0 ) * exp(-alfa2);
+
+         	double force_2 = -(uo1+uo2)*(1);
+
 
 
          	int32_t nindex;
@@ -1063,24 +1091,50 @@ void    compute_addforce_bottom(int32_t timestep, mesh_t *myMesh, mysolver_t *my
          	    if (((x_m == 0 && y_m == 0) || (x_m == 0 && y_m == 2048) || (x_m == 2048 && y_m == 0) || (x_m == 2048 && y_m == 2048))) {
          	         fvector_t *nodalForce;
          	         nodalForce = mySolver->force + nindex;
-         	         nodalForce->f[0] += force/4;
+         	         nodalForce->f[0] += force_1/4;
 
 
          	    } else if (((x_m == 0 && (y_m != 0 && y_m != 2048 )) || (x_m == 2048 && (y_m != 0 && y_m != 2048 )) || (y_m == 0 && (x_m != 0 && x_m != 2048 )) || (y_m == 2048 && (x_m != 0 && x_m != 2048 )))) {
 
        	             fvector_t *nodalForce;
         	         nodalForce = mySolver->force + nindex;
-        	         nodalForce->f[0] += force/2;
+        	         nodalForce->f[0] += force_1/2;
         	         k1=k1+1;
 
          	    }else {
       	         fvector_t *nodalForce;
        	         nodalForce = mySolver->force + nindex;
-       	         nodalForce->f[0] += force;
+       	         nodalForce->f[0] += force_1;
        	         k2=k2+1;
 
          	    }
          	    }
+
+         	   if ( z_m == 480 ){
+
+         	            	    if (((x_m == 0 && y_m == 0) || (x_m == 0 && y_m == 2048) || (x_m == 2048 && y_m == 0) || (x_m == 2048 && y_m == 2048))) {
+         	            	         fvector_t *nodalForce;
+         	            	         nodalForce = mySolver->force + nindex;
+         	            	         nodalForce->f[0] += force_2/4;
+
+
+         	            	    } else if (((x_m == 0 && (y_m != 0 && y_m != 2048 )) || (x_m == 2048 && (y_m != 0 && y_m != 2048 )) || (y_m == 0 && (x_m != 0 && x_m != 2048 )) || (y_m == 2048 && (x_m != 0 && x_m != 2048 )))) {
+
+         	          	             fvector_t *nodalForce;
+         	           	         nodalForce = mySolver->force + nindex;
+         	           	         nodalForce->f[0] += force_2/2;
+         	           	         k1=k1+1;
+
+         	            	    }else {
+         	         	         fvector_t *nodalForce;
+         	          	         nodalForce = mySolver->force + nindex;
+         	          	         nodalForce->f[0] += force_2;
+         	          	         k2=k2+1;
+
+         	            	    }
+         	            	    }
+
+
            }
 
 

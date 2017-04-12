@@ -4276,6 +4276,7 @@ solver_compute_force_damping( mysolver_t *solver,
 	else if(Param.theTypeOfDamping >= BKT)
 	{
 	    /* Else, if damping is of the BKT family */
+
 		calc_conv(Global.myMesh, Global.mySolver, Param.theFreq, Param.theDeltaT, Param.theDeltaTSquared, Param.theTypeOfDamping);
 		constant_Q_addforce(Global.myMesh, Global.mySolver, Param.theFreq, Param.theDeltaT, Param.theDeltaTSquared, Param.theTypeOfDamping);
 	}
@@ -4394,7 +4395,7 @@ solver_compute_displacement( mysolver_t* solver, mesh_t* mesh )
         tm2Disp->f[1] = nodalForce.f[1] / np->mass_simple;
         tm2Disp->f[2] = nodalForce.f[2] / np->mass_simple;
 
-        tm2Disp ->f[1] = 0;
+//        tm2Disp ->f[1] = 0;
         tm2Disp ->f[2] = 0;
 
     } /* for (nindex ...): all my harbored nodes */
