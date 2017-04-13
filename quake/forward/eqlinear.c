@@ -1089,17 +1089,17 @@ void    compute_addforce_bottom(int32_t timestep, mesh_t *myMesh, mysolver_t *my
          	    if ( z_m == 512 ){
 
          	    if (((x_m == 0 && y_m == 0) || (x_m == 0 && y_m == 2048) || (x_m == 2048 && y_m == 0) || (x_m == 2048 && y_m == 2048))) {
-         	         fvector_t *nodalForce;
-         	         nodalForce = mySolver->force + nindex;
-         	         nodalForce->f[0] += force_1/4;
+         	       //  fvector_t *nodalForce;
+         	       //  nodalForce = mySolver->force + nindex;
+         	       //  nodalForce->f[0] += force_1/4;
 
 
          	    } else if (((x_m == 0 && (y_m != 0 && y_m != 2048 )) || (x_m == 2048 && (y_m != 0 && y_m != 2048 )) || (y_m == 0 && (x_m != 0 && x_m != 2048 )) || (y_m == 2048 && (x_m != 0 && x_m != 2048 )))) {
 
-       	             fvector_t *nodalForce;
-        	         nodalForce = mySolver->force + nindex;
-        	         nodalForce->f[0] += force_1/2;
-        	         k1=k1+1;
+       	         //    fvector_t *nodalForce;
+        	     //    nodalForce = mySolver->force + nindex;
+        	      //   nodalForce->f[0] += force_1/2;
+        	     //    k1=k1+1;
 
          	    }else {
       	         fvector_t *nodalForce;
@@ -1113,17 +1113,17 @@ void    compute_addforce_bottom(int32_t timestep, mesh_t *myMesh, mysolver_t *my
          	   if ( z_m == 480 ){
 
          	            	    if (((x_m == 0 && y_m == 0) || (x_m == 0 && y_m == 2048) || (x_m == 2048 && y_m == 0) || (x_m == 2048 && y_m == 2048))) {
-         	            	         fvector_t *nodalForce;
-         	            	         nodalForce = mySolver->force + nindex;
-         	            	         nodalForce->f[0] += force_2/4;
+         	            	   //      fvector_t *nodalForce;
+         	            	  //       nodalForce = mySolver->force + nindex;
+         	            	  //       nodalForce->f[0] += force_2/4;
 
 
          	            	    } else if (((x_m == 0 && (y_m != 0 && y_m != 2048 )) || (x_m == 2048 && (y_m != 0 && y_m != 2048 )) || (y_m == 0 && (x_m != 0 && x_m != 2048 )) || (y_m == 2048 && (x_m != 0 && x_m != 2048 )))) {
 
-         	          	             fvector_t *nodalForce;
-         	           	         nodalForce = mySolver->force + nindex;
-         	           	         nodalForce->f[0] += force_2/2;
-         	           	         k1=k1+1;
+         	          	     //        fvector_t *nodalForce;
+         	           	     //    nodalForce = mySolver->force + nindex;
+         	           	    //     nodalForce->f[0] += force_2/2;
+         	           	    //     k1=k1+1;
 
          	            	    }else {
          	         	         fvector_t *nodalForce;
@@ -1132,11 +1132,42 @@ void    compute_addforce_bottom(int32_t timestep, mesh_t *myMesh, mysolver_t *my
          	          	         k2=k2+1;
 
          	            	    }
-         	            	    }
 
 
-           }
 
+            	// Add vertical force to keep the balance
+
+            	 if ( z_m == 512 && x_m == 32 ){
+
+            		 fvector_t *nodalForce;
+                 	 nodalForce = mySolver->force + nindex;
+                 	 nodalForce->f[2] += force_1;
+            	 }
+
+            	 if ( z_m == 480 && x_m == 32 ){
+
+                        		 fvector_t *nodalForce;
+                             	 nodalForce = mySolver->force + nindex;
+                             	 nodalForce->f[2] += force_2;
+                 }
+
+            	 if ( z_m == 512 && x_m == 2016 ){
+
+            		 fvector_t *nodalForce;
+                 	 nodalForce = mySolver->force + nindex;
+                 	 nodalForce->f[2] -= force_1;
+            	 }
+
+            	 if ( z_m == 480 && x_m == 2016 ){
+
+                        		 fvector_t *nodalForce;
+                             	 nodalForce = mySolver->force + nindex;
+                             	 nodalForce->f[2] -= force_2*1000;
+                 }
+
+         	 }
+
+         	}
 
 //          printf("Number of bottom nodes are : %i - %i",k1,k2);
 
