@@ -1054,30 +1054,66 @@ void    compute_addforce_bottom(int32_t timestep, mesh_t *myMesh, mysolver_t *my
 
             double fc =0.8,zp=0.04,Vs=500.0,Ts=3.0;
 
+            double ri_dt = 0.01;
+
+            double sum1=0,sum2=0;				 // comment this line for ricker pulse
+            for(int i=0;i<timestep;i++)  // comment this line for ricker pulse
+                      {                  // comment this line for ricker pulse
+
             // first node
-            double t=timestep*0.001;
+            double t=i*ri_dt;
          	double alfa1 = ( PI * fc ) * ( PI * fc ) * ( t - zp / Vs - Ts) * ( t - zp / Vs - Ts);
          	double alfa2 = ( PI * fc ) * ( PI * fc ) * ( t + zp / Vs - Ts) * ( t + zp / Vs - Ts);
 
          	double uo1 = ( 2.0 * alfa1 - 1.0 ) * exp(-alfa1);
          	double uo2 = ( 2.0 * alfa2 - 1.0 ) * exp(-alfa2);
 
-         	double force_1 = (uo1+uo2)*(1);
+         	double force_11 = (uo1+uo2);
+
+
+
+                sum1 = sum1 + force_11;
+            }
+
+         	double force_1 = sum1*ri_dt;
 
          	// second node
-            t=(timestep+64)*0.001;
-         	alfa1 = ( PI * fc ) * ( PI * fc ) * ( t - zp / Vs - Ts) * ( t - zp / Vs - Ts);
-         	alfa2 = ( PI * fc ) * ( PI * fc ) * ( t + zp / Vs - Ts) * ( t + zp / Vs - Ts);
 
-         	uo1 = ( 2.0 * alfa1 - 1.0 ) * exp(-alfa1);
-         	uo2 = ( 2.0 * alfa2 - 1.0 ) * exp(-alfa2);
+            for(int i=0;i<timestep;i++)  // comment this line for ricker pulse
+                      {                  // comment this line for ricker pulse
+            double t=(i+5)*ri_dt;
+         	double alfa1 = ( PI * fc ) * ( PI * fc ) * ( t - zp / Vs - Ts) * ( t - zp / Vs - Ts);
+         	double alfa2 = ( PI * fc ) * ( PI * fc ) * ( t + zp / Vs - Ts) * ( t + zp / Vs - Ts);
 
-         	double force_2 = -(uo1+uo2)*(1);
+         	double uo1 = ( 2.0 * alfa1 - 1.0 ) * exp(-alfa1);
+         	double uo2 = ( 2.0 * alfa2 - 1.0 ) * exp(-alfa2);
 
+         	double force_22 = -(uo1+uo2)*(1);
+         	sum2 = sum2 + force_22;
+                      }
 
+            double force_2 = sum2*ri_dt;
+/*
+         	//first node
+         	double mean=3;
+         	double sigma=0.2;
+         	double t=(timestep)*0.001;
+         	double force_1=(1/sqrt(2*PI))/sigma*exp(-(t-mean)*(t-mean)/2/sigma/sigma);
+
+            //second node
+         	t=(timestep+64)*0.001;
+         	double force_2=(1/sqrt(2*PI))/sigma*exp(-(t-mean)*(t-mean)/2/sigma/sigma);
+
+*/
 
          	int32_t nindex;
          	int32_t k1=0,k2=0;
+
+         	double f_l_depth = 512;   //first layer depth
+         	double el_size   = 32;     //element size
+         	double s_l_depth = f_l_depth - el_size;    //second layer depth
+         	double d_width_x   = 8192;    //domain width x
+         	double d_width_y   = 8192;     //domain width y
 
 
          	for ( nindex = 0; nindex < myMesh->nharbored; nindex++ ) {
@@ -1086,20 +1122,20 @@ void    compute_addforce_bottom(int32_t timestep, mesh_t *myMesh, mysolver_t *my
          	    double x_m = (myMesh->ticksize)*(double)myMesh->nodeTable[nindex].x;
          	    double y_m = (myMesh->ticksize)*(double)myMesh->nodeTable[nindex].y;
 
-         	    if ( z_m == 512 ){
+         	    if ( z_m == f_l_depth ){
 
-         	    if (((x_m == 0 && y_m == 0) || (x_m == 0 && y_m == 2048) || (x_m == 2048 && y_m == 0) || (x_m == 2048 && y_m == 2048))) {
-         	       //  fvector_t *nodalForce;
-         	       //  nodalForce = mySolver->force + nindex;
-         	       //  nodalForce->f[0] += force_1/4;
+         	    if (((x_m == 0 && y_m == 0) || (x_m == 0 && y_m == d_width_y) || (x_m == d_width_x && y_m == 0) || (x_m == d_width_x && y_m == d_width_y))) {
+         	         fvector_t *nodalForce;
+         	         nodalForce = mySolver->force + nindex;
+         	         nodalForce->f[0] += force_1/4;
 
 
-         	    } else if (((x_m == 0 && (y_m != 0 && y_m != 2048 )) || (x_m == 2048 && (y_m != 0 && y_m != 2048 )) || (y_m == 0 && (x_m != 0 && x_m != 2048 )) || (y_m == 2048 && (x_m != 0 && x_m != 2048 )))) {
+         	    } else if (((x_m == 0 && (y_m != 0 && y_m != d_width_y )) || (x_m == d_width_x && (y_m != 0 && y_m != d_width_y )) || (y_m == 0 && (x_m != 0 && x_m != d_width_x )) || (y_m == d_width_y && (x_m != 0 && x_m != d_width_x )))) {
 
-       	         //    fvector_t *nodalForce;
-        	     //    nodalForce = mySolver->force + nindex;
-        	      //   nodalForce->f[0] += force_1/2;
-        	     //    k1=k1+1;
+       	             fvector_t *nodalForce;
+        	         nodalForce = mySolver->force + nindex;
+        	         nodalForce->f[0] += force_1/2;
+        	         k1=k1+1;
 
          	    }else {
       	         fvector_t *nodalForce;
@@ -1110,20 +1146,20 @@ void    compute_addforce_bottom(int32_t timestep, mesh_t *myMesh, mysolver_t *my
          	    }
          	    }
 
-         	   if ( z_m == 480 ){
+         	   if ( z_m == s_l_depth ){
 
-         	            	    if (((x_m == 0 && y_m == 0) || (x_m == 0 && y_m == 2048) || (x_m == 2048 && y_m == 0) || (x_m == 2048 && y_m == 2048))) {
-         	            	   //      fvector_t *nodalForce;
-         	            	  //       nodalForce = mySolver->force + nindex;
-         	            	  //       nodalForce->f[0] += force_2/4;
+         	            	    if (((x_m == 0 && y_m == 0) || (x_m == 0 && y_m == d_width_y) || (x_m == d_width_x && y_m == 0) || (x_m == d_width_x && y_m == d_width_y))) {
+         	            	         fvector_t *nodalForce;
+         	            	         nodalForce = mySolver->force + nindex;
+         	            	         nodalForce->f[0] += force_2/4;
 
 
-         	            	    } else if (((x_m == 0 && (y_m != 0 && y_m != 2048 )) || (x_m == 2048 && (y_m != 0 && y_m != 2048 )) || (y_m == 0 && (x_m != 0 && x_m != 2048 )) || (y_m == 2048 && (x_m != 0 && x_m != 2048 )))) {
+         	            	    } else if (((x_m == 0 && (y_m != 0 && y_m != d_width_y )) || (x_m == d_width_x && (y_m != 0 && y_m != d_width_y )) || (y_m == 0 && (x_m != 0 && x_m != d_width_x )) || (y_m == d_width_y && (x_m != 0 && x_m != d_width_x )))) {
 
-         	          	     //        fvector_t *nodalForce;
-         	           	     //    nodalForce = mySolver->force + nindex;
-         	           	    //     nodalForce->f[0] += force_2/2;
-         	           	    //     k1=k1+1;
+         	          	           fvector_t *nodalForce;
+         	           	           nodalForce = mySolver->force + nindex;
+         	           	           nodalForce->f[0] += force_2/2;
+         	           	           k1=k1+1;
 
          	            	    }else {
          	         	         fvector_t *nodalForce;
@@ -1137,32 +1173,32 @@ void    compute_addforce_bottom(int32_t timestep, mesh_t *myMesh, mysolver_t *my
 
             	// Add vertical force to keep the balance
 
-            	 if ( z_m == 512 && x_m == 32 ){
+            	 if ( z_m == f_l_depth && x_m == 0 ){
 
             		 fvector_t *nodalForce;
                  	 nodalForce = mySolver->force + nindex;
                  	 nodalForce->f[2] += force_1;
             	 }
 
-            	 if ( z_m == 480 && x_m == 32 ){
+            	 if ( z_m == s_l_depth && x_m == 0 ){
 
                         		 fvector_t *nodalForce;
                              	 nodalForce = mySolver->force + nindex;
                              	 nodalForce->f[2] += force_2;
                  }
 
-            	 if ( z_m == 512 && x_m == 2016 ){
+            	 if ( z_m == f_l_depth && x_m == d_width_x ){
 
             		 fvector_t *nodalForce;
                  	 nodalForce = mySolver->force + nindex;
                  	 nodalForce->f[2] -= force_1;
             	 }
 
-            	 if ( z_m == 480 && x_m == 2016 ){
+            	 if ( z_m == s_l_depth && x_m == d_width_x ){
 
                         		 fvector_t *nodalForce;
                              	 nodalForce = mySolver->force + nindex;
-                             	 nodalForce->f[2] -= force_2*1000;
+                             	 nodalForce->f[2] -= force_2;
                  }
 
          	 }
