@@ -5752,8 +5752,8 @@ static void compute_K()
     int k, l; /* indices of 3 x 3 matrices, k for rows, l for columns     */
 
     double x[3][8]={ {-1,  1, -1,  1, -1,  1, -1, 1} ,
-		     {-1, -1,  1,  1, -1, -1,  1, 1} ,
-		     {-1, -1, -1, -1,  1,  1,  1, 1} };
+		             {-1, -1,  1,  1, -1, -1,  1, 1} ,
+		             {-1, -1, -1, -1,  1,  1,  1, 1} };
 
     /* compute K3 first */
     memset(Global.theK3, 0, 8 * 8 * sizeof(fmatrix_t));
