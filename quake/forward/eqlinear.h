@@ -164,8 +164,8 @@ void material_update_eq ( mesh_t     *myMesh,
                                int         eq_it,
 							   double      theBBase,
 							   double      theThresholdVpVs,
-							   double      *theQTABLE,
-							   int         QTable_Size,
+							   //double      *theQTABLE,
+							   //int         QTable_Size,
 							   double      theFreq_Vel,
 							   double      theFreq
 							   );

@@ -523,36 +523,35 @@ void set_damping_params(edata_t *edata, double *theQTABLE, int QTable_Size,int  
 
 	index_Qs = Search_Quality_Table(Qs, &(QTABLE[0][0]), QTable_Size);
 	index_Qk = Search_Quality_Table(Qk, &(QTABLE[0][0]), QTable_Size);
-	update_Q_params(edata,index_Qs,index_Qk,QTable_Size,&(QTABLE[0][0]),Qs,Qk,theFreq);
+	update_Q_params(edata,Qs,Qk,theFreq);
     control_correction_factor(edata,theFreq_Vel,theFreq);
 
 
 }
 
 
-void update_Q_params(edata_t *edata, int index_Qs, int index_Qk, int QTable_Size, double *QTABLE, double Qs, double Qk, double theFreq){
-
+void update_Q_params(edata_t *edata,double Qs, double Qk, double theFreq){
 
     int i,k,j,l;
-    double myQTABLE[26][6];
+    //double myQTABLE[26][6];
 
-    int array_size=(QTable_Size*6)+1;
+    //int array_size=(QTable_Size*6)+1;
 
     // regenertate the Q_table
-    k=0;
-    j=0;
-	for(l = 1; l < array_size; l++)
-	{
-		i = l-1;
-		myQTABLE[k][j] = QTABLE[i];
-        if (l % 6 ==0){
-        	k=k+1;
-        }
-        j=j+1;
-        if (j==6){
-        	j=0;
-        }
-	}
+//    k=0;
+//    j=0;
+//	for(l = 1; l < array_size; l++)
+//	{
+//		i = l-1;
+//		myQTABLE[k][j] = QTABLE[i];
+//        if (l % 6 ==0){
+//        	k=k+1;
+//        }
+//        j=j+1;
+//        if (j==6){
+//        	j=0;
+//        }
+//	}
 
 //	if(index_Qs == -2 || index_Qs >= QTable_Size)
 //		        	{
