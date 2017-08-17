@@ -3477,6 +3477,12 @@ static void solver_init() {
 		double dashpot[8][3];
 #endif
 
+
+
+
+
+
+
 		double zeta, a, b;
 
 		/* Note the difference between the two tables */
@@ -3490,6 +3496,25 @@ static void solver_init() {
 		/* coefficients for term (deltaT_squared * Ke * Ut) */
 		ep->c1 = Param.theDeltaTSquared * edata->edgesize * mu / 9;
 		ep->c2 = Param.theDeltaTSquared * edata->edgesize * lambda / 9;
+
+
+		// Naeem: printing out the current properties of the element:
+	    int32_t  nindex;
+	    double   x_m,y_m,z_m;
+	    elemp  = &Global.myMesh->elemTable[eindex];
+	    nindex = elemp->lnid[7];
+
+	    x_m = (Global.myMesh->ticksize)*(double)Global.myMesh->nodeTable[nindex].x;
+	    y_m = (Global.myMesh->ticksize)*(double)Global.myMesh->nodeTable[nindex].y;
+	    z_m = (Global.myMesh->ticksize)*(double)Global.myMesh->nodeTable[nindex].z;
+
+
+		if (x_m == 4096 && y_m == 4096) {
+			printf("PSOLVEL3513STST el_eindex = %i , depth = %f , Vs = %f , Vp = %f , rho = %f , mu = %f , lambda = %f   \n",eindex,z_m,edata->Vs,edata->Vp,edata->rho, mu, lambda);
+		 }
+
+
+
 
 		/* coefficients for term (b * deltaT * Ke_off * (Ut-1 - Ut)) */
 		/* Anelastic attenuation (material damping) */
