@@ -224,6 +224,7 @@ static struct Param_t {
 	noyesflag_t useParametricQ;
 	noyesflag_t includeNonlinearAnalysis;
 	noyesflag_t includeEqlinearAnalysis;
+	noyesflag_t useDirectForce;
 	noyesflag_t useInfQk;
 	int theTimingBarriersFlag;
 	stiffness_type_t theStiffness;
@@ -349,7 +350,7 @@ static inline int monitor_print(const char* format, ...) {
 static void read_parameters(int argc, char** argv) {
 
 #define LOCAL_INIT_DOUBLE_MESSAGE_LENGTH 21  /* Must adjust this if adding double params */
-#define LOCAL_INIT_INT_MESSAGE_LENGTH 25     /* Must adjust this if adding int params */
+#define LOCAL_INIT_INT_MESSAGE_LENGTH 26     /* Must adjust this if adding int params */
 
 	double double_message[LOCAL_INIT_DOUBLE_MESSAGE_LENGTH];
 	int int_message[LOCAL_INIT_INT_MESSAGE_LENGTH];
@@ -439,6 +440,7 @@ static void read_parameters(int argc, char** argv) {
 	int_message[22] = (int) Param.includeEqlinearAnalysis;
 	int_message[23] = (int) Param.theNumberOfIterations;
 	int_message[24] = (int) Param.theIteration_c;
+	int_message[25] = (int) Param.useDirectForce;
 
 	MPI_Bcast(int_message, LOCAL_INIT_INT_MESSAGE_LENGTH, MPI_INT, 0,
 			comm_solver);
@@ -468,6 +470,7 @@ static void read_parameters(int argc, char** argv) {
 	Param.includeEqlinearAnalysis = int_message[22];
 	Param.theNumberOfIterations = int_message[23];
 	Param.theIteration_c = int_message[24];
+	Param.useDirectForce = int_message[25];
 
 	/*Broadcast all string params*/
 	MPI_Bcast(Param.parameters_input_file, 256, MPI_CHAR, 0, comm_solver);
@@ -646,7 +649,7 @@ static int32_t parse_parameters(const char* numericalin) {
 			print_station_velocities[64], print_station_accelerations[64],
 			mesh_coordinates_for_matlab[64], implement_drm[64],
 			use_infinite_qk[64], include_topography[64],
-			include_incident_planewaves[64], include_eqlinear_analysis[64];
+			include_incident_planewaves[64], include_eqlinear_analysis[64], use_direct_force[64];
 
 	damping_type_t typeOfDamping = -1;
 	stiffness_type_t stiffness_method = -1;
@@ -658,6 +661,7 @@ static int32_t parse_parameters(const char* numericalin) {
 	noyesflag_t printStationVels = -1;
 	noyesflag_t printStationAccs = -1;
 	noyesflag_t useInfQk = -1;
+	noyesflag_t useDForce = -1;
 
 	noyesflag_t meshCoordinatesForMatlab = -1;
 	noyesflag_t implementdrm = -1;
@@ -749,11 +753,11 @@ static int32_t parse_parameters(const char* numericalin) {
 			|| (parsetext(fp, "simulation_output_rate", 'i', &rate) != 0)
 			|| (parsetext(fp, "number_output_planes", 'i',
 					&number_output_planes) != 0)
-			|| (parsetext(fp, "number_of_iterations", 'i', &number_iterations)
-					!= 0)
+			|| (parsetext(fp, "number_of_iterations", 'i', &number_iterations) 	!= 0)
+			|| (parsetext(fp, "use_direct_force", 's', 	&use_direct_force) != 0)
 			|| (parsetext(fp, "number_output_stations", 'i',
 					&number_output_stations) != 0)
-			|| (parsetext(fp, "the_threshold_damping", 'd', &threshold_damping)
+			||(parsetext(fp, "the_threshold_damping", 'd', &threshold_damping)
 					!= 0)
 			|| (parsetext(fp, "the_threshold_Vp_over_Vs", 'd', &threshold_VpVs)
 					!= 0)
@@ -929,6 +933,19 @@ static int32_t parse_parameters(const char* numericalin) {
 				include_eqlinear_analysis);
 	}
 
+	if (strcasecmp(use_direct_force, "yes") == 0) {
+		useDForce = YES;
+	} else if (strcasecmp(use_direct_force, "no") == 0) {
+		useDForce = NO;
+	} else {
+		solver_abort( __FUNCTION_NAME, NULL, "Unknown response for use direct force (yes or no): %s\n",
+				use_direct_force);
+	}
+
+
+
+
+
 	if (strcasecmp(stiffness_calculation_method, "effective") == 0) {
 		stiffness_method = EFFECTIVE;
 	} else if (strcasecmp(stiffness_calculation_method, "conventional") == 0) {
@@ -1070,6 +1087,7 @@ static int32_t parse_parameters(const char* numericalin) {
 
 	Param.includeNonlinearAnalysis = includeNonlinear;
 	Param.includeEqlinearAnalysis = includeEqlinear;
+	Param.useDirectForce = useDForce;
 	Param.theStiffness = stiffness_method;
 
 	Param.printK = printMatrixK;
@@ -1101,6 +1119,8 @@ static int32_t parse_parameters(const char* numericalin) {
 			include_nonlinear_analysis);
 	monitor_print("Include eqlinear analysis:          %s\n",
 			include_eqlinear_analysis);
+	monitor_print("Use direct force:          %s\n",
+			use_direct_force);
 	monitor_print("Printing velocities on stations:    %s\n",
 			print_station_velocities);
 	monitor_print("Printing accelerations on stations: %s\n",
@@ -4087,8 +4107,13 @@ static void solver_load_fixedbase_displacements(mysolver_t* solver, int step) {
 static void solver_compute_force_source(int step, mesh_t *myMesh,
 		mysolver_t *mySolver) {
 	Timer_Start("Compute addforces s");
-//    compute_addforce_s( step );
+	if (Param.useDirectForce == YES) {
+
 	compute_addforce_bottom(step, myMesh, mySolver);
+	}else{
+	compute_addforce_s( step );
+	}
+
 	Timer_Stop("Compute addforces s");
 }
 
