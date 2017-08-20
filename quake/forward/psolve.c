@@ -3529,9 +3529,9 @@ static void solver_init() {
 	    z_m = (Global.myMesh->ticksize)*(double)Global.myMesh->nodeTable[nindex].z;
 
 
-		if (x_m == 4096 && y_m == 4096) {
-			printf("PSOLVEL3513STST el_eindex = %i , depth = %f , Vs = %f , Vp = %f , rho = %f , mu = %f , lambda = %f   \n",eindex,z_m,edata->Vs,edata->Vp,edata->rho, mu, lambda);
-		 }
+		//if (x_m == 4096 && y_m == 4096) {
+		//	printf("PSOLVEL3513STST el_eindex = %i , depth = %f , Vs = %f , Vp = %f , rho = %f , mu = %f , lambda = %f   \n",eindex,z_m,edata->Vs,edata->Vp,edata->rho, mu, lambda);
+		//}
 
 
 
@@ -4023,7 +4023,7 @@ static void solver_nonlinear_state(mysolver_t *solver, mesh_t *mesh,
 	if (Param.includeNonlinearAnalysis == YES) {
 		Timer_Start("Compute Non-linear Entities");
 		compute_nonlinear_state(mesh, solver, Param.theNumberOfStations,
-				Param.myNumberOfStations, Param.myStations, Param.theDeltaT);
+				Param.myNumberOfStations, Param.myStations, Param.theDeltaT,step);
 		if (get_geostatic_total_time() > 0) {
 			compute_bottom_reactions(mesh, solver, k1, k2, step,
 					Param.theDeltaT);
@@ -4108,7 +4108,6 @@ static void solver_compute_force_source(int step, mesh_t *myMesh,
 		mysolver_t *mySolver) {
 	Timer_Start("Compute addforces s");
 	if (Param.useDirectForce == YES) {
-
 	compute_addforce_bottom(step, myMesh, mySolver);
 	}else{
 	compute_addforce_s( step );
