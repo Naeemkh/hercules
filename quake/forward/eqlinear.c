@@ -1108,7 +1108,7 @@ void    compute_addforce_bottom(int32_t timestep, mesh_t *myMesh, mysolver_t *my
 	double force_1 = Force_1[timestep];
 	double force_2 = -1*Force_1[timestep+5];
 
-	double force_coefficient =     353894.4;
+	double force_coefficient =      353894.4;
 
 	double force_1x = force_1 * force_coefficient;
 	double force_1z = force_1 * force_coefficient/2;

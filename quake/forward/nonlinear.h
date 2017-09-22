@@ -38,7 +38,7 @@ typedef enum {
      * allows one to initially evaluate the levels of deformation and serves
      * for comparisons with the corresponding elastoplastic runs.
      */
-    LINEAR = 0, VONMISES, DRUCKERPRAGER, MOHR_COULOMB
+    LINEAR = 0, VONMISES_EP, VONMISES_KHO, VONMISES_KHM, DRUCKERPRAGER, MOHR_COULOMB
 
 } materialmodel_t;
 
@@ -93,19 +93,19 @@ typedef struct nlconstants_t {
 
     double alpha;        /*  yield function constants in Drucker-Prager model*/
     double beta;         /*  constant of the plastic potential flow law */
-    double gamma;        /*  constant for teh hardening function in Drucker-Prager model */
+    double gamma;        /*  constant in the hardening function in Drucker-Prager model */
 
     double c;            /* soil cohesion */
     double phi;          /* angle of internal friction */
     double dil_angle;    /* angle of dilatancy */
 
-    double k;
     double h;             /*  variable used for the isotropic hardening function.
                               vonMises H=0. Hardening is considered Kinematic in vonMises criterion
                               In Drucker-Prager H = gamma(c + h*ep)  */
                           /*  In MohrCoulomb    H =     2(c + h*ep)cos(phi)  */
 
     double Sstrain0;      /* Defines the elastic range of the vonMises model. Sy=G*Sstrain0   */
+    double psi0;          /* Used to define the kinematic modulus in vonMises_KinO and the loading phase of vonMises_KinM */
 
     double fs[8];         /* F(sigma) */
     double dLambda[8];    /* yield control */
@@ -121,15 +121,23 @@ typedef struct nlconstants_t {
 
 typedef struct nlsolver_t {
 
-    nlconstants_t *constants;
-    qptensors_t   *stresses;
-    qptensors_t   *strains;
-    qptensors_t   *pstrains1;
-    qptensors_t   *pstrains2;
-    qptensors_t   *alphastress1;
-    qptensors_t   *alphastress2;
-    qpvectors_t   *ep1;         /* effective plastic strains */
-    qpvectors_t   *ep2;
+	nlconstants_t *constants;
+	qptensors_t   *stresses;
+	qptensors_t   *strains;
+	qptensors_t   *strains1;      // total strains at t-1
+	qptensors_t   *pstrains1;
+	qptensors_t   *pstrains2;
+	qptensors_t   *alphastress1;
+	qptensors_t   *alphastress2;
+	qpvectors_t   *ep1;         /* effective plastic strains */
+	qpvectors_t   *ep2;
+
+	/* New variables for vMKH with Sy=0   */
+	qpvectors_t   *psi_n;         /* Hkin/mu ratio. Used in the first loading of the vonMoises nonlinear hardening model (vMNH)   */
+	qpvectors_t   *LoUnlo_n;      /* loading sign at t-1  */
+	qpvectors_t   *Sv_n;          /* virgin surface radius at t-1 */
+	qpvectors_t   *Sv_max;        /* Max virgin surface radius */
+
 
 } nlsolver_t;
 
@@ -231,11 +239,12 @@ tensor_t subtrac_tensors ( tensor_t A, tensor_t B);
 tensor_t copy_tensor     ( tensor_t original);
 tensor_t add_tensors     (tensor_t A, tensor_t B);
 tensor_t zero_tensor     ();
+double   ddot_tensors    (tensor_t A, tensor_t B);
 
 qptensors_t compute_qp_stresses ( qptensors_t strains, double mu, double lambda);
 qptensors_t subtrac_qptensors   ( qptensors_t A, qptensors_t B);
 
-double   compute_hardening           ( double gamma, double c, double Sy, double h, double ep_bar, double phi );
+double   compute_hardening           ( double gamma, double c, double Sy, double h, double ep_bar, double phi, double psi );
 double   compute_yield_surface_stateII ( double J3, double J2, double I1, double alpha, double phi, tensor_t Sigma );
 
 double   compute_dLambdaII           ( nlconstants_t constants, double fs, double eff_ps, double J2, double I1, double J2_st, double I1_st, double *po);
@@ -244,8 +253,13 @@ tensor_t compute_pstrain2            ( nlconstants_t constants, tensor_t pstrain
 							           tensor_t dfds, double dLambda, double dt, double J2, double I1,
 							           double J2_st, double I1_st, double po );
 
-void material_update ( nlconstants_t constants, tensor_t e_n, tensor_t ep, tensor_t eta_n, double ep_barn, tensor_t sigma0, double dt,
-		               tensor_t *epl, tensor_t *eta, tensor_t *sigma, double *ep_bar, double *fs);
+void material_update ( nlconstants_t constants, tensor_t e_n, tensor_t e_n1, tensor_t ep, tensor_t eta_n, double ep_barn, tensor_t sigma0, double dt,
+		               tensor_t *epl, tensor_t *eta, tensor_t *sigma, double *ep_bar, double *fs, double *psi_n, double *loadunl_n, double *Tao_n, double *Tao_max );
+
+void MatUpd_vMKH (double J2_pr, tensor_t dev_pr, double psi, double c, tensor_t eta_n, tensor_t e_n1, double mu, double Lambda, double Sy,
+		tensor_t *epl, tensor_t ep, double *ep_bar, double ep_barn, tensor_t *eta, tensor_t *sigma, tensor_t stresses,
+		double *fs, double *psi_n, double *loadunl_n, double *Tao_n, double *Tao_max );
+
 
 tensor_t ApproxGravity_tensor(double Szz, double phi, double h, double lz, double rho);
 
