@@ -1458,7 +1458,19 @@ setrec( octant_t* leaf, double ticksize, void* data )
 
                 if (Param.useProfile == NO) {
                     res = cvm_query( Global.theCVMEp, y_m, x_m, z_m, &g_props );
-                } else {
+                
+		 // Naeem : added to refine the mesh around the source
+        	//if ( (x_m <= 21894.131794 && x_m >= 19202.515462) &&
+                //     (y_m <= 17595.153179 && y_m >= 11514.784903) &&
+             	//     (z_m <=  6640.100000 && z_m >=  3778.100000) ){
+                // int refine_fold=2;
+                // edata->Vs = Param.theFactor * edata->edgesize / 2 /refine_fold;
+               // g_props.Vs = 500; /**** <---- THIS VS VALUE SHOULD BE SUCH TO MATCH A SPECIFIC SIZE ELEMENT ****/
+                //  }
+
+
+
+                    } else {
                     res = profile_query(z_m, &g_props);
                 }
 
@@ -1496,6 +1508,19 @@ setrec( octant_t* leaf, double ticksize, void* data )
 	edata->Vs = Param.theVsCut;
 	edata->Vp = Param.theVsCut * VpVsRatio;
     }
+
+        // Naeem: add to setrec to refine the mesh around the source
+	
+//       if ( (x_m <= 21894.131794 && x_m >= 19202.515462) &&
+//             (y_m <= 17595.153179 && y_m >= 11514.784903) &&
+//             (z_m <=  6640.100000 && z_m >=  3778.100000) ){
+		// int refine_fold=2;
+		// edata->Vs = Param.theFactor * edata->edgesize / 2 /refine_fold;
+//                edata->Vs = 500; /**** <---- THIS VS VALUE SHOULD BE SUCH TO MATCH A SPECIFIC SIZE ELEMENT ****/
+//	}
+	
+
+
 
     return;
 }
