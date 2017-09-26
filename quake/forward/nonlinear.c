@@ -1413,7 +1413,7 @@ void MatUpd_vMKH (double J2_pr, tensor_t dev_pr, double psi, double Su, tensor_t
     	H_kin  = psi * mu;
     }
 
-     H_nlin = sqrt(1.0/2.0) * H_kin/( Su - Sy );  /* Remember that c=Su for the vonMises yielding criterion */
+     H_nlin = H_kin/( sqrt(8.0/3.0) * Su - Sy );  /*Sy was already scaled by srt(2) before calling MatUpd_vMKH() */
      G1     = mu + H_kin/2.0;
 
     /* coefficients of the quartic function  */
@@ -1492,7 +1492,7 @@ void MatUpd_vMKH (double J2_pr, tensor_t dev_pr, double psi, double Su, tensor_t
             *psi_n       = log( ( Su + *Tao_max ) / ( Su - *Tao_max ) ) * Su / ( Tao_e - *Tao_max );
 
             H_kin  = (*psi_n) * mu;
-            H_nlin = sqrt(1.0/2.0) * H_kin/( Su - Sy );  /* Remember that c=Su for the vonMises yielding criterion */
+            H_nlin = H_kin/( sqrt(8.0/3.0) * Su - Sy );  /*Sy was already scaled by srt(2) before calling MatUpd_vMKH() */
             G1     = mu + H_kin/2.0;
 
             /* coefficients of the quartic function  */

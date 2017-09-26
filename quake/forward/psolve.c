@@ -8011,7 +8011,7 @@ int main(int argc, char** argv) {
 			Timer_Reduce("Solver Stats Print", MAX | MIN, comm_solver);
 
 			/* Initialize nonlinear solver analysis structures */
-			/*
+
 			 if ( Param.includeNonlinearAnalysis == YES ) {
 			 nonlinear_solver_init(Global.myID, Global.myMesh, Param.theDomainZ);
 			 if ( Param.theNumberOfStations !=0 ){
@@ -8019,7 +8019,7 @@ int main(int argc, char** argv) {
 			 }
 			 nonlinear_stats(Global.myID, Global.theGroupSize);
 			 }
-			 */
+
 
 			if (eq_c == 0) {
 				eqlinear_solver_init(Global.myID, Global.myMesh,
@@ -8085,7 +8085,7 @@ int main(int argc, char** argv) {
 		Timer_Reduce("Solver Stats Print", MAX | MIN, comm_solver);
 
 		/* Initialize nonlinear solver analysis structures */
-		/* Naeem: comment out the following
+
 		 if ( Param.includeNonlinearAnalysis == YES ) {
 		 nonlinear_solver_init(Global.myID, Global.myMesh, Param.theDomainZ);
 		 if ( Param.theNumberOfStations !=0 ){
@@ -8093,7 +8093,7 @@ int main(int argc, char** argv) {
 		 }
 		 nonlinear_stats(Global.myID, Global.theGroupSize);
 		 }
-		 */
+
 
 		Timer_Start("Source Init");
 		source_init(Param.parameters_input_file);
