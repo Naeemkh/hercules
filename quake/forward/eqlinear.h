@@ -167,7 +167,15 @@ void material_update_eq ( mesh_t     *myMesh,
 							   //double      *theQTABLE,
 							   //int         QTable_Size,
 							   double      theFreq_Vel,
-							   double      theFreq
+							   double      theFreq,
+							   double      theEQA,
+							   double      theEQB,
+							   double      theEQC,
+							   double      theEQD,
+							   double      theEQE,
+							   double      theEQF,
+							   double      theEQG,
+							   double      theEQH
 							   );
 /* -------------------------------------------------------------------------- */
 /*                        Nonlinear Output to Stations                        */

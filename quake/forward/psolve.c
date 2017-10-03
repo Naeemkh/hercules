@@ -272,6 +272,14 @@ static struct Param_t {
 	double theQConstant;
 	double theQAlpha;
 	double theQBeta;
+	double theEQA;
+	double theEQB;
+	double theEQC;
+	double theEQD;
+	double theEQE;
+	double theEQF;
+	double theEQG;
+	double theEQH
 } Param = { .FourDOutFp = NULL, .theMonitorFileFp = NULL, .theMonitorFileName =
 		NULL, .theFreq_Vel = 0, .monitor_stats_rate = 50,
 		.theSchedulePrintErrorCheckFlag = 0, .theSchedulePrintToStdout = 0,
@@ -349,7 +357,7 @@ static inline int monitor_print(const char* format, ...) {
 
 static void read_parameters(int argc, char** argv) {
 
-#define LOCAL_INIT_DOUBLE_MESSAGE_LENGTH 21  /* Must adjust this if adding double params */
+#define LOCAL_INIT_DOUBLE_MESSAGE_LENGTH 29  /* Must adjust this if adding double params */
 #define LOCAL_INIT_INT_MESSAGE_LENGTH 26     /* Must adjust this if adding int params */
 
 	double double_message[LOCAL_INIT_DOUBLE_MESSAGE_LENGTH];
@@ -388,6 +396,15 @@ static void read_parameters(int argc, char** argv) {
 	double_message[18] = Param.theQConstant;
 	double_message[19] = Param.theQAlpha;
 	double_message[20] = Param.theQBeta;
+	double_message[21] = Param.theEQA;
+	double_message[22] = Param.theEQB;
+	double_message[23] = Param.theEQC;
+	double_message[24] = Param.theEQD;
+	double_message[25] = Param.theEQE;
+	double_message[26] = Param.theEQF;
+	double_message[27] = Param.theEQG;
+	double_message[28] = Param.theEQH;
+
 
 	MPI_Bcast(double_message, LOCAL_INIT_DOUBLE_MESSAGE_LENGTH, MPI_DOUBLE, 0,
 			comm_solver);
@@ -413,6 +430,14 @@ static void read_parameters(int argc, char** argv) {
 	Param.theQConstant = double_message[18];
 	Param.theQAlpha = double_message[19];
 	Param.theQBeta = double_message[20];
+	Param.theEQA = double_message[21];
+	Param.theEQB = double_message[22];
+	Param.theEQC = double_message[23];
+	Param.theEQD = double_message[24];
+	Param.theEQE = double_message[25];
+	Param.theEQF = double_message[26];
+	Param.theEQG = double_message[27];
+	Param.theEQH = double_message[28];
 
 	/*Broadcast all integer params*/
 	int_message[0] = Param.theTotalSteps;
@@ -642,7 +667,7 @@ static int32_t parse_parameters(const char* numericalin) {
 			region_azimuth_leftface_deg, region_depth_shallow_m,
 			region_length_east_m, region_length_north_m, region_depth_deep_m,
 			startT, endT, deltaT, softening_factor, threshold_damping,
-			threshold_VpVs, freq_vel, qconstant, qalpha, qbeta;
+			threshold_VpVs, freq_vel, qconstant, qalpha, qbeta, eqa, eqb, eqc, eqd, eqe, eqf, eqg, eqh;
 	char type_of_damping[64], checkpoint_path[256], include_buildings[64],
 			include_nonlinear_analysis[64], use_parametricq[64],
 			stiffness_calculation_method[64], print_matrix_k[64],
@@ -741,6 +766,14 @@ static int32_t parse_parameters(const char* numericalin) {
 					!= 0)
 			|| (parsetext(fp, "parametric_q_factor_alpha", 'd', &qalpha) != 0)
 			|| (parsetext(fp, "parametric_q_factor_beta", 'd', &qbeta) != 0)
+			|| (parsetext(fp, "strain_coeff_A", 'd', &eqa) != 0)
+			|| (parsetext(fp, "strain_coeff_B", 'd', &eqb) != 0)
+			|| (parsetext(fp, "strain_coeff_C", 'd', &eqc) != 0)
+			|| (parsetext(fp, "strain_coeff_D", 'd', &eqd) != 0)
+			|| (parsetext(fp, "strain_coeff_E", 'd', &eqe) != 0)
+			|| (parsetext(fp, "strain_coeff_F", 'd', &eqf) != 0)
+			|| (parsetext(fp, "strain_coeff_G", 'd', &eqg) != 0)
+			|| (parsetext(fp, "strain_coeff_H", 'd', &eqh) != 0)
 			|| (parsetext(fp, "simulation_node_per_wavelength", 'i', &samples)
 					!= 0)
 			|| (parsetext(fp, "simulation_shear_velocity_min", 'd', &vscut) != 0)
@@ -1100,6 +1133,16 @@ static int32_t parse_parameters(const char* numericalin) {
 	Param.storeMeshCoordinatesForMatlab = meshCoordinatesForMatlab;
 
 	Param.drmImplement = implementdrm;
+
+	Param.theEQA = eqa;
+	Param.theEQB = eqb;
+	Param.theEQC = eqc;
+	Param.theEQD = eqd;
+	Param.theEQE = eqe;
+	Param.theEQF = eqf;
+	Param.theEQG = eqg;
+	Param.theEQH = eqh;
+
 
 	strcpy(Param.theCheckPointingDirOut, checkpoint_path);
 
@@ -4086,7 +4129,8 @@ static void eqlinear_update_material(mysolver_t *solver, mesh_t *mesh,
 	material_update_eq(mesh, solver, Param.theNumberOfStations,
 			Param.myNumberOfStations, Param.myStations, Param.theDeltaT, eq_it,
 			Global.theBBase, Param.theThresholdVpVs,
-	        Param.theFreq_Vel, Param.theFreq);
+	        Param.theFreq_Vel, Param.theFreq,
+			Param.theEQA,Param.theEQB,Param.theEQC,Param.theEQD,Param.theEQE,Param.theEQF,Param.theEQG,Param.theEQH);
 //        if ( get_geostatic_total_time() > 0 ) {
 //            compute_bottom_reactions( mesh, solver, k1, k2, step, Param.theDeltaT );
 //        }
