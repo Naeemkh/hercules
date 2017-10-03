@@ -3440,6 +3440,17 @@ static void solver_init() {
 				8 * Global.myMesh->lenum, sizeof(fvector_t));
 		Global.mySolver->conv_kappa_2 = (fvector_t *) calloc(
 				8 * Global.myMesh->lenum, sizeof(fvector_t));
+
+		if ((Global.mySolver->conv_shear_1 == NULL)
+				|| (Global.mySolver->conv_shear_2 == NULL)
+				|| (Global.mySolver->conv_kappa_1 == NULL)
+				|| (Global.mySolver->conv_kappa_2 == NULL)) {
+
+			fprintf(stderr, "Thread %d: solver_init: out of memory \n", Global.myID);
+			MPI_Abort(MPI_COMM_WORLD, ERROR);
+			exit(1);
+		}
+
 	}
 
 	if (Param.theTypeOfDamping >= BKT3) {
@@ -3447,23 +3458,30 @@ static void solver_init() {
 				8 * Global.myMesh->lenum, sizeof(fvector_t));
 		Global.mySolver->conv_kappa_3 = (fvector_t *) calloc(
 				8 * Global.myMesh->lenum, sizeof(fvector_t));
+
+		if ((Global.mySolver->conv_shear_3 == NULL) || (Global.mySolver->conv_kappa_3 == NULL)) {
+
+			fprintf(stderr, "Thread %d: solver_init: out of memory \n", Global.myID);
+			MPI_Abort(MPI_COMM_WORLD, ERROR);
+			exit(1);
+		}
+
 	}
 
 	Global.mySolver->dn_sched = schedule_new();
 	Global.mySolver->an_sched = schedule_new();
 
+
 	if ((Global.mySolver->eTable == NULL) || (Global.mySolver->nTable == NULL)
 			|| (Global.mySolver->tm1 == NULL) || (Global.mySolver->tm2 == NULL)
 			|| (Global.mySolver->force == NULL)
-			|| (Global.mySolver->conv_shear_1 == NULL)
-			|| (Global.mySolver->conv_shear_2 == NULL)
-			|| (Global.mySolver->conv_kappa_1 == NULL)
-			|| (Global.mySolver->conv_kappa_2 == NULL)) {
+			) {
 
-		fprintf(stderr, "Thread %d: solver_init: out of memory\n", Global.myID);
+		fprintf(stderr, "Thread %d: solver_init: out of memory \n", Global.myID);
 		MPI_Abort(MPI_COMM_WORLD, ERROR);
 		exit(1);
 	}
+
 
 	if (Param.printStationAccelerations == YES) {
 
@@ -8012,13 +8030,13 @@ int main(int argc, char** argv) {
 
 			/* Initialize nonlinear solver analysis structures */
 
-			 if ( Param.includeNonlinearAnalysis == YES ) {
-			 nonlinear_solver_init(Global.myID, Global.myMesh, Param.theDomainZ);
-			 if ( Param.theNumberOfStations !=0 ){
-			 nonlinear_stations_init(Global.myMesh, Param.myStations, Param.myNumberOfStations);
-			 }
-			 nonlinear_stats(Global.myID, Global.theGroupSize);
-			 }
+			 //if ( Param.includeNonlinearAnalysis == YES ) {
+			 //nonlinear_solver_init(Global.myID, Global.myMesh, Param.theDomainZ);
+			 //if ( Param.theNumberOfStations !=0 ){
+			 //nonlinear_stations_init(Global.myMesh, Param.myStations, Param.myNumberOfStations);
+			 //}
+			 //nonlinear_stats(Global.myID, Global.theGroupSize);
+			 //}
 
 
 			if (eq_c == 0) {
@@ -8106,7 +8124,7 @@ int main(int argc, char** argv) {
 		 */
 
 		stiffness_init(Global.myID, Global.myMesh);
-//    	    damp_init     (Global.myID, Global.myMesh);
+        //damp_init     (Global.myID, Global.myMesh);
 
 		/* this is a little too late to check for output parameters,
 		 * but let's do this in the mean time
