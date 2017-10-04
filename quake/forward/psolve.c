@@ -3465,14 +3465,10 @@ static void solver_init() {
 
 	/* Allocate memory */
 	Global.mySolver->eTable = (e_t *) calloc(Global.myMesh->lenum, sizeof(e_t));
-	Global.mySolver->nTable = (n_t *) calloc(Global.myMesh->nharbored,
-			sizeof(n_t));
-	Global.mySolver->tm1 = (fvector_t *) calloc(Global.myMesh->nharbored,
-			sizeof(fvector_t));
-	Global.mySolver->tm2 = (fvector_t *) calloc(Global.myMesh->nharbored,
-			sizeof(fvector_t));
-	Global.mySolver->force = (fvector_t *) calloc(Global.myMesh->nharbored,
-			sizeof(fvector_t));
+	Global.mySolver->nTable = (n_t *) calloc(Global.myMesh->nharbored, sizeof(n_t));
+	Global.mySolver->tm1 = (fvector_t *) calloc(Global.myMesh->nharbored, sizeof(fvector_t));
+	Global.mySolver->tm2 = (fvector_t *) calloc(Global.myMesh->nharbored, sizeof(fvector_t));
+	Global.mySolver->force = (fvector_t *) calloc(Global.myMesh->nharbored, sizeof(fvector_t));
 
 	if (Param.theTypeOfDamping >= BKT) {
 		Global.mySolver->conv_shear_1 = (fvector_t *) calloc(
@@ -3831,10 +3827,12 @@ static void solver_delete() {
 	free(Global.mySolver->tm2);
 	free(Global.mySolver->force);
 
-	free(Global.mySolver->conv_shear_1);
-	free(Global.mySolver->conv_shear_2);
-	free(Global.mySolver->conv_kappa_1);
-	free(Global.mySolver->conv_kappa_2);
+	if (Param.theTypeOfDamping != NONE){
+		free(Global.mySolver->conv_shear_1);
+		free(Global.mySolver->conv_shear_2);
+		free(Global.mySolver->conv_kappa_1);
+		free(Global.mySolver->conv_kappa_2);
+    }
 
 	schedule_delete(Global.mySolver->dn_sched);
 	schedule_delete(Global.mySolver->an_sched);
