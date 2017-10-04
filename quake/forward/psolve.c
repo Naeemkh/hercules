@@ -4170,7 +4170,7 @@ static void solver_compute_force_source(int step, mesh_t *myMesh,
 		mysolver_t *mySolver) {
 	Timer_Start("Compute addforces s");
 	if (Param.useDirectForce == YES) {
-	compute_addforce_bottom(step, myMesh, mySolver);
+	compute_addforce_bottom(step, myMesh, mySolver,Param.theDeltaT);
 	}else{
 	compute_addforce_s( step );
 	}

@@ -1113,11 +1113,11 @@ void material_update_eq (      mesh_t     *myMesh,
 }
 
 
-void    compute_addforce_bottom(int32_t timestep, mesh_t *myMesh, mysolver_t *mySolver)
+void    compute_addforce_bottom(int32_t timestep, mesh_t *myMesh, mysolver_t *mySolver, double dt)
 {
 
     
-   	double dt = 0.01;
+
 	double fc = 0.8, Ts = 2.0, zp = 0.04, Vs = 640;
 	double t1  = timestep * dt;
 	double t2  = (timestep + 5) * dt;	 // modify 1 of 3
