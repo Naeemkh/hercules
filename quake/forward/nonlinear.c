@@ -1489,10 +1489,11 @@ void MatUpd_vMKH (double J2_pr, tensor_t dev_pr, double psi, double Su, tensor_t
 
         	double   Tao_e   = sqrt( tensor_J2 ( dev_n1 ) );
 
+        	Su           = Su * 2.0/sqrt(3.0);
             *psi_n       = log( ( Su + *Tao_max ) / ( Su - *Tao_max ) ) * Su / ( Tao_e - *Tao_max );
 
             H_kin  = (*psi_n) * mu;
-            H_nlin = H_kin/( sqrt(8.0/3.0) * Su - Sy );  /*Sy was already scaled by srt(2) before calling MatUpd_vMKH() */
+            H_nlin = H_kin/( sqrt(2.0) * Su - Sy );  /*Sy was already scaled by srt(2) before calling MatUpd_vMKH() */
             G1     = mu + H_kin/2.0;
 
             /* coefficients of the quartic function  */
@@ -1504,19 +1505,19 @@ void MatUpd_vMKH (double J2_pr, tensor_t dev_pr, double psi, double Su, tensor_t
             C5 = Sy*Sy - S_aa + 2.0 * S_sa - S_ss;
 
             /* roots finder */
-            double coeff[5] = { C5, C4, C3, C2, C1 };
-            double z[8];
+            double coeff2[5] = { C5, C4, C3, C2, C1 };
+            double z2[8];
 
-            gsl_poly_complex_workspace * w = gsl_poly_complex_workspace_alloc (5);
-            gsl_poly_complex_solve (coeff, 5, w, z);
-            gsl_poly_complex_workspace_free (w);
+            gsl_poly_complex_workspace * w2 = gsl_poly_complex_workspace_alloc (5);
+            gsl_poly_complex_solve (coeff2, 5, w2, z2);
+            gsl_poly_complex_workspace_free (w2);
 
             /* find the minimum positive root */
             dl  = FLT_MAX;
 
             for (i = 0; i < 4; i++) {
-            	if ( ( z[2*i] >= 0.0 ) && ( abs(z[2*i+1]) <= 1E-10 ) && ( z[2*i] < dl ) )
-            		dl = z[2*i];
+            	if ( ( z2[2*i] >= 0.0 ) && ( abs(z2[2*i+1]) <= 1E-10 ) && ( z2[2*i] < dl ) )
+            		dl = z2[2*i];
             }
 
             /* Sanity check. Should not get here !!!  */
