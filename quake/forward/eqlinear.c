@@ -1123,7 +1123,8 @@ void    compute_addforce_bottom(int32_t timestep, mesh_t *myMesh, mysolver_t *my
 	double t1  = timestep * dt;
 	double t2  = (timestep + (el_size/Vs)/dt) * dt;
     double fcpi2 = fc*fc*PI*PI, Vs2 = Vs*Vs;
-    double force_coefficient = (el_size/9)*dt*dt*9953280000; // mu*K1+lambda*K2+mu*K3 : 9953280000, vs      = 640;  vp      = 1108;   rho     = 2700
+    double max_disp = 0.1;
+    double force_coefficient = (el_size/9)*dt*dt*9953280000*max_disp; // mu*K1+lambda*K2+mu*K3 : 9953280000, vs      = 640;  vp      = 1108;   rho     = 2700
 
 
     /*
@@ -1147,7 +1148,6 @@ void    compute_addforce_bottom(int32_t timestep, mesh_t *myMesh, mysolver_t *my
 
     //start
         double f=1; //frequency of sin wave
-        double max_disp = 0.1;
 
         double F1 = t1*(0.05)*max_disp*sin(2*PI*t1*f);
         double F2 = t2*(0.05)*max_disp*sin(2*PI*t2*f);
