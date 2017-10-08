@@ -1119,11 +1119,16 @@ void    compute_addforce_bottom(int32_t timestep, mesh_t *myMesh, mysolver_t *my
     
 
 	double fc = 0.8, Ts = 2.0, zp = 0.04, Vs = 640;
+	double el_size   = 32;
 	double t1  = timestep * dt;
-	double t2  = (timestep + 5) * dt;	 // modify 1 of 3
+	double t2  = (timestep + (el_size/Vs)/dt) * dt;
     double fcpi2 = fc*fc*PI*PI, Vs2 = Vs*Vs;
+    double force_coefficient = (el_size/9)*dt*dt*9953280000; // mu*K1+lambda*K2+mu*K3 : 9953280000, vs      = 640;  vp      = 1108;   rho     = 2700
 
 
+    /*
+    // uncomment for integral of ricker pulse
+    //start
         double alpha1_1 = Vs*t1 + zp - Ts*Vs;
         double alpha1_2 = Vs*t1 - zp - Ts*Vs;
         double F1 = (-alpha1_1*exp(-1*fcpi2*(alpha1_1*alpha1_1)/(Vs2))-alpha1_2*exp(-1*fcpi2*(alpha1_2*alpha1_2)/Vs2))/Vs;
@@ -1132,12 +1137,25 @@ void    compute_addforce_bottom(int32_t timestep, mesh_t *myMesh, mysolver_t *my
         double alpha2_2 = Vs*t2 - zp - Ts*Vs;
         double F2 = (-alpha2_1*exp(-1*fcpi2*(alpha2_1*alpha2_1)/(Vs2))-alpha2_2*exp(-1*fcpi2*(alpha2_2*alpha2_2)/Vs2))/Vs;
 
-
-
-
-
-
         double max_pulse = 0.341285531849982;
+
+     //end
+
+             */
+
+    // uncomment for sin wave
+
+    //start
+        double f=1; //frequency of sin wave
+        double max_disp = 0.1;
+
+        double F1 = t1*(0.05)*max_disp*sin(2*PI*t1*f);
+        double F2 = t2*(0.05)*max_disp*sin(2*PI*t2*f);
+        double max_pulse = 1;
+    //end
+
+
+
 
 
 	//double force_1 = Force_1[timestep];
@@ -1146,7 +1164,7 @@ void    compute_addforce_bottom(int32_t timestep, mesh_t *myMesh, mysolver_t *my
 	double force_1 = F1/max_pulse;
 	double force_2 = -F2/max_pulse;
 
-	double force_coefficient =      353894.4; //modify 2 of 3
+
 
 	double force_1x = force_1 * force_coefficient;
 	double force_1z = force_1 * force_coefficient/2;
@@ -1160,7 +1178,7 @@ void    compute_addforce_bottom(int32_t timestep, mesh_t *myMesh, mysolver_t *my
 	int32_t k1=0,k2=0;
 
 	double f_l_depth = 512;                    //first layer depth
-	double el_size   = 32;    //modify 3 of 3                   //element size
+	//double el_size   = 32;    //modify 3 of 3                   //element size
 	double s_l_depth = f_l_depth - el_size;    //second layer depth
 	double d_width_x   = 8192;                 //domain width x
 	double d_width_y   = 8192;                 //domain width y
