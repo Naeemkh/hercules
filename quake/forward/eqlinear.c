@@ -1123,11 +1123,11 @@ void    compute_addforce_bottom(int32_t timestep, mesh_t *myMesh, mysolver_t *my
 	double t1  = timestep * dt;
 	double t2  = (timestep + (el_size/Vs)/dt) * dt;
     double fcpi2 = fc*fc*PI*PI, Vs2 = Vs*Vs;
-    double max_disp = 0.1;
+    double max_disp = 0.01;
     double force_coefficient = (el_size/9)*dt*dt*9953280000*max_disp; // mu*K1+lambda*K2+mu*K3 : 9953280000, vs      = 640;  vp      = 1108;   rho     = 2700
 
 
-    /*
+
     // uncomment for integral of ricker pulse
     //start
         double alpha1_1 = Vs*t1 + zp - Ts*Vs;
@@ -1142,10 +1142,10 @@ void    compute_addforce_bottom(int32_t timestep, mesh_t *myMesh, mysolver_t *my
 
      //end
 
-             */
+
 
     // uncomment for sin wave
-
+   /*
     //start
         double f=1; //frequency of sin wave
 
@@ -1153,7 +1153,7 @@ void    compute_addforce_bottom(int32_t timestep, mesh_t *myMesh, mysolver_t *my
         double F2 = t2*(0.05)*max_disp*sin(2*PI*t2*f);
         double max_pulse = 1;
     //end
-
+*/
 
 
 
