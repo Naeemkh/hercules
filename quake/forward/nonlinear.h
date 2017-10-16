@@ -38,7 +38,7 @@ typedef enum {
      * allows one to initially evaluate the levels of deformation and serves
      * for comparisons with the corresponding elastoplastic runs.
      */
-    LINEAR = 0, VONMISES_EP, VONMISES_KHO, VONMISES_KHM, DRUCKERPRAGER, MOHR_COULOMB
+    LINEAR = 0, VONMISES_EP, VONMISES_FA, VONMISES_FAM, VONMISES_BAE, VONMISES_BAH, DRUCKERPRAGER, MOHR_COULOMB
 
 } materialmodel_t;
 
@@ -105,7 +105,10 @@ typedef struct nlconstants_t {
                           /*  In MohrCoulomb    H =     2(c + h*ep)cos(phi)  */
 
     double Sstrain0;      /* Defines the elastic range of the vonMises model. Sy=G*Sstrain0   */
-    double psi0;          /* Used to define the kinematic modulus in vonMises_KinO and the loading phase of vonMises_KinM */
+    double psi0;          /* Used to define the kinematic modulus in vonMises_FAO and the first loading regime of vonMises_FAM.
+                             Also used to define h=psi0*mu  in vonMisesBAE  */
+
+    double m;             /* For vonMisesBAE H=psi0*mu*kappa^m     */
 
     double fs[8];         /* F(sigma) */
     double dLambda[8];    /* yield control */
@@ -132,12 +135,16 @@ typedef struct nlsolver_t {
 	qpvectors_t   *ep1;         /* effective plastic strains */
 	qpvectors_t   *ep2;
 
-	/* New variables for vMKH with Sy=0   */
+	/* New variables for vonMisesFAM with Sy=0   */
 	qpvectors_t   *psi_n;         /* Hkin/mu ratio. Used in the first loading of the vonMoises nonlinear hardening model (vMNH)   */
 	qpvectors_t   *LoUnlo_n;      /* loading sign at t-1  */
 	qpvectors_t   *Sv_n;          /* virgin surface radius at t-1 */
 	qpvectors_t   *Sv_max;        /* Max virgin surface radius */
 
+	/* New variables for Borja & Aimes models  */
+	qpvectors_t   *kappa;         /* to define the hardening functions : Exponential. H = psi0*mu*kappa^m
+                                                                         Hyperbolic.  H = 3mu * kappa^2 / (1+2*kappa)   */
+	qptensors_t   *Sref;          /* Reference stress */
 
 } nlsolver_t;
 
@@ -240,6 +247,7 @@ tensor_t copy_tensor     ( tensor_t original);
 tensor_t add_tensors     (tensor_t A, tensor_t B);
 tensor_t zero_tensor     ();
 double   ddot_tensors    (tensor_t A, tensor_t B);
+tensor_t isotropic_tensor(double lambda);
 
 qptensors_t compute_qp_stresses ( qptensors_t strains, double mu, double lambda);
 qptensors_t subtrac_qptensors   ( qptensors_t A, qptensors_t B);
@@ -254,11 +262,23 @@ tensor_t compute_pstrain2            ( nlconstants_t constants, tensor_t pstrain
 							           double J2_st, double I1_st, double po );
 
 void material_update ( nlconstants_t constants, tensor_t e_n, tensor_t e_n1, tensor_t ep, tensor_t eta_n, double ep_barn, tensor_t sigma0, double dt,
-		               tensor_t *epl, tensor_t *eta, tensor_t *sigma, double *ep_bar, double *fs, double *psi_n, double *loadunl_n, double *Tao_n, double *Tao_max );
+		               tensor_t *epl, tensor_t *eta, tensor_t *sigma, double *ep_bar, double *fs, double *psi_n, double *loadunl_n, double *Tao_n,
+		               double *Tao_max, double *kp, tensor_t *sigma_ref,  int *flagTolSubSteps, int *flagNoSubSteps, double *ErrBA );
 
-void MatUpd_vMKH (double J2_pr, tensor_t dev_pr, double psi, double c, tensor_t eta_n, tensor_t e_n1, double mu, double Lambda, double Sy,
+void MatUpd_vMFA (double J2_pr, tensor_t dev_pr, double psi, double c, tensor_t eta_n, tensor_t e_n1, double mu, double Lambda, double Sy,
 		tensor_t *epl, tensor_t ep, double *ep_bar, double ep_barn, tensor_t *eta, tensor_t *sigma, tensor_t stresses,
 		double *fs, double *psi_n, double *loadunl_n, double *Tao_n, double *Tao_max );
+
+void MatUpd_vMBA (double Su, double G, double Lambda, double psi, double m, double *kappa,
+		         tensor_t e_n, tensor_t e_n1, tensor_t *sigma_ref, tensor_t *sigma,
+		         double substepTol, int *FlagSubSteps, int *FlagNoSubSteps, double *ErrMax) ;
+
+double getHardening (double kappa, double psi, double m, double G);
+double get_kappa    ( tensor_t Sdev, tensor_t Sref, double Tol, double Su, double kn, double G );
+double get_kappaUnLo( tensor_t Sn, tensor_t De, double Tol, double Su, double kn, double G, double psi, double m, double *Err );
+void EvalSubStep    (tensor_t  sigma_n, tensor_t De, tensor_t De_dev, double De_vol, double Dt, tensor_t *sigma_ref,
+		             tensor_t *sigma_up, double kappa_n, double G, double Lambda, double Su,
+		             double psi, double m, double substepTol, double *kappa_up, double *ErrB, double *ErrS);
 
 
 tensor_t ApproxGravity_tensor(double Szz, double phi, double h, double lz, double rho);
