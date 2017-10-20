@@ -1421,6 +1421,7 @@ setrec( octant_t* leaf, double ticksize, void* data )
 		}
 
 		/* Reset Shear Velocities. Doriam */
+		/*
 		if (z_m>=125)
 			res = cvm_query( Global.theCVMEp, y_m, x_m, z_m, &g_props );
 		else {
@@ -1442,6 +1443,53 @@ setrec( octant_t* leaf, double ticksize, void* data )
 		if (res != 0) {
 		    continue;
 		}
+*/
+
+		/* Reset Shear Velocities. Naeem */
+
+		if (z_m>=80){
+
+	        g_props.Vp  = 1108;
+	        g_props.Vs  = 640;
+	        g_props.rho = 2700;
+
+
+		} else {
+			double a = 160.0;
+			double b = 0.0;
+			double H = 80.0;
+
+			double m = 2.0 * ( a + b - b * z_m /H );
+
+			if ( ( y_m <= ( 1024 + m / 2.0 ) ) &&
+			     ( y_m >= ( 1024 - m / 2.0 ) ) &&
+			     ( x_m <= ( 1024 + m / 2.0   ) ) &&
+			     ( x_m >= ( 1024 - m / 2.0  ) ) ) {
+
+			//inside the basin
+
+		        g_props.Vp  = 510;
+		        g_props.Vs  = 300;
+		        g_props.rho = 2000;
+
+
+			} else {
+
+		        g_props.Vp  = 1108;
+		        g_props.Vs  = 640;
+		        g_props.rho = 2700;
+		}
+		}
+		/*
+		if (res != 0) {
+		    continue;
+		}
+*/
+
+
+
+
+
 
 		if ( g_props.Vs < g_props_min.Vs ) {
 		    /* assign minimum value of vs to produce elements
@@ -2258,8 +2306,9 @@ mesh_generate()
     }
 
 #ifdef USECVMDB
+    //Naeem: Comment the etree close
     /* Close the material database */
-    etree_close(Global.theCVMEp);
+    //etree_close(Global.theCVMEp);
 #else
     free(Global.theCVMRecord);
 #endif /* USECVMDB */
@@ -2577,8 +2626,11 @@ mesh_output()
 	    } /* while there is more data to be received from procid */
 	} /* for all the processors */
 
+	//Naeem: comment the etree close
 	/* End the appending operation */
-	etree_endappend(mep);
+	//etree_endappend(mep);
+
+
 
 	/* Close the mep to ensure the data is on disk */
 	if (etree_close(mep) != 0) {
@@ -7519,9 +7571,10 @@ mesh_correct_properties( etree_t* cvm )
             		}
 
                     //res = cvm_query( Global.theCVMEp, east_m, north_m,
-                      //               depth_m, &g_props );
+                    //                 depth_m, &g_props );
 
             		/* Reset Shear Velocities. Doriam */
+            		/*
             		if (depth_m>=125)
             			res = cvm_query( Global.theCVMEp, east_m, north_m,
                                 depth_m, &g_props );
@@ -7542,12 +7595,57 @@ mesh_correct_properties( etree_t* cvm )
             		}
 
 
-
                     if (res != 0) {
                         fprintf(stderr, "Cannot find the query point: east = %lf, north = %lf, depth = %lf \n",
                         		east_m, north_m, depth_m);
                         exit(1);
                     }
+*/
+
+            		/* Reset Shear Velocities. Naeem*/
+
+            		            		if (depth_m>=80){
+            		            		        g_props.Vp  = 1108;
+            		            		        g_props.Vs  = 640;
+            		            		        g_props.rho = 2700;
+
+            		            		} else {
+            		            			double a = 160.0;
+            		            			double b = 0.0;
+            		            			double H = 80.0;
+
+            		            			double m = 2.0 * ( a + b - b * depth_m /H );
+
+            		            			if ( ( east_m <= ( 1024 + m / 2.0 ) ) &&
+            		            			     ( east_m >= ( 1024 - m / 2.0 ) ) &&
+            		            			     ( north_m <= ( 1024 + m / 2.0   ) ) &&
+            		            			     ( north_m >= ( 1024 - m / 2.0   ) ) ) {
+
+            		            				//inside the basin
+
+            		            			        g_props.Vp  = 510;
+            		            			        g_props.Vs  = 300;
+            		            			        g_props.rho = 2000;
+
+            		            			} else {
+
+            		            			        g_props.Vp  = 1108;
+            		            			        g_props.Vs  = 640;
+            		            			        g_props.rho = 2700;
+            		            		}
+            		            		}
+/*
+            		                    if (res != 0) {
+            		                        fprintf(stderr, "Cannot find the query point: east = %lf, north = %lf, depth = %lf \n",
+            		                        		east_m, north_m, depth_m);
+            		                        exit(1);
+            		                    }
+            		                    */
+
+
+
+
+
 
         			vp  += g_props.Vp;
         			vs  += g_props.Vs;
@@ -7771,7 +7869,8 @@ int main( int argc, char** argv )
     read_parameters(argc, argv);
 
     /* Create and open database */
-    open_cvmdb();
+    //Naeem: commented to not read etree
+    //open_cvmdb();
 
     /* Initialize nonlinear parameters */
     if ( Param.includeNonlinearAnalysis == YES ) {
