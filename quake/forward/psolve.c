@@ -1570,15 +1570,56 @@ setrec( octant_t* leaf, double ticksize, void* data )
 					z_m -= get_surface_shift();
 				}
 
-				if (Param.useProfile == NO) {
-					res = cvm_query( Global.theCVMEp, y_m, x_m, z_m, &g_props );
-				} else {
-					res = profile_query(z_m, &g_props);
-				}
+//				if (Param.useProfile == NO) {
+//					res = cvm_query( Global.theCVMEp, y_m, x_m, z_m, &g_props );
+//				} else {
+//					res = profile_query(z_m, &g_props);
+//				}
 
-				if (res != 0) {
-					continue;
-				}
+//				if (res != 0) {
+//					continue;
+//				}
+
+
+				/* Reset Shear Velocities. Naeem */
+
+						if (z_m>=128){
+
+					        g_props.Vp  = 1108;
+					        g_props.Vs  = 640;
+					        g_props.rho = 2700;
+
+
+						} else {
+							double a = 256.0;
+							double b = 0.0;
+							double H = 128.0;
+
+							double m = 2.0 * ( a + b - b * z_m /H );
+
+							if ( ( y_m <= ( 6144 + m / 2.0 ) ) &&
+							     ( y_m >= ( 6144 - m / 2.0 ) ) &&
+							     ( x_m <= ( 6144 + m / 2.0   ) ) &&
+							     ( x_m >= ( 6144 - m / 2.0  ) ) ) {
+
+								//inside the basin
+
+							        g_props.Vp  = 510;
+							        g_props.Vs  = 300;
+							        g_props.rho = 2000;
+
+
+								} else {
+
+							        g_props.Vp  = 1108;
+							        g_props.Vs  = 640;
+							        g_props.rho = 2700;
+							}
+							}
+
+
+
+
 
 				if ( g_props.Vs < g_props_min.Vs ) {
 					/* assign minimum value of vs to produce elements
@@ -7470,17 +7511,54 @@ static void mesh_correct_properties(etree_t* cvm) {
 						//                        }
 					}
 
-					if (Param.useProfile == NO) {
-						res = cvm_query(Global.theCVMEp, east_m, north_m,
-								depth_m, &g_props);
-					} else {
-						res = profile_query(depth_m, &g_props);
-					}
+//					if (Param.useProfile == NO) {
+//						res = cvm_query(Global.theCVMEp, east_m, north_m,
+//								depth_m, &g_props);
+//					} else {
+//						res = profile_query(depth_m, &g_props);
+//					}
+//
+//					if (res != 0) {
+//						fprintf(stderr, "Cannot find the query point\n");
+//						exit(1);
+//					}
 
-					if (res != 0) {
-						fprintf(stderr, "Cannot find the query point\n");
-						exit(1);
-					}
+
+            		/* Reset Shear Velocities. Naeem*/
+
+            		            		if (depth_m>=128){
+            		            		        g_props.Vp  = 1108;
+            		            		        g_props.Vs  = 640;
+            		            		        g_props.rho = 2700;
+
+            		            		} else {
+            		            			double a = 256.0;
+            		            			double b = 0.0;
+            		            			double H = 128.0;
+
+            		            			double m = 2.0 * ( a + b - b * depth_m /H );
+
+            		            			if ( ( east_m <= ( 6144 + m / 2.0 ) ) &&
+            		            			     ( east_m >= ( 6144 - m / 2.0 ) ) &&
+            		            			     ( north_m <= ( 6144 + m / 2.0   ) ) &&
+            		            			     ( north_m >= ( 6144 - m / 2.0   ) ) ) {
+
+            		            				//inside the basin
+
+            		            			        g_props.Vp  = 510;
+            		            			        g_props.Vs  = 300;
+            		            			        g_props.rho = 2000;
+
+            		            			} else {
+
+            		            			        g_props.Vp  = 1108;
+            		            			        g_props.Vs  = 640;
+            		            			        g_props.rho = 2700;
+            		            		}
+            		            		}
+
+
+
 
 					vp += g_props.Vp;
 					vs += g_props.Vs;
