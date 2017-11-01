@@ -1447,7 +1447,7 @@ setrec( octant_t* leaf, double ticksize, void* data )
 
 		/* Reset Shear Velocities. Naeem */
 
-		if (z_m>=80){
+		if (z_m>=128){
 
 	        g_props.Vp  = 1108;
 	        g_props.Vs  = 640;
@@ -1455,16 +1455,16 @@ setrec( octant_t* leaf, double ticksize, void* data )
 
 
 		} else {
-			double a = 160.0;
+			double a = 256.0;
 			double b = 0.0;
-			double H = 80.0;
+			double H = 128.0;
 
 			double m = 2.0 * ( a + b - b * z_m /H );
 
-			if ( ( y_m <= ( 1024 + m / 2.0 ) ) &&
-			     ( y_m >= ( 1024 - m / 2.0 ) ) &&
-			     ( x_m <= ( 1024 + m / 2.0   ) ) &&
-			     ( x_m >= ( 1024 - m / 2.0  ) ) ) {
+			if ( ( y_m <= ( 6144 + m / 2.0 ) ) &&
+			     ( y_m >= ( 6144 - m / 2.0 ) ) &&
+			     ( x_m <= ( 6144 + m / 2.0   ) ) &&
+			     ( x_m >= ( 6144 - m / 2.0  ) ) ) {
 
 			//inside the basin
 
@@ -7604,22 +7604,22 @@ mesh_correct_properties( etree_t* cvm )
 
             		/* Reset Shear Velocities. Naeem*/
 
-            		            		if (depth_m>=80){
+            		            		if (depth_m>=128){
             		            		        g_props.Vp  = 1108;
             		            		        g_props.Vs  = 640;
             		            		        g_props.rho = 2700;
 
             		            		} else {
-            		            			double a = 160.0;
+            		            			double a = 256.0;
             		            			double b = 0.0;
-            		            			double H = 80.0;
+            		            			double H = 128.0;
 
             		            			double m = 2.0 * ( a + b - b * depth_m /H );
 
-            		            			if ( ( east_m <= ( 1024 + m / 2.0 ) ) &&
-            		            			     ( east_m >= ( 1024 - m / 2.0 ) ) &&
-            		            			     ( north_m <= ( 1024 + m / 2.0   ) ) &&
-            		            			     ( north_m >= ( 1024 - m / 2.0   ) ) ) {
+            		            			if ( ( east_m <= ( 6144 + m / 2.0 ) ) &&
+            		            			     ( east_m >= ( 6144 - m / 2.0 ) ) &&
+            		            			     ( north_m <= ( 6144 + m / 2.0   ) ) &&
+            		            			     ( north_m >= ( 6144 - m / 2.0   ) ) ) {
 
             		            				//inside the basin
 
