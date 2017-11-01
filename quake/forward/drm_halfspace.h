@@ -10,7 +10,7 @@
 
 
 typedef enum {
-  SV = 0,  P
+  SV = 0,  P, SINEWAVE
 } planewavetype_t;
 
 void    drm_planewaves_init ( int32_t myID, const char *parametersin );

@@ -170,10 +170,12 @@ drm_planewaves_initparameters ( const char *parametersin ) {
     	planewave = SV;
     } else if ( strcasecmp(type_of_wave, "P") == 0 ) {
     	planewave = P;
-    } else {
+    } else if ( strcasecmp(type_of_wave, "SINEWAVE") == 0 ) {
+    	planewave = SINEWAVE;
+    }else {
         fprintf(stderr,
                 "Illegal type_of_wave for incident plane wave analysis"
-                "(SV, P): %s\n", type_of_wave);
+                "(SV, P, SINE): %s\n", type_of_wave);
         return -1;
     }
 
@@ -748,16 +750,25 @@ void getRicker ( fvector_t *myDisp, double zp, double t, double Vs ) {
 
 	double Rz = Ricker_displ ( zp, theTs, t, thefc, Vs  );
 
-	if ( thePlaneWaveType == SV ) {
-		myDisp->f[0] = Rz * theUo * cos (theplanewave_strike);
-		myDisp->f[1] = Rz * theUo * sin (theplanewave_strike);
-		myDisp->f[2] = 0.0;
-	} else {
-		myDisp->f[0] = 0.0;
-		myDisp->f[1] = 0.0;
-		myDisp->f[2] = Rz * theUo;
-	}
 
+	if (thePlaneWaveType == P || thePlaneWaveType == SV ){
+		if ( thePlaneWaveType == SV ) {
+			myDisp->f[0] = Rz * theUo * cos (theplanewave_strike);
+			myDisp->f[1] = Rz * theUo * sin (theplanewave_strike);
+			myDisp->f[2] = 0.0;
+		} else {
+			myDisp->f[0] = 0.0;
+			myDisp->f[1] = 0.0;
+			myDisp->f[2] = Rz * theUo;
+		}
+	}else if (thePlaneWaveType == SINEWAVE){
+        double f = 2;
+		double amp = t*t*t*(0.000125)*sin(2*PI*t*f);
+		myDisp->f[0] = 1 * theUo * cos (theplanewave_strike) * amp;
+		myDisp->f[1] = 1 * theUo * sin (theplanewave_strike) * amp;
+		myDisp->f[2] = 0.0;
+
+	}
 }
 
 double Ricker_displ ( double zp, double Ts, double t, double fc, double Vs  ) {
