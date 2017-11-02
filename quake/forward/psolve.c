@@ -279,7 +279,8 @@ static struct Param_t {
 	double theEQE;
 	double theEQF;
 	double theEQG;
-	double theEQH
+	double theEQH;
+	double theVSmaxeq;
 } Param = { .FourDOutFp = NULL, .theMonitorFileFp = NULL, .theMonitorFileName =
 		NULL, .theFreq_Vel = 0, .monitor_stats_rate = 50,
 		.theSchedulePrintErrorCheckFlag = 0, .theSchedulePrintToStdout = 0,
@@ -357,7 +358,7 @@ static inline int monitor_print(const char* format, ...) {
 
 static void read_parameters(int argc, char** argv) {
 
-#define LOCAL_INIT_DOUBLE_MESSAGE_LENGTH 29  /* Must adjust this if adding double params */
+#define LOCAL_INIT_DOUBLE_MESSAGE_LENGTH 30  /* Must adjust this if adding double params */
 #define LOCAL_INIT_INT_MESSAGE_LENGTH 26     /* Must adjust this if adding int params */
 
 	double double_message[LOCAL_INIT_DOUBLE_MESSAGE_LENGTH];
@@ -404,6 +405,7 @@ static void read_parameters(int argc, char** argv) {
 	double_message[26] = Param.theEQF;
 	double_message[27] = Param.theEQG;
 	double_message[28] = Param.theEQH;
+	double_message[29] = Param.theVSmaxeq;
 
 
 	MPI_Bcast(double_message, LOCAL_INIT_DOUBLE_MESSAGE_LENGTH, MPI_DOUBLE, 0,
@@ -438,7 +440,7 @@ static void read_parameters(int argc, char** argv) {
 	Param.theEQF = double_message[26];
 	Param.theEQG = double_message[27];
 	Param.theEQH = double_message[28];
-
+    Param.theVSmaxeq = double_message[29];
 	/*Broadcast all integer params*/
 	int_message[0] = Param.theTotalSteps;
 	int_message[1] = Param.theRate;
@@ -667,7 +669,7 @@ static int32_t parse_parameters(const char* numericalin) {
 			region_azimuth_leftface_deg, region_depth_shallow_m,
 			region_length_east_m, region_length_north_m, region_depth_deep_m,
 			startT, endT, deltaT, softening_factor, threshold_damping,
-			threshold_VpVs, freq_vel, qconstant, qalpha, qbeta, eqa, eqb, eqc, eqd, eqe, eqf, eqg, eqh;
+			threshold_VpVs, freq_vel, qconstant, qalpha, qbeta, eqa, eqb, eqc, eqd, eqe, eqf, eqg, eqh, vsmaxeq;
 	char type_of_damping[64], checkpoint_path[256], include_buildings[64],
 			include_nonlinear_analysis[64], use_parametricq[64],
 			stiffness_calculation_method[64], print_matrix_k[64],
@@ -774,6 +776,7 @@ static int32_t parse_parameters(const char* numericalin) {
 			|| (parsetext(fp, "strain_coeff_F", 'd', &eqf) != 0)
 			|| (parsetext(fp, "strain_coeff_G", 'd', &eqg) != 0)
 			|| (parsetext(fp, "strain_coeff_H", 'd', &eqh) != 0)
+			|| (parsetext(fp, "eqlinear_max_Vs", 'd', &vsmaxeq) != 0)
 			|| (parsetext(fp, "simulation_node_per_wavelength", 'i', &samples)
 					!= 0)
 			|| (parsetext(fp, "simulation_shear_velocity_min", 'd', &vscut) != 0)
@@ -1142,6 +1145,7 @@ static int32_t parse_parameters(const char* numericalin) {
 	Param.theEQF = eqf;
 	Param.theEQG = eqg;
 	Param.theEQH = eqh;
+	Param.theVSmaxeq = vsmaxeq;
 
 
 	strcpy(Param.theCheckPointingDirOut, checkpoint_path);
@@ -4169,7 +4173,7 @@ static void eqlinear_update_material(mysolver_t *solver, mesh_t *mesh,
 			Param.myNumberOfStations, Param.myStations, Param.theDeltaT, eq_it,
 			Global.theBBase, Param.theThresholdVpVs,
 	        Param.theFreq_Vel, Param.theFreq,
-			Param.theEQA,Param.theEQB,Param.theEQC,Param.theEQD,Param.theEQE,Param.theEQF,Param.theEQG,Param.theEQH);
+			Param.theEQA,Param.theEQB,Param.theEQC,Param.theEQD,Param.theEQE,Param.theEQF,Param.theEQG,Param.theEQH,Param.theVSmaxeq);
 //        if ( get_geostatic_total_time() > 0 ) {
 //            compute_bottom_reactions( mesh, solver, k1, k2, step, Param.theDeltaT );
 //        }

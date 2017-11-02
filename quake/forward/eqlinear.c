@@ -845,7 +845,8 @@ void material_update_eq (      mesh_t     *myMesh,
 							   double      theEQE,
 							   double      theEQF,
 							   double      theEQG,
-							   double      theEQH
+							   double      theEQH,
+							   double      theVSmaxeq
 							   )
 {
 	/* In general, j-index refers to the quadrature point in a loop (0 to 7 for
@@ -893,6 +894,12 @@ void material_update_eq (      mesh_t     *myMesh,
 	    x_m = (myMesh->ticksize)*(double)myMesh->nodeTable[nindex].x;
 	    y_m = (myMesh->ticksize)*(double)myMesh->nodeTable[nindex].y;
 		z_m = (myMesh->ticksize)*(double)myMesh->nodeTable[nindex].z;
+
+
+		// Check maximum shear wave velocity of element for equivalent linear method.
+        if (edata->Vs > theVSmaxeq){
+        	continue;
+        }
 
 
 

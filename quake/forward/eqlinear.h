@@ -175,7 +175,8 @@ void material_update_eq ( mesh_t     *myMesh,
 							   double      theEQE,
 							   double      theEQF,
 							   double      theEQG,
-							   double      theEQH
+							   double      theEQH,
+							   double      theVSmaxeq
 							   );
 /* -------------------------------------------------------------------------- */
 /*                        Nonlinear Output to Stations                        */
