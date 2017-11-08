@@ -1587,24 +1587,31 @@ setrec( octant_t* leaf, double ticksize, void* data )
 
 				/* Reset Shear Velocities. Naeem */
 
-						if (z_m>=128){
+						if (z_m>=1024){
 
-					        g_props.Vp  = 1108;
-					        g_props.Vs  = 640;
-					        g_props.rho = 2700;
+					        g_props.Vp  = 2600;
+				            g_props.Vs  = 1500;
+				            g_props.rho = 2400;
 
+
+						} else if (z_m>=512) {
+
+		         		   g_props.Vp  = 1108;
+    		               g_props.Vs  = 640;
+    		               g_props.rho = 2200;
 
 						} else {
-							double a = 256.0;
+
+							double a = 1024.0;
 							double b = 0.0;
-							double H = 128.0;
+							double H = 512.0;
 
 							double m = 2.0 * ( a + b - b * z_m /H );
 
-							if ( ( y_m <= ( 6144 + m / 2.0 ) ) &&
-							     ( y_m >= ( 6144 - m / 2.0 ) ) &&
-							     ( x_m <= ( 6144 + m / 2.0   ) ) &&
-							     ( x_m >= ( 6144 - m / 2.0  ) ) ) {
+							if ( ( y_m <= ( 2560 + m / 2.0 ) ) &&
+							     ( y_m >= ( 2560 - m / 2.0 ) ) &&
+							     ( x_m <= ( 2560 + m / 2.0   ) ) &&
+							     ( x_m >= ( 2560 - m / 2.0  ) ) ) {
 
 								//inside the basin
 
@@ -1617,7 +1624,7 @@ setrec( octant_t* leaf, double ticksize, void* data )
 
 							        g_props.Vp  = 1108;
 							        g_props.Vs  = 640;
-							        g_props.rho = 2700;
+							        g_props.rho = 2200;
 							}
 							}
 
@@ -7530,22 +7537,27 @@ static void mesh_correct_properties(etree_t* cvm) {
 
             		/* Reset Shear Velocities. Naeem*/
 
-            		            		if (depth_m>=128){
-            		            		        g_props.Vp  = 1108;
-            		            		        g_props.Vs  = 640;
-            		            		        g_props.rho = 2700;
+            		            		if (depth_m>=1024){
+            		            		        g_props.Vp  = 2600;
+            		            		        g_props.Vs  = 1500;
+            		            		        g_props.rho = 2400;
 
-            		            		} else {
-            		            			double a = 256.0;
+            		            		} else if (depth_m>=512) {
+            		         		        g_props.Vp  = 1108;
+            		                    	g_props.Vs  = 640;
+            		                    	g_props.rho = 2200;
+
+				                        }else {
+            		            			double a = 1024.0;
             		            			double b = 0.0;
-            		            			double H = 128.0;
+            		            			double H = 512.0;
 
             		            			double m = 2.0 * ( a + b - b * depth_m /H );
 
-            		            			if ( ( east_m <= ( 6144 + m / 2.0 ) ) &&
-            		            			     ( east_m >= ( 6144 - m / 2.0 ) ) &&
-            		            			     ( north_m <= ( 6144 + m / 2.0   ) ) &&
-            		            			     ( north_m >= ( 6144 - m / 2.0   ) ) ) {
+            		            			if ( ( east_m <= ( 2560 + m / 2.0 ) ) &&
+            		            			     ( east_m >= ( 2560 - m / 2.0 ) ) &&
+            		            			     ( north_m <= ( 2560 + m / 2.0   ) ) &&
+            		            			     ( north_m >= ( 2560 - m / 2.0   ) ) ) {
 
             		            				//inside the basin
 
@@ -7557,7 +7569,7 @@ static void mesh_correct_properties(etree_t* cvm) {
 
             		            			        g_props.Vp  = 1108;
             		            			        g_props.Vs  = 640;
-            		            			        g_props.rho = 2700;
+            		            			        g_props.rho = 2200;
             		            		}
             		            		}
 
