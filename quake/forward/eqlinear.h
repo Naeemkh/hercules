@@ -153,7 +153,8 @@ void compute_eqlinear_state ( mesh_t     *myMesh,
                                int32_t     myNumberOfStations,
                                station_t  *myStations,
                                double      theDeltaT,
-                               int         step );
+                               int         step,
+							   double      theVSmaxeq);
 
 void material_update_eq ( mesh_t     *myMesh,
                                mysolver_t *mySolver,

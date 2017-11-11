@@ -654,7 +654,8 @@ void compute_eqlinear_state ( mesh_t     *myMesh,
                                int32_t     myNumberOfStations,
                                station_t  *myStations,
                                double      theDeltaT,
-                               int         step )
+                               int         step,
+							   double      theVSmaxeq)
 {
 	/* In general, j-index refers to the quadrature point in a loop (0 to 7 for
 	 * eight points), and i-index refers to the tensor component (0 to 5), with
@@ -724,6 +725,10 @@ void compute_eqlinear_state ( mesh_t     *myMesh,
 		}
 
 
+		// Naeem: make sure to compute strain only for equivalent linear elements : temporaly method.
+        if (edata->Vs > theVSmaxeq){
+        	continue;
+        }
 
 
 
