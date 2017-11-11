@@ -41,38 +41,32 @@
                           {-1, -1,  1,  1, -1, -1,  1, 1} , \
                           {-1, -1, -1, -1,  1,  1,  1, 1} }
 
-
 /* -------------------------------------------------------------------------- */
 /*                             Global Variables                               */
 /* -------------------------------------------------------------------------- */
-static int32_t              *myStationsElementIndices;
-static elsolver_t           *myEqlinSolver;
-static int32_t              *myEqlinStationsMapping;
-static int32_t               myNumberOfEqlinStations;
-static int32_t               myEqlinElementsCount = 0;
-static int32_t              *myEqlinElementsMapping;
-static double                theGDTABLE[11][3];
-
-
-
+static int32_t *myStationsElementIndices;
+static elsolver_t *myEqlinSolver;
+static int32_t *myEqlinStationsMapping;
+static int32_t myNumberOfEqlinStations;
+static int32_t myEqlinElementsCount = 0;
+static int32_t *myEqlinElementsMapping;
+static double theGDTABLE[11][3];
 
 /* -------------------------------------------------------------------------- */
 /*                                 Utilities                                  */
 /* -------------------------------------------------------------------------- */
 
-
-int isThisElementEqLinear(mesh_t *myMesh, int32_t eindex) {
+int isThisElementEqLinear(mesh_t *myMesh, int32_t eindex, double theVSmaxeq) {
 
 //	elem_t  *elemp;
-//	edata_t *edata;
+	edata_t *edata;
+
+	if (edata->Vs > theVSmaxeq) {
+		return NO;
+	}
 
 	return YES;
 }
-
-
-
-
-
 
 /* -------------------------------------------------------------------------- */
 /*       Initialization of parameters, structures and memory allocations      */
@@ -81,90 +75,83 @@ int isThisElementEqLinear(mesh_t *myMesh, int32_t eindex) {
 /*
  * Counts the number of nonlinear elements in my local mesh
  */
-void eqlinear_elements_count(int32_t myID, mesh_t *myMesh) {
+void eqlinear_elements_count(int32_t myID, mesh_t *myMesh, double theVSmaxeq) {
 
-    int32_t eindex;
-    int32_t count = 0;
+	int32_t eindex;
+	int32_t count = 0;
 
-    for (eindex = 0; eindex < myMesh->lenum; eindex++) {
+	for (eindex = 0; eindex < myMesh->lenum; eindex++) {
 
+		if (isThisElementEqLinear(myMesh, eindex, theVSmaxeq) == YES) {
+			count++;
+		}
+	}
 
-        if ( isThisElementEqLinear(myMesh, eindex) == YES ) {
-            count++;
-        }
-    }
+	if (count > myMesh->lenum) {
+		fprintf(stderr, "Thread %d: nl_elements_count: "
+				"more elements than expected\n", myID);
+		MPI_Abort(MPI_COMM_WORLD, ERROR);
+		exit(1);
+	}
 
-    if ( count > myMesh-> lenum ) {
-        fprintf(stderr,"Thread %d: nl_elements_count: "
-                "more elements than expected\n", myID);
-        MPI_Abort(MPI_COMM_WORLD, ERROR);
-        exit(1);
-    }
+	myEqlinElementsCount = count;
 
-    myEqlinElementsCount = count;
-
-    return;
+	return;
 }
 
+void eqlinear_elements_mapping(int32_t myID, mesh_t *myMesh, double theVSmaxeq) {
 
-void eqlinear_elements_mapping(int32_t myID, mesh_t *myMesh) {
+	int32_t eindex;
+	int32_t count = 0;
 
-    int32_t eindex;
-    int32_t count = 0;
+	XMALLOC_VAR_N(myEqlinElementsMapping, int32_t, myEqlinElementsCount);
 
-    XMALLOC_VAR_N(myEqlinElementsMapping, int32_t, myEqlinElementsCount);
+	for (eindex = 0; eindex < myMesh->lenum; eindex++) {
 
-    for (eindex = 0; eindex < myMesh->lenum; eindex++) {
+		if (isThisElementEqLinear(myMesh, eindex, theVSmaxeq) == YES) {
+			myEqlinElementsMapping[count] = eindex;
+			count++;
+		}
+	}
 
-        if ( isThisElementEqLinear(myMesh, eindex) == YES ) {
-            myEqlinElementsMapping[count] = eindex;
-            count++;
-        }
-    }
+	if (count != myEqlinElementsCount) {
+		fprintf(stderr, "Thread %d: el_elements_mapping: "
+				"more elements than the count\n", myID);
+		MPI_Abort(MPI_COMM_WORLD, ERROR);
+		exit(1);
+	}
 
-    if ( count != myEqlinElementsCount ) {
-        fprintf(stderr,"Thread %d: el_elements_mapping: "
-                "more elements than the count\n", myID);
-        MPI_Abort(MPI_COMM_WORLD, ERROR);
-        exit(1);
-    }
-
-    return;
+	return;
 }
 
+void eqlinear_solver_init(int32_t myID, mesh_t *myMesh, double depth,
+		double theVSmaxeq) {
 
-
-
-void eqlinear_solver_init(int32_t myID, mesh_t *myMesh, double depth) {
-
-      int32_t eindex, el_eindex;   // el_eindex = equivalent linear element index
+	int32_t eindex, el_eindex;   // el_eindex = equivalent linear element index
 //
-      eqlinear_elements_count(myID, myMesh);
-      eqlinear_elements_mapping(myID, myMesh);
+	eqlinear_elements_count(myID, myMesh, theVSmaxeq);
+	eqlinear_elements_mapping(myID, myMesh, theVSmaxeq);
 
+	/* Memory allocation for mother structure */
 
-    /* Memory allocation for mother structure */
+	myEqlinSolver = (elsolver_t *) malloc(sizeof(elsolver_t));
 
+	if (myEqlinSolver == NULL) {
+		fprintf(stderr, "Thread %d: nonlinear_init: out of memory\n", myID);
+		MPI_Abort(MPI_COMM_WORLD, ERROR);
+		exit(1);
+	}
 
+	/* Memory allocation for internal structures */
 
-      myEqlinSolver = (elsolver_t *)malloc(sizeof(elsolver_t));
-
-    if (myEqlinSolver == NULL) {
-        fprintf(stderr, "Thread %d: nonlinear_init: out of memory\n", myID);
-        MPI_Abort(MPI_COMM_WORLD, ERROR);
-        exit(1);
-    }
-
-    /* Memory allocation for internal structures */
-
-    myEqlinSolver->constants =
-        (elconstants_t *)calloc(myEqlinElementsCount, sizeof(elconstants_t));
-    myEqlinSolver->stresses =
-        (eq_qptensors_t *)calloc(myEqlinElementsCount, sizeof(eq_qptensors_t));
-    myEqlinSolver->strains =
-        (eq_qptensors_t *)calloc(myEqlinElementsCount, sizeof(eq_qptensors_t));
-    myEqlinSolver->maxstrains =
-        (eq_qptensors_t *)calloc(myEqlinElementsCount, sizeof(eq_qptensors_t));
+	myEqlinSolver->constants = (elconstants_t *) calloc(myEqlinElementsCount,
+			sizeof(elconstants_t));
+	myEqlinSolver->stresses = (eq_qptensors_t *) calloc(myEqlinElementsCount,
+			sizeof(eq_qptensors_t));
+	myEqlinSolver->strains = (eq_qptensors_t *) calloc(myEqlinElementsCount,
+			sizeof(eq_qptensors_t));
+	myEqlinSolver->maxstrains = (eq_qptensors_t *) calloc(myEqlinElementsCount,
+			sizeof(eq_qptensors_t));
 //    myEqlinSolver->pstrains1 =
 //        (qptensors_t *)calloc(myEqlinElementsCount, sizeof(qptensors_t));
 //    myEqlinSolver->pstrains2 =
@@ -178,62 +165,58 @@ void eqlinear_solver_init(int32_t myID, mesh_t *myMesh, double depth) {
 //    myEqlinSolver->ep2 =
 //        (qpvectors_t *)calloc(myEqlinElementsCount, sizeof(qpvectors_t));
 
-    if ( (myEqlinSolver->constants           == NULL) ||
-         (myEqlinSolver->stresses            == NULL) ||
-         (myEqlinSolver->strains             == NULL) ||
-		 (myEqlinSolver->maxstrains          == NULL)
+	if ((myEqlinSolver->constants == NULL) || (myEqlinSolver->stresses == NULL)
+			|| (myEqlinSolver->strains == NULL)
+			|| (myEqlinSolver->maxstrains == NULL)
 //         (myEqlinSolver->ep1                 == NULL) ||
 //         (myEqlinSolver->ep2                 == NULL) ||
 //         (myEqlinSolver->alphastress1        == NULL) ||
 //         (myEqlinSolver->alphastress2        == NULL) ||
 //         (myEqlinSolver->pstrains1           == NULL) ||
 //         (myEqlinSolver->pstrains2           == NULL)
-		 ) {
+			) {
 
-        fprintf(stderr, "Thread %d: eqlinear_init: out of memory\n", myID);
-        MPI_Abort(MPI_COMM_WORLD, ERROR);
-        exit(1);
-    }
+		fprintf(stderr, "Thread %d: eqlinear_init: out of memory\n", myID);
+		MPI_Abort(MPI_COMM_WORLD, ERROR);
+		exit(1);
+	}
 
-    /* Initialization of element constants
-     * Tensors have been initialized to 0 by calloc
-     */
+	/* Initialization of element constants
+	 * Tensors have been initialized to 0 by calloc
+	 */
 
-    for (el_eindex = 0; el_eindex < myEqlinElementsCount; el_eindex++) {
+	for (el_eindex = 0; el_eindex < myEqlinElementsCount; el_eindex++) {
 
-        elem_t     *elemp;
-        edata_t    *edata;
-        elconstants_t *ecp;
-        double      mu, lambda;
-        double      elementVs, elementVp;
+		elem_t *elemp;
+		edata_t *edata;
+		elconstants_t *ecp;
+		double mu, lambda;
+		double elementVs, elementVp;
 
-        eindex = myEqlinElementsMapping[el_eindex];
+		eindex = myEqlinElementsMapping[el_eindex];
 
-        elemp = &myMesh->elemTable[eindex];
-        edata = (edata_t *)elemp->data;
-        ecp   = myEqlinSolver->constants + el_eindex;
+		elemp = &myMesh->elemTable[eindex];
+		edata = (edata_t *) elemp->data;
+		ecp = myEqlinSolver->constants + el_eindex;
 
-        int32_t lnid0 = elemp->lnid[0];
-        double  zo    = myMesh->ticksize * myMesh->nodeTable[lnid0].z;
+		int32_t lnid0 = elemp->lnid[0];
+		double zo = myMesh->ticksize * myMesh->nodeTable[lnid0].z;
 
-        /* get element Vs */
+		/* get element Vs */
 
-        elementVs   = (double)edata->Vs;
-        elementVp   = (double)edata->Vp;
+		elementVs = (double) edata->Vs;
+		elementVp = (double) edata->Vp;
 
+		/* Calculate the lame constants and store in element */
 
-
-        /* Calculate the lame constants and store in element */
-
-        mu_and_lambda(&mu, &lambda, edata, eindex);
-        ecp->lambda = lambda;
-        ecp->mu     = mu;
-       // printf("element_num : %i, mu: %f \n",el_eindex,mu);
-        /* Calculate the vertical stress as a homogeneous half-space */
+		mu_and_lambda(&mu, &lambda, edata, eindex);
+		ecp->lambda = lambda;
+		ecp->mu = mu;
+		// printf("element_num : %i, mu: %f \n",el_eindex,mu);
+		/* Calculate the vertical stress as a homogeneous half-space */
 //        if ( theApproxGeoState == YES )
 //        	ecp->sigmaZ_st = edata->rho * 9.80 * ( zo + edata->edgesize / 2.0 );
-
-        /* Calculate the yield function constants */
+		/* Calculate the yield function constants */
 //        switch (theMaterialModel) {
 //
 //            case LINEAR:
@@ -298,7 +281,6 @@ void eqlinear_solver_init(int32_t myID, mesh_t *myMesh, double depth) {
 //                break;
 //        }
 
-
 //        ecp->strainrate  =
 //        		interpolate_property_value(elementVs, theStrainRates  );
 //        ecp->sensitivity =
@@ -315,42 +297,29 @@ void eqlinear_solver_init(int32_t myID, mesh_t *myMesh, double depth) {
 ////        }
 //
 //
-   } /* for all elements */
+	} /* for all elements */
 
 }
 
-
-
-void constract_GD_Table()
-{
+void constract_GD_Table() {
 	// Construct Shear modulus degredation and damping table
 
-		int i,j;
-		double local_GDtable[11][3] = {{ 0.0001,	1.000, 0.24},
-				                       { 0.0003,	1.000, 0.42},
-				                       { 0.0010,	1.000, 0.80},
-				                       { 0.0030,	0.981, 1.40},
-				                       { 0.0100,	0.941, 2.80},
-			                           { 0.0300,	0.847, 5.10},
-				                       { 0.1000,	0.656, 9.80},
-				                       { 0.3000,	0.438, 15.50},
-				                       { 1.0000,	0.238, 21.00},
-				                       { 3.0000,	0.144, 25.00},
-				                       { 10.0000,	0.110, 28.00},
-		};
+	int i, j;
+	double local_GDtable[11][3] = { { 0.0001, 1.000, 0.24 }, { 0.0003, 1.000,
+			0.42 }, { 0.0010, 1.000, 0.80 }, { 0.0030, 0.981, 1.40 }, { 0.0100,
+			0.941, 2.80 }, { 0.0300, 0.847, 5.10 }, { 0.1000, 0.656, 9.80 }, {
+			0.3000, 0.438, 15.50 }, { 1.0000, 0.238, 21.00 }, { 3.0000, 0.144,
+			25.00 }, { 10.0000, 0.110, 28.00 }, };
 
-		for(i = 0; i < 11; i++)
-		{
-			for(j = 0; j < 2; j++)
-			{
-				theGDTABLE[i][j] = local_GDtable[i][j];
-		//		printf("%f ",theQTABLE[i][j]);
-			}
-		//	printf("\n");
+	for (i = 0; i < 11; i++) {
+		for (j = 0; j < 2; j++) {
+			theGDTABLE[i][j] = local_GDtable[i][j];
+			//		printf("%f ",theQTABLE[i][j]);
 		}
-return;
+		//	printf("\n");
+	}
+	return;
 }
-
 
 void eqlinear_stats(int32_t myID, int32_t theGroupSize) {
 
@@ -379,15 +348,11 @@ void eqlinear_stats(int32_t myID, int32_t theGroupSize) {
 //        xfree_int32_t( &nonlinElementsCount );
 //    }
 
-    return;
+	return;
 }
 
-void eqlinear_init( int32_t     myID,
-                     const char *parametersin,
-                     double      theDeltaT,
-                     double      theEndT )
-{
-
+void eqlinear_init(int32_t myID, const char *parametersin, double theDeltaT,
+		double theEndT) {
 
 //    double  double_message[2];
 //    int     int_message[7];
@@ -452,62 +417,55 @@ void eqlinear_init( int32_t     myID,
 //    MPI_Bcast(theGamma0,           thePropertiesCount, MPI_DOUBLE, 0, comm_solver);
 }
 
+noyesflag_t isThisElementsAtTheBottom_eq(mesh_t *myMesh, int32_t eindex,
+		double depth) {
+	elem_t *elemp;
+	int32_t nindex;
+	double x_m, y_m, z_m;
 
-noyesflag_t isThisElementsAtTheBottom_eq( mesh_t  *myMesh,
-                                       int32_t  eindex,
-                                       double   depth )
-{
-    elem_t  *elemp;
-    int32_t  nindex;
-    double   x_m,y_m,z_m;
+	/* Capture the element's last node at the bottom */
+	elemp = &myMesh->elemTable[eindex];
+	nindex = elemp->lnid[7];
 
-    /* Capture the element's last node at the bottom */
-    elemp  = &myMesh->elemTable[eindex];
-    nindex = elemp->lnid[7];
+	x_m = (myMesh->ticksize) * (double) myMesh->nodeTable[nindex].x;
+	y_m = (myMesh->ticksize) * (double) myMesh->nodeTable[nindex].y;
+	z_m = (myMesh->ticksize) * (double) myMesh->nodeTable[nindex].z;
 
-    x_m = (myMesh->ticksize)*(double)myMesh->nodeTable[nindex].x;
-    y_m = (myMesh->ticksize)*(double)myMesh->nodeTable[nindex].y;
-    z_m = (myMesh->ticksize)*(double)myMesh->nodeTable[nindex].z;
+	if (z_m == depth) {
+		return YES;
+	}
 
-
-    if ( z_m == depth) {
-    return YES;
-    }
-
-    return NO;
+	return NO;
 }
-
-
-
-
 
 /* -------------------------------------------------------------------------- */
 /*                   Auxiliary tensor manipulation methods                    */
 /* -------------------------------------------------------------------------- */
-eq_tensor_t point_strain_eq (fvector_t *u, double lx, double ly, double lz, double h) {
+eq_tensor_t point_strain_eq(fvector_t *u, double lx, double ly, double lz,
+		double h) {
 
-    int i;
+	int i;
 
-    eq_tensor_t strain = init_tensor_eq();
+	eq_tensor_t strain = init_tensor_eq();
 
-    /* Contribution of each node */
-    for (i = 0; i < 8; i++) {
+	/* Contribution of each node */
+	for (i = 0; i < 8; i++) {
 
-        double dx, dy, dz;
+		double dx, dy, dz;
 
-        point_dxi(&dx, &dy, &dz, lx, ly, lz, h, i);
+		point_dxi(&dx, &dy, &dz, lx, ly, lz, h, i);
 
-        strain.xx += dx * u[i].f[0];
-        strain.yy += dy * u[i].f[1];
-        strain.zz += dz * u[i].f[2];
+		strain.xx += dx * u[i].f[0];
+		strain.yy += dy * u[i].f[1];
+		strain.zz += dz * u[i].f[2];
 
-        strain.xy += 0.5 * ( dy * u[i].f[0] + dx * u[i].f[1] );
-        strain.yz += 0.5 * ( dz * u[i].f[1] + dy * u[i].f[2] );
-        strain.xz += 0.5 * ( dz * u[i].f[0] + dx * u[i].f[2] );
+		strain.xy += 0.5 * (dy * u[i].f[0] + dx * u[i].f[1]);
+		strain.yz += 0.5 * (dz * u[i].f[1] + dy * u[i].f[2]);
+		strain.xz += 0.5 * (dz * u[i].f[0] + dx * u[i].f[2]);
 
-    } /* nodes contribution */
+	} /* nodes contribution */
 
-    return strain;
+	return strain;
 }
 
 /*
@@ -515,96 +473,106 @@ eq_tensor_t point_strain_eq (fvector_t *u, double lx, double ly, double lz, doub
  */
 eq_tensor_t init_tensor_eq() {
 
-    eq_tensor_t tensor;
+	eq_tensor_t tensor;
 
-    tensor.xx = 0.0;
-    tensor.yy = 0.0;
-    tensor.zz = 0.0;
-    tensor.xy = 0.0;
-    tensor.yz = 0.0;
-    tensor.xz = 0.0;
+	tensor.xx = 0.0;
+	tensor.yy = 0.0;
+	tensor.zz = 0.0;
+	tensor.xy = 0.0;
+	tensor.yz = 0.0;
+	tensor.xz = 0.0;
 
-    return tensor;
+	return tensor;
 }
-
 
 int get_displacements_eq(mysolver_t *solver, elem_t *elemp, fvector_t *u) {
 
-    int i;
-    int res = 0;
+	int i;
+	int res = 0;
 
-    /* Capture displacements for each node */
-    for (i = 0; i < 8; i++) {
+	/* Capture displacements for each node */
+	for (i = 0; i < 8; i++) {
 
-        int32_t    lnid;
-        fvector_t *dis;
+		int32_t lnid;
+		fvector_t *dis;
 
-        lnid = elemp->lnid[i];
-        dis  = solver->tm1 + lnid;
+		lnid = elemp->lnid[i];
+		dis = solver->tm1 + lnid;
 
-        res += vector_is_all_zero( dis );
+		res += vector_is_all_zero(dis);
 
-        u[i].f[0] = dis->f[0];
-        u[i].f[1] = dis->f[1];
-        u[i].f[2] = dis->f[2];
+		u[i].f[0] = dis->f[0];
+		u[i].f[1] = dis->f[1];
+		u[i].f[2] = dis->f[2];
 
-    }
+	}
 
-    return res;
+	return res;
 }
-
 
 /* -------------------------------------------------------------------------- */
 /*                              Stability methods                             */
 /* -------------------------------------------------------------------------- */
 
-
 /* -------------------------------------------------------------------------- */
 /*                   Nonlinear core computational methods                     */
 /* -------------------------------------------------------------------------- */
 
+GD_t search_GD_table(double strain) {
 
-GD_t  search_GD_table(double strain){
+	GD_t GD;
+	int table_r;
 
-      GD_t GD;
-      int  table_r;
+	/*
+	 double thGDtable[11][3] =     {{ 0.0001,	1.000, 0.24},
+	 { 0.0003,	1.000, 0.42},
+	 { 0.0010,	1.000, 0.80},
+	 { 0.0030,	0.981, 1.40},
+	 { 0.0100,	0.941, 2.80},
+	 { 0.0300,   	0.847, 5.10},
+	 { 0.1000,	0.656, 9.80},
+	 { 0.3000,	0.438, 15.50},
+	 { 1.0000,	0.238, 21.00},
+	 { 3.0000,	0.144, 25.00},
+	 { 10.0000,	0.110, 28.00},
+	 };
+	 */
 
-      /*
-		double thGDtable[11][3] =     {{ 0.0001,	1.000, 0.24},
-				                       { 0.0003,	1.000, 0.42},
-				                       { 0.0010,	1.000, 0.80},
-	        		                   { 0.0030,	0.981, 1.40},
-				                       { 0.0100,	0.941, 2.80},
-	        		                   { 0.0300,   	0.847, 5.10},
-				                       { 0.1000,	0.656, 9.80},
-				                       { 0.3000,	0.438, 15.50},
-				                       { 1.0000,	0.238, 21.00},
-				                       { 3.0000,	0.144, 25.00},
-				                       { 10.0000,	0.110, 28.00},
-		};
-*/
+//k= 0;    % Elastic limit
+//Su    = 10;   % undrained strength (kN)
+//Vs    = 300;  % S-wave velocity m/s
+//nu    = 0.30; % Poisson's ratio
+//rho   = 2000; % Density. kg/m3
 
-		//k= 0;    % Elastic limit
-		//Su    = 10;   % undrained strength (kN)
-		//Vs    = 300;  % S-wave velocity m/s
-		//nu    = 0.30; % Poisson's ratio
-		//rho   = 2000; % Density. kg/m3
+	double thGDtable[9][3] = { { 1.0000000e-04, 1.0000000e+00, 7.1074287e-02 },
+			{ 3.0000000e-04, 1.0000000e+00, 7.3222860e-02 }, { 1.0000000e-03,
+					5.2600985e-01, 2.3627712e-01 }, { 3.0000000e-03,
+					1.8688299e-01, 4.6943484e-01 }, { 1.0000000e-02,
+					5.5931228e-02, 5.8592115e-01 }, { 3.0000000e-02,
+					1.8643642e-02, 5.9364920e-01 }, { 1.0000000e-01,
+					5.5930821e-03, 5.9580869e-01 }, { 3.0000000e-01,
+					1.8643597e-03, 5.9532786e-01 }, { 1.0000000e+00,
+					5.5930782e-04, 5.9554605e-01 } };
 
+	//k= 0;    % Elastic limit
+	//Su    = 5;   % undrained strength (kN)
+	//Vs    = 300;  % S-wave velocity m/s
+	//nu    = 0.30; % Poisson's ratio
+	//rho   = 2000; % Density. kg/m3
+	/*
+	 double thGDtable[9][3] = {{1.0000000e-04,   1.0000000e+00,   1.1217410e-01},
+	 {3.0000000e-04,   1.0000000e+00,   1.1652231e-01},
+	 {1.0000000e-03,   4.2963012e-01,   3.3234186e-01},
+	 {3.0000000e-03,   1.4416271e-01,   5.2640213e-01},
+	 {1.0000000e-02,   4.3134071e-02,   5.9404621e-01},
+	 {3.0000000e-02,   1.4377945e-02,   5.9404621e-01},
+	 {1.0000000e-01,   4.3133754e-03,   5.9404621e-01},
+	 {3.0000000e-01,   1.4377908e-03,   5.9404621e-01},
+	 {1.0000000e+00,   4.3133700e-04,   5.9404621e-01}
+	 };
+	 */
 
-		double thGDtable[9][3] =        {{1.0000000e-04,   1.0000000e+00,   1.2236802},
-		                                 {3.0000000e-04,   1.0000000e+00,   3.6710406},
-		                                 {1.0000000e-03,   8.2932233e-01,   10.628073},
-		                                 {3.0000000e-03,   5.1357859e-01,   24.598329},
-		                                 {1.0000000e-02,   1.8360382e-01,   46.258932},
-		                                 {3.0000000e-02,   6.1339436e-02,   57.434479},
-		                                 {1.0000000e-01,   1.8401797e-02,   59.884668},
-		                                 {3.0000000e-01,   6.1339291e-03,   60.140012},
-		                                 {1.0000000e+00,   1.8401784e-03,   59.199619}
-		};
-
-
-		// Vucetic & Dobry 1991 - Clay - PI=0
-
+	// Vucetic & Dobry 1991 - Clay - PI=0
 //		double thGDtable[9][3] =        {{1.0000000e-04,   1.000,   1},
 //		                                 {3.0000000e-04,   0.998,   1},
 //		                                 {1.0000000e-03,   0.962,   1.45},
@@ -618,69 +586,70 @@ GD_t  search_GD_table(double strain){
 //										 {1.0000000e+01,   0.002,   27.29}
 //		};
 
+	int GDTable_Size = (int) (sizeof(thGDtable) / (3 * sizeof(double)));
 
+	if (strain <= thGDtable[0][0]) {
+		GD.g = thGDtable[0][1];
+		GD.d = thGDtable[0][2];
+	} else if (strain >= thGDtable[GDTable_Size - 1][0]) {
+		GD.g = thGDtable[GDTable_Size - 1][1];
+		GD.d = thGDtable[GDTable_Size - 1][2];
+	} else {
 
+		for (table_r = 0; table_r < GDTable_Size; table_r++) {
 
-	  int GDTable_Size = (int)(sizeof(thGDtable)/( 3 * sizeof(double)));
+			if (strain >= thGDtable[table_r][0]
+					&& strain < thGDtable[table_r + 1][0]) {
+				GD.g = thGDtable[table_r + 1][1]
+						- ((thGDtable[table_r + 1][0] - strain)
+								* (thGDtable[table_r + 1][1]
+										- thGDtable[table_r][1])
+								/ (thGDtable[table_r + 1][0]
+										- thGDtable[table_r][0]));
+				GD.d = thGDtable[table_r + 1][2]
+						- ((thGDtable[table_r + 1][0] - strain)
+								* (thGDtable[table_r + 1][2]
+										- thGDtable[table_r][2])
+								/ (thGDtable[table_r + 1][0]
+										- thGDtable[table_r][0]));
+				return GD;
+			}
 
-	  if (strain <= thGDtable[0][0]){
-		  GD.g = thGDtable[0][1];
-		  GD.d = thGDtable[0][2];
-	  } else if (strain >= thGDtable[GDTable_Size-1][0]) {
-		  GD.g = thGDtable[GDTable_Size-1][1];
-		  GD.d = thGDtable[GDTable_Size-1][2];
-	  } else {
+		}
 
-		  for  (table_r = 0; table_r < GDTable_Size; table_r++) {
+	}
 
-			  if (strain >= thGDtable[table_r][0] && strain < thGDtable[table_r+1][0]){
-				  GD.g = thGDtable[table_r+1][1] - ((thGDtable[table_r+1][0] - strain)*(thGDtable[table_r+1][1]-thGDtable[table_r][1])/(thGDtable[table_r+1][0]-thGDtable[table_r][0]));
-				  GD.d = thGDtable[table_r+1][2] - ((thGDtable[table_r+1][0] - strain)*(thGDtable[table_r+1][2]-thGDtable[table_r][2])/(thGDtable[table_r+1][0]-thGDtable[table_r][0]));
-				  return GD;
-			  }
-
-		  }
-
-
-	  }
-
-	  return GD;
+	return GD;
 
 }
 
-void compute_eqlinear_state ( mesh_t     *myMesh,
-                               mysolver_t *mySolver,
-                               int32_t     theNumberOfStations,
-                               int32_t     myNumberOfStations,
-                               station_t  *myStations,
-                               double      theDeltaT,
-                               int         step )
-{
+void compute_eqlinear_state(mesh_t *myMesh, mysolver_t *mySolver,
+		int32_t theNumberOfStations, int32_t myNumberOfStations,
+		station_t *myStations, double theDeltaT, int step) {
 	/* In general, j-index refers to the quadrature point in a loop (0 to 7 for
 	 * eight points), and i-index refers to the tensor component (0 to 5), with
 	 * the following order xx[0], yy[1], zz[2], xy[3], yz[4], xz[5]. i-index is
 	 * also some times used for the number of nodes (8, 0 to 7).
 	 */
 
-	int     i;
+	int i;
 	int32_t eindex, el_eindex;
-
 
 	/* Loop over the number of local elements */
 	for (el_eindex = 0; el_eindex < myEqlinElementsCount; el_eindex++) {
 
-		elem_t        *elemp;
-		edata_t       *edata;
+		elem_t *elemp;
+		edata_t *edata;
 		elconstants_t *enlcons;
 
-		double         h;          /* Element edge-size in meters   */
+		double h; /* Element edge-size in meters   */
 // 		double         alpha, k;   /* Drucker-Prager constants      */
-		double         mu, lambda; /* Elasticity material constants */
+		double mu, lambda; /* Elasticity material constants */
 //		double		   hrd;        /* Hardening Modulus  */
 //		double         beta;       /* Plastic flow rule constant */
-		double         XI, QC;
-		fvector_t      u[8];
-		eq_qptensors_t   *stresses, *tstrains, *maxstrains; //, *pstrains1, *pstrains2, *alphastress1, *alphastress2;
+		double XI, QC;
+		fvector_t u[8];
+		eq_qptensors_t *stresses, *tstrains, *maxstrains; //, *pstrains1, *pstrains2, *alphastress1, *alphastress2;
 //		qpvectors_t   *epstr1, *epstr2;
 
 		/* Capture data from the element and mesh */
@@ -688,14 +657,14 @@ void compute_eqlinear_state ( mesh_t     *myMesh,
 		eindex = myEqlinElementsMapping[el_eindex];
 
 		elemp = &myMesh->elemTable[eindex];
-		edata = (edata_t *)elemp->data;
-		h     = edata->edgesize;
+		edata = (edata_t *) elemp->data;
+		h = edata->edgesize;
 
 		/* Capture data from the nonlinear element structure */
 
 		enlcons = myEqlinSolver->constants + el_eindex;
 
-		mu     = enlcons->mu;
+		mu = enlcons->mu;
 		lambda = enlcons->lambda;
 //		alpha  = enlcons->alpha;
 //		beta   = enlcons->beta;
@@ -703,9 +672,9 @@ void compute_eqlinear_state ( mesh_t     *myMesh,
 //		hrd    = enlcons->h;
 
 		/* Capture the current state in the element */
-		tstrains     = myEqlinSolver->strains      + el_eindex;
-		stresses     = myEqlinSolver->stresses     + el_eindex;
-		maxstrains   = myEqlinSolver->maxstrains   + el_eindex;
+		tstrains = myEqlinSolver->strains + el_eindex;
+		stresses = myEqlinSolver->stresses + el_eindex;
+		maxstrains = myEqlinSolver->maxstrains + el_eindex;
 //		pstrains1    = myNonlinSolver->pstrains1    + nl_eindex;   /* Previous plastic tensor  */
 //		pstrains2    = myNonlinSolver->pstrains2    + nl_eindex;   /* Current  plastic tensor  */
 //		alphastress1 = myNonlinSolver->alphastress1 + nl_eindex;   /* Previous backstress tensor  */
@@ -716,65 +685,55 @@ void compute_eqlinear_state ( mesh_t     *myMesh,
 		// temp code to control (naeem)
 		// printf("This is strain: %f \n", tstrains[1]);
 
-
-
-		if ( get_displacements_eq(mySolver, elemp, u) == 0 ) {
+		if (get_displacements_eq(mySolver, elemp, u) == 0) {
 			/* If all displacements are zero go for next element */
 			continue;
 		}
 
-
-
-
-
 		/* Loop over the quadrature points */
 		for (i = 0; i < 8; i++) {
 
-			eq_tensor_t  sigma0;
+			eq_tensor_t sigma0;
 
 			/* Quadrature point local coordinates */
-			double lx = xi[0][i] * qc ;
-			double ly = xi[1][i] * qc ;
-			double lz = xi[2][i] * qc ;
+			double lx = xi[0][i] * qc;
+			double ly = xi[1][i] * qc;
+			double lz = xi[2][i] * qc;
 
 			/* Calculate total strains */
 			tstrains->qp[i] = point_strain_eq(u, lx, ly, lz, h);
 
+			int32_t nindex;
+			double x_m, y_m, z_m;
 
+			/* Capture the element's last node at the bottom */
+			elemp = &myMesh->elemTable[eindex];
+			nindex = elemp->lnid[7];
 
-		    int32_t  nindex;
-		    double   x_m,y_m,z_m;
-
-		    /* Capture the element's last node at the bottom */
-		    elemp  = &myMesh->elemTable[eindex];
-		    nindex = elemp->lnid[7];
-
-		    x_m = (myMesh->ticksize)*(double)myMesh->nodeTable[nindex].x;
-		    y_m = (myMesh->ticksize)*(double)myMesh->nodeTable[nindex].y;
-		    z_m = (myMesh->ticksize)*(double)myMesh->nodeTable[nindex].z;
-
-
+			x_m = (myMesh->ticksize) * (double) myMesh->nodeTable[nindex].x;
+			y_m = (myMesh->ticksize) * (double) myMesh->nodeTable[nindex].y;
+			z_m = (myMesh->ticksize) * (double) myMesh->nodeTable[nindex].z;
 
 // the following part of code is written to extract the strain.Uncomment it. Alos double check the isThisElementsAtTheBottom_eq function
 
-
-
-
-
 			//For each element you need to define another strain tensor, to only keep the maximum value of strain.
 
-            maxstrains->qp[i].xx = MAX(fabs(maxstrains->qp[i].xx),fabs(tstrains->qp[i].xx));
-            maxstrains->qp[i].yy = MAX(fabs(maxstrains->qp[i].yy),fabs(tstrains->qp[i].yy));
-            maxstrains->qp[i].zz = MAX(fabs(maxstrains->qp[i].zz),fabs(tstrains->qp[i].zz));
-            maxstrains->qp[i].xy = MAX(fabs(maxstrains->qp[i].xy),fabs(tstrains->qp[i].xy));
-            maxstrains->qp[i].yz = MAX(fabs(maxstrains->qp[i].yz),fabs(tstrains->qp[i].yz));
-            maxstrains->qp[i].xz = MAX(fabs(maxstrains->qp[i].xz),fabs(tstrains->qp[i].xz));
-
+			maxstrains->qp[i].xx = MAX(fabs(maxstrains->qp[i].xx),
+					fabs(tstrains->qp[i].xx));
+			maxstrains->qp[i].yy = MAX(fabs(maxstrains->qp[i].yy),
+					fabs(tstrains->qp[i].yy));
+			maxstrains->qp[i].zz = MAX(fabs(maxstrains->qp[i].zz),
+					fabs(tstrains->qp[i].zz));
+			maxstrains->qp[i].xy = MAX(fabs(maxstrains->qp[i].xy),
+					fabs(tstrains->qp[i].xy));
+			maxstrains->qp[i].yz = MAX(fabs(maxstrains->qp[i].yz),
+					fabs(tstrains->qp[i].yz));
+			maxstrains->qp[i].xz = MAX(fabs(maxstrains->qp[i].xz),
+					fabs(tstrains->qp[i].xz));
 
 //            printf("This is xy max strain: %.20f (node %i) \n", maxstrains->qp[i].xy, i);
 
-
-            // the following part of code is written to extract the max strain.Uncomment it
+			// the following part of code is written to extract the max strain.Uncomment it
 //			if (  x_m == 4096 && y_m == 4096) {
 //				printf("STST el_eindex = %i , node =%i , depth = %f , timestep = %i , maxxz = %.20f   \n",el_eindex,i,z_m,step,maxstrains->qp[i].xz);
 //			 }
@@ -783,127 +742,96 @@ void compute_eqlinear_state ( mesh_t     *myMesh,
 //				printf("STST el_eindex = %i,node =%i,depth = %f, timestep = %i ,xz = %.20f, maxxz = %.20f   \n",el_eindex,i,z_m,step,tstrains->qp[i].xz,maxstrains->qp[i].xz);
 //			 }
 
+			//FILE *fp_st = hu_fopen( "element_strain.txt", "a" );
+			// step % 10 == 0 &&
 
-			 //FILE *fp_st = hu_fopen( "element_strain.txt", "a" );
-            // step % 10 == 0 &&
+			//      if (x_m == 4096 && y_m == 4096 && ( z_m == 32 || z_m == 64 || z_m == 96 || z_m == 128 || z_m == 160 || z_m == 192 || z_m == 224 || z_m == 256 || z_m == 288 || z_m == 320 || z_m == 352 || z_m == 384 || z_m == 416 || z_m == 448 || z_m == 480 || z_m == 512)){
+			//printf("\n STST el_eindex = %i node =%i depth = %f  timestep = %i xx = %.20f  yy = %.20f  zz = %.20f  xy = %.20f  yz = %.20f  xz = %.20f \n",el_eindex,i,z_m,step,tstrains->qp[i].xx,tstrains->qp[i].yy,tstrains->qp[i].zz,tstrains->qp[i].xy,tstrains->qp[i].yz,tstrains->qp[i].xz);
+			//		    printf("\n STST el_eindex = %i node = %i depth = %f  timestep = %i xx = %.10f  yy = %.10f  zz = %.10f  xy = %.10f  yz = %.10f  xz = %.10f \n",el_eindex,i,z_m,step,tstrains->qp[i].xx,tstrains->qp[i].yy,tstrains->qp[i].zz,tstrains->qp[i].xy,tstrains->qp[i].yz,tstrains->qp[i].xz);
 
-      //      if (x_m == 4096 && y_m == 4096 && ( z_m == 32 || z_m == 64 || z_m == 96 || z_m == 128 || z_m == 160 || z_m == 192 || z_m == 224 || z_m == 256 || z_m == 288 || z_m == 320 || z_m == 352 || z_m == 384 || z_m == 416 || z_m == 448 || z_m == 480 || z_m == 512)){
-			    //printf("\n STST el_eindex = %i node =%i depth = %f  timestep = %i xx = %.20f  yy = %.20f  zz = %.20f  xy = %.20f  yz = %.20f  xz = %.20f \n",el_eindex,i,z_m,step,tstrains->qp[i].xx,tstrains->qp[i].yy,tstrains->qp[i].zz,tstrains->qp[i].xy,tstrains->qp[i].yz,tstrains->qp[i].xz);
-	//		    printf("\n STST el_eindex = %i node = %i depth = %f  timestep = %i xx = %.10f  yy = %.10f  zz = %.10f  xy = %.10f  yz = %.10f  xz = %.10f \n",el_eindex,i,z_m,step,tstrains->qp[i].xx,tstrains->qp[i].yy,tstrains->qp[i].zz,tstrains->qp[i].xy,tstrains->qp[i].yz,tstrains->qp[i].xz);
+			//      }
 
-      //      }
-
-
-			 //hu_fclosep( &fp_st );
+			//hu_fclosep( &fp_st );
 
 			//printf("This is strain: %f \n", tstrains[1])
 			/* strain and backstress predictor  */
 //	        pstrains1->qp[i]    = copy_tensor ( pstrains2->qp[i] );     /* The strain predictor assumes that the current plastic strains equal those from the previous step   */
 //	        alphastress1->qp[i] = copy_tensor ( alphastress2->qp[i] );
-
 			/* Calculate stresses */
 //			if ( ( theMaterialModel == LINEAR ) || ( step <= theGeostaticFinalStep ) ){
 //				stresses->qp[i]  = point_stress ( tstrains->qp[i], mu, lambda );
 //				continue;
 //			} else {
-
 //				if ( theApproxGeoState == YES )
 //					sigma0 = ApproxGravity_tensor(enlcons->sigmaZ_st, enlcons->phi, h, lz, edata->rho);
 //				else
 //					sigma0 = zero_tensor();
-
 //				material_update ( *enlcons,           tstrains->qp[i],      pstrains1->qp[i], alphastress1->qp[i], epstr1->qv[i], sigma0, theDeltaT,
 //						           &pstrains2->qp[i], &alphastress2->qp[i], &stresses->qp[i], &epstr2->qv[i],      &enlcons->fs[i]);
-
-
-
 
 //			}
 		} /* for all quadrature points */
 	} /* for all nonlinear elements */
 }
 
-
-
-void material_update_eq (      mesh_t     *myMesh,
-                               mysolver_t *mySolver,
-                               int32_t     theNumberOfStations,
-                               int32_t     myNumberOfStations,
-                               station_t  *myStations,
-                               double      theDeltaT,
-                               int         eq_it,
-							   double      theBBase,
-							   double      theThresholdVpVs,
-							   //double      *theQTABLE,
-							   //int         QTable_Size,
-							   double      theFreq_Vel,
-							   double      theFreq,
-							   double      theEQA,
-							   double      theEQB,
-							   double      theEQC,
-							   double      theEQD,
-							   double      theEQE,
-							   double      theEQF,
-							   double      theEQG,
-							   double      theEQH,
-							   double      theVSmaxeq
-							   )
-{
+void material_update_eq(mesh_t *myMesh, mysolver_t *mySolver,
+		int32_t theNumberOfStations, int32_t myNumberOfStations,
+		station_t *myStations, double theDeltaT, int eq_it, double theBBase,
+		double theThresholdVpVs,
+		//double      *theQTABLE,
+		//int         QTable_Size,
+		double theFreq_Vel, double theFreq, double theEQA, double theEQB,
+		double theEQC, double theEQD, double theEQE, double theEQF,
+		double theEQG, double theEQH, double theVSmaxeq) {
 	/* In general, j-index refers to the quadrature point in a loop (0 to 7 for
 	 * eight points), and i-index refers to the tensor component (0 to 5), with
 	 * the following order xx[0], yy[1], zz[2], xy[3], yz[4], xz[5]. i-index is
 	 * also some times used for the number of nodes (8, 0 to 7).
 	 */
 
-	int     i;
+	int i;
 	int32_t eindex, el_eindex, nindex;
 //    int btn=0;
-
 
 	/* Loop over the number of local elements */
 	for (el_eindex = 0; el_eindex < myEqlinElementsCount; el_eindex++) {
 
-		elem_t        *elemp;
-		edata_t       *edata;
+		elem_t *elemp;
+		edata_t *edata;
 		elconstants_t *enlcons;
-		e_t           *ep;    /* pointer to the element constant table */
+		e_t *ep; /* pointer to the element constant table */
 
-		double         h;          /* Element edge-size in meters   */
-		double         mu, lambda, original_mu; /* Elasticity material constants */
-		double         XI, QC;
-		fvector_t      u[8];
-		eq_qptensors_t   *maxstrains;
-		double         zeta, a, b, updated_mu, updated_lambda;
-		double         updated_Q;
-        double         x_m,y_m,z_m;
-        double         depth=512;
+		double h; /* Element edge-size in meters   */
+		double mu, lambda, original_mu; /* Elasticity material constants */
+		double XI, QC;
+		fvector_t u[8];
+		eq_qptensors_t *maxstrains;
+		double zeta, a, b, updated_mu, updated_lambda;
+		double updated_Q;
+		double x_m, y_m, z_m;
+		double depth = 512;
 
 		/* Capture data from the element and mesh */
 		eindex = myEqlinElementsMapping[el_eindex];
 
 		elemp = &myMesh->elemTable[eindex];
-		edata = (edata_t *)elemp->data;
-		h     = edata->edgesize;
-		ep    = &mySolver->eTable[eindex];
+		edata = (edata_t *) elemp->data;
+		h = edata->edgesize;
+		ep = &mySolver->eTable[eindex];
 
-	    /* Capture the element's last node at the bottom */
-	    elemp  = &myMesh->elemTable[eindex];
-	    nindex = elemp->lnid[7];
+		/* Capture the element's last node at the bottom */
+		elemp = &myMesh->elemTable[eindex];
+		nindex = elemp->lnid[7];
 
+		x_m = (myMesh->ticksize) * (double) myMesh->nodeTable[nindex].x;
+		y_m = (myMesh->ticksize) * (double) myMesh->nodeTable[nindex].y;
+		z_m = (myMesh->ticksize) * (double) myMesh->nodeTable[nindex].z;
 
-	    x_m = (myMesh->ticksize)*(double)myMesh->nodeTable[nindex].x;
-	    y_m = (myMesh->ticksize)*(double)myMesh->nodeTable[nindex].y;
-		z_m = (myMesh->ticksize)*(double)myMesh->nodeTable[nindex].z;
+		if (isThisElementEqLinear(myMesh, el_eindex, theVSmaxeq) == NO) {
+			continue;
+		}
 
-
-		// Check maximum shear wave velocity of element for equivalent linear method.
-        if (edata->Vs > theVSmaxeq){
-        	continue;
-        }
-
-
-
-		if (isThisElementsAtTheBottom_eq(myMesh, el_eindex, depth)==YES){
+		if (isThisElementsAtTheBottom_eq(myMesh, el_eindex, depth) == YES) {
 //			printf("this is bottom element number: %i\n",btn);
 //			btn=btn+1;
 			continue;
@@ -912,24 +840,21 @@ void material_update_eq (      mesh_t     *myMesh,
 		/* Capture data from the eqlinear element structure */
 		enlcons = myEqlinSolver->constants + el_eindex;
 
-
-
 		/* Keep the original mu in other variable and don't change it.
 		 *
 		 */
-		if (eq_it == 0){
-			enlcons->original_mu = enlcons -> mu;
+		if (eq_it == 0) {
+			enlcons->original_mu = enlcons->mu;
 		}
 
 //		printf("Element number: %i, old Vs: %f \n", el_eindex, edata->Vs);
 
-		original_mu     = enlcons->original_mu;
+		original_mu = enlcons->original_mu;
 		lambda = enlcons->lambda;
-
 
 		/* Capture the maximum strain of the element */
 
-		maxstrains   = myEqlinSolver->maxstrains   + el_eindex;
+		maxstrains = myEqlinSolver->maxstrains + el_eindex;
 //		pstrains1    = myNonlinSolver->pstrains1    + nl_eindex;   /* Previous plastic tensor  */
 //		pstrains2    = myNonlinSolver->pstrains2    + nl_eindex;   /* Current  plastic tensor  */
 //		alphastress1 = myNonlinSolver->alphastress1 + nl_eindex;   /* Previous backstress tensor  */
@@ -938,28 +863,22 @@ void material_update_eq (      mesh_t     *myMesh,
 //		epstr2       = myNonlinSolver->ep2          + nl_eindex;
 //
 
-
 //         define a temprory matrix for strain
 
-		double  strain_mat[8][6]={{0,  0,  0,  0,  0,  0},
-								  {0,  0,  0,  0,  0,  0},
-								  {0,  0,  0,  0,  0,  0},
-								  {0,  0,  0,  0,  0,  0},
-								  {0,  0,  0,  0,  0,  0},
-								  {0,  0,  0,  0,  0,  0},
-								  {0,  0,  0,  0,  0,  0},
-								  {0,  0,  0,  0,  0,  0}};
+		double strain_mat[8][6] = { { 0, 0, 0, 0, 0, 0 }, { 0, 0, 0, 0, 0, 0 },
+				{ 0, 0, 0, 0, 0, 0 }, { 0, 0, 0, 0, 0, 0 },
+				{ 0, 0, 0, 0, 0, 0 }, { 0, 0, 0, 0, 0, 0 },
+				{ 0, 0, 0, 0, 0, 0 }, { 0, 0, 0, 0, 0, 0 } };
 
 		/* Loop over the quadrature points */
 		for (i = 0; i < 8; i++) {
 
-
-			strain_mat[i][0]=maxstrains->qp[i].xx;
-			strain_mat[i][1]=maxstrains->qp[i].yy;
-			strain_mat[i][2]=maxstrains->qp[i].zz;
-			strain_mat[i][3]=maxstrains->qp[i].xy;
-			strain_mat[i][4]=maxstrains->qp[i].yz;
-			strain_mat[i][5]=maxstrains->qp[i].xz;
+			strain_mat[i][0] = maxstrains->qp[i].xx;
+			strain_mat[i][1] = maxstrains->qp[i].yy;
+			strain_mat[i][2] = maxstrains->qp[i].zz;
+			strain_mat[i][3] = maxstrains->qp[i].xy;
+			strain_mat[i][4] = maxstrains->qp[i].yz;
+			strain_mat[i][5] = maxstrains->qp[i].xz;
 
 		} /* for all quadrature points */
 
@@ -967,9 +886,8 @@ void material_update_eq (      mesh_t     *myMesh,
 
 		// Now update the material based on strain level
 		// --------------------------------------
-        // Here I need to add a function to pick the best strain combination
+		// Here I need to add a function to pick the best strain combination
 		double myteststrain = 0;
-
 
 		// block of code for single strain
 		// ---------------
@@ -982,14 +900,28 @@ void material_update_eq (      mesh_t     *myMesh,
 		// second strain invariant (See Bielak et al 2010)
 		// ---------------
 
-
-
-		for (i=0; i < 8; i++){
-		myteststrain = theEQG*pow(((strain_mat[i][3]*strain_mat[i][3]*theEQA+strain_mat[i][5]*strain_mat[i][5]*theEQB+strain_mat[i][4]*strain_mat[i][4]*theEQC) -
-				        (strain_mat[i][0]*strain_mat[i][1]*theEQD+strain_mat[i][0]*strain_mat[i][2]*theEQE+strain_mat[i][1]*strain_mat[i][2]*theEQF)),theEQH) + myteststrain;
+		for (i = 0; i < 8; i++) {
+			myteststrain =
+					theEQG
+							* pow(
+									((strain_mat[i][3] * strain_mat[i][3]
+											* theEQA
+											+ strain_mat[i][5]
+													* strain_mat[i][5] * theEQB
+											+ strain_mat[i][4]
+													* strain_mat[i][4] * theEQC)
+											- (strain_mat[i][0]
+													* strain_mat[i][1] * theEQD
+													+ strain_mat[i][0]
+															* strain_mat[i][2]
+															* theEQE
+													+ strain_mat[i][1]
+															* strain_mat[i][2]
+															* theEQF)), theEQH)
+							+ myteststrain;
 		}
 
-        myteststrain = 100*(myteststrain/8);
+		myteststrain = 100 * (myteststrain / 8);
 
 		// --------------------------------------
 
@@ -999,101 +931,87 @@ void material_update_eq (      mesh_t     *myMesh,
 
 //		printf("Here is the max strain of element %i : %.10f \n", el_eindex, myteststrain);
 
-		 GD_t GD = search_GD_table(myteststrain);
+		GD_t GD = search_GD_table(myteststrain);
 
 		//printf("Results : strain = %f , G = %f, D = %f \n", myteststrain, GD.g, GD.d);
 
-
-		 updated_mu = original_mu * GD.g;
-
-
+		updated_mu = original_mu * GD.g;
 
 		//	if (x_m == 4096 && y_m == 4096) {
 		//		printf("EQLINEARL959STST el_eindex = %i , depth = %f , updated_mu_f = %f , myteststrain = %.20f   \n",el_eindex,z_m,GD.g,myteststrain);
 		//	 }
 
+		/* control the poisson ratio and lambda value */
 
+		if (edata->Vp > (edata->Vs * theThresholdVpVs)) {
+			updated_lambda = edata->rho * edata->Vs * edata->Vs
+					* theThresholdVpVs * theThresholdVpVs - 2 * updated_mu;
+		} else {
+			updated_lambda = edata->rho * edata->Vp * edata->Vp
+					- 2 * updated_mu;
+		}
 
+		/* Adjust Vs, Vp to fix Poisson ratio problem, formula provided by Jacobo */
+		if (updated_lambda < 0) {
+			if (edata->Vs < 500)
+				edata->Vp = 2.45 * edata->Vs;
+			else if (edata->Vs < 1200)
+				edata->Vp = 2 * edata->Vs;
+			else
+				edata->Vp = 1.87 * edata->Vs;
 
-         /* control the poisson ratio and lambda value */
+			updated_lambda = edata->rho * edata->Vp * edata->Vp;
+		}
 
-
-         if ( edata->Vp > (edata->Vs * theThresholdVpVs) ) {
-             updated_lambda = edata->rho * edata->Vs * edata->Vs * theThresholdVpVs
-                    * theThresholdVpVs - 2 * updated_mu;
-         } else {
-        	 updated_lambda = edata->rho * edata->Vp * edata->Vp - 2 * updated_mu;
-         }
-
-         /* Adjust Vs, Vp to fix Poisson ratio problem, formula provided by Jacobo */
-         if ( updated_lambda < 0 ) {
-             if ( edata->Vs < 500 )
-                 edata->Vp = 2.45 * edata->Vs;
-             else if ( edata->Vs < 1200 )
-                 edata->Vp = 2 * edata->Vs;
-             else
-                 edata->Vp = 1.87 * edata->Vs;
-
-             updated_lambda = edata->rho * edata->Vp * edata->Vp;
-         }
-
-         if ( updated_lambda < 0) {
+		if (updated_lambda < 0) {
 //             fprintf(stderr, "\nThread %d: %d element produces negative lambda = %.6f; Vp = %f; Vs = %f; Rho = %f",
 //                     Global.myID, eindex, lambda, edata->Vp, edata->Vs, edata->rho);
 //             MPI_Abort(MPI_COMM_WORLD, ERROR);
 
+			fprintf(stderr,
+					"\nThread : %d element produces negative lambda = %.6f; Vp = %f; Vs = %f; Rho = %f",
+					eindex, lambda, edata->Vp, edata->Vs, edata->rho);
+			MPI_Abort(MPI_COMM_WORLD, ERROR);
+		}
 
-             fprintf(stderr, "\nThread : %d element produces negative lambda = %.6f; Vp = %f; Vs = %f; Rho = %f",
-                      eindex, lambda, edata->Vp, edata->Vs, edata->rho);
-             MPI_Abort(MPI_COMM_WORLD, ERROR);
-         }
+		/* update mu and lambda - Don't update the DRM element. */
 
-         /* update mu and lambda - Don't update the DRM element. */
+		enlcons->mu = updated_mu;
+		enlcons->lambda = updated_lambda;
+		edata->Vs = sqrt(updated_mu / edata->rho);
+		edata->Vp = sqrt((updated_lambda + 2 * updated_mu) / edata->rho);
 
- 		enlcons->mu = updated_mu;
- 		enlcons->lambda = updated_lambda;
- 		edata -> Vs =  sqrt(updated_mu/edata ->rho);
- 		edata -> Vp =  sqrt((updated_lambda+2*updated_mu)/edata ->rho);
+		double old_c1 = ep->c1;
 
- 		double old_c1 = ep->c1;
+		/* update c1 - c4 */
 
+		/* coefficients for term (deltaT_squared * Ke * Ut) */
 
+		ep->c1 = theDeltaT * theDeltaT * edata->edgesize * updated_mu / 9;
+		ep->c2 = theDeltaT * theDeltaT * edata->edgesize * updated_lambda / 9;
 
-         /* update c1 - c4 */
+		zeta = 10 / edata->Vs;
 
-         /* coefficients for term (deltaT_squared * Ke * Ut) */
+		//printf("Element number: %i, old c: %f, new c: %f \n", el_eindex, old_c1,ep->c1);
 
-         ep->c1 = theDeltaT *  theDeltaT *  edata->edgesize * updated_mu / 9;
-         ep->c2 = theDeltaT *  theDeltaT *  edata->edgesize * updated_lambda / 9;
-
-         zeta = 10 / edata->Vs;
-
-
-         //printf("Element number: %i, old c: %f, new c: %f \n", el_eindex, old_c1,ep->c1);
-
-
-
-         /* Damping update */
-         // Q set to be high value to run as without damping. In the real simulation I need to set the real values (like 100vs)
-   	     if (eq_it == 0){
-   	     enlcons->Qs_value = set_Qs(edata->Vs);
-   	     enlcons->Qp_value = set_Qp(edata->Vs);
-   	     }
+		/* Damping update */
+		// Q set to be high value to run as without damping. In the real simulation I need to set the real values (like 100vs)
+		if (eq_it == 0) {
+			enlcons->Qs_value = set_Qs(edata->Vs);
+			enlcons->Qp_value = set_Qp(edata->Vs);
+		}
 
 //   	     printf("Element number: %i, new Vs: %f \n", el_eindex, edata->Vs);
 //   	     printf("Element number: %i, Mu: %f, and updated Mu: %f \n", el_eindex, original_mu, enlcons->mu);
 
- 	    double anelastic_damping = 1/(2*enlcons->Qs_value);
- 	    double total_requested_damping = GD.d/100 + anelastic_damping;
+		double anelastic_damping = 1 / (2 * enlcons->Qs_value);
+		double total_requested_damping = GD.d / 100 + anelastic_damping;
 
+		b = zeta * theBBase;
 
-
-		 b = zeta * theBBase;
-
-
-	     ep->c3 = b *theDeltaT *  theDeltaT * edata->edgesize * updated_mu / 9;
-	     ep->c4 = b * theDeltaT *  theDeltaT * edata->edgesize * updated_lambda / 9;
-
+		ep->c3 = b * theDeltaT * theDeltaT * edata->edgesize * updated_mu / 9;
+		ep->c4 = b * theDeltaT * theDeltaT * edata->edgesize * updated_lambda
+				/ 9;
 
 //			/* Calculate total strains */
 //			tstrains->qp[i] = point_strain(u, lx, ly, lz, h);
@@ -1122,212 +1040,202 @@ void material_update_eq (      mesh_t     *myMesh,
 //				material_update ( *enlcons,           tstrains->qp[i],      pstrains1->qp[i], alphastress1->qp[i], epstr1->qv[i], sigma0, theDeltaT,
 //						           &pstrains2->qp[i], &alphastress2->qp[i], &stresses->qp[i], &epstr2->qv[i],      &enlcons->fs[i]);
 
+		/* convert damping to Q */
+		updated_Q = 1 / (2 * total_requested_damping);
 
-
-	     /* convert damping to Q */
-	    updated_Q = 1 / (2*total_requested_damping);
-
-
-		update_Q_params(edata,updated_Q,0,theFreq);
-	    control_correction_factor(edata,theFreq_Vel,theFreq);
+		update_Q_params(edata, updated_Q, 0, theFreq);
+		control_correction_factor(edata, theFreq_Vel, theFreq);
 
 	} /* for all nonlinear elements */
 
 }
 
-
-void    compute_addforce_bottom(int32_t timestep, mesh_t *myMesh, mysolver_t *mySolver, double dt)
-{
-
-    
+void compute_addforce_bottom(int32_t timestep, mesh_t *myMesh,
+		mysolver_t *mySolver, double dt) {
 
 	double fc = 0.8, Ts = 2.0, zp = 0.04, Vs = 640;
-	double el_size   = 32;
-	double t1  = timestep * dt;
-	double t2  = (timestep + (el_size/Vs)/dt) * dt;
-    double fcpi2 = fc*fc*PI*PI, Vs2 = Vs*Vs;
-    double max_disp = 0.01;
-    double force_coefficient = (el_size/9)*dt*dt*9953280000*max_disp; // mu*K1+lambda*K2+mu*K3 : 9953280000, vs      = 640;  vp      = 1108;   rho     = 2700
+	double el_size = 32;
+	double t1 = timestep * dt;
+	double t2 = (timestep + (el_size / Vs) / dt) * dt;
+	double fcpi2 = fc * fc * PI * PI, Vs2 = Vs * Vs;
+	double max_disp = 0.01;
+	double force_coefficient = (el_size / 9) * dt * dt * 9953280000 * max_disp; // mu*K1+lambda*K2+mu*K3 : 9953280000, vs      = 640;  vp      = 1108;   rho     = 2700
 
+	// uncomment for integral of ricker pulse
+	//start
+	double alpha1_1 = Vs * t1 + zp - Ts * Vs;
+	double alpha1_2 = Vs * t1 - zp - Ts * Vs;
+	double F1 = (-alpha1_1 * exp(-1 * fcpi2 * (alpha1_1 * alpha1_1) / (Vs2))
+			- alpha1_2 * exp(-1 * fcpi2 * (alpha1_2 * alpha1_2) / Vs2)) / Vs;
 
+	double alpha2_1 = Vs * t2 + zp - Ts * Vs;
+	double alpha2_2 = Vs * t2 - zp - Ts * Vs;
+	double F2 = (-alpha2_1 * exp(-1 * fcpi2 * (alpha2_1 * alpha2_1) / (Vs2))
+			- alpha2_2 * exp(-1 * fcpi2 * (alpha2_2 * alpha2_2) / Vs2)) / Vs;
 
-    // uncomment for integral of ricker pulse
-    //start
-        double alpha1_1 = Vs*t1 + zp - Ts*Vs;
-        double alpha1_2 = Vs*t1 - zp - Ts*Vs;
-        double F1 = (-alpha1_1*exp(-1*fcpi2*(alpha1_1*alpha1_1)/(Vs2))-alpha1_2*exp(-1*fcpi2*(alpha1_2*alpha1_2)/Vs2))/Vs;
+	double max_pulse = 0.341285531849982;
 
-        double alpha2_1 = Vs*t2 + zp - Ts*Vs;
-        double alpha2_2 = Vs*t2 - zp - Ts*Vs;
-        double F2 = (-alpha2_1*exp(-1*fcpi2*(alpha2_1*alpha2_1)/(Vs2))-alpha2_2*exp(-1*fcpi2*(alpha2_2*alpha2_2)/Vs2))/Vs;
+	//end
 
-        double max_pulse = 0.341285531849982;
+	// uncomment for sin wave
+	/*
+	 //start
+	 double f=1; //frequency of sin wave
 
-     //end
-
-
-
-    // uncomment for sin wave
-   /*
-    //start
-        double f=1; //frequency of sin wave
-
-        double F1 = t1*(0.05)*max_disp*sin(2*PI*t1*f);
-        double F2 = t2*(0.05)*max_disp*sin(2*PI*t2*f);
-        double max_pulse = 1;
-    //end
-*/
-
-
-
+	 double F1 = t1*(0.05)*max_disp*sin(2*PI*t1*f);
+	 double F2 = t2*(0.05)*max_disp*sin(2*PI*t2*f);
+	 double max_pulse = 1;
+	 //end
+	 */
 
 	//double force_1 = Force_1[timestep];
 	//double force_2 = -1*Force_1[timestep+3];
-
-	double force_1 = F1/max_pulse;
-	double force_2 = -F2/max_pulse;
-
-
+	double force_1 = F1 / max_pulse;
+	double force_2 = -F2 / max_pulse;
 
 	double force_1x = force_1 * force_coefficient;
-	double force_1z = force_1 * force_coefficient/2;
+	double force_1z = force_1 * force_coefficient / 2;
 
 	double force_2x = force_2 * force_coefficient;
-	double force_2z = force_2 * force_coefficient/2;
-
-
+	double force_2z = force_2 * force_coefficient / 2;
 
 	int32_t nindex;
-	int32_t k1=0,k2=0;
+	int32_t k1 = 0, k2 = 0;
 
 	double f_l_depth = 512;                    //first layer depth
 	//double el_size   = 32;    //modify 3 of 3                   //element size
 	double s_l_depth = f_l_depth - el_size;    //second layer depth
-	double d_width_x   = 8192;                 //domain width x
-	double d_width_y   = 8192;                 //domain width y
+	double d_width_x = 8192;                 //domain width x
+	double d_width_y = 8192;                 //domain width y
 
+	for (nindex = 0; nindex < myMesh->nharbored; nindex++) {
 
-	for ( nindex = 0; nindex < myMesh->nharbored; nindex++ ) {
+		double z_m = (myMesh->ticksize) * (double) myMesh->nodeTable[nindex].z;
+		double x_m = (myMesh->ticksize) * (double) myMesh->nodeTable[nindex].x;
+		double y_m = (myMesh->ticksize) * (double) myMesh->nodeTable[nindex].y;
 
-		double z_m = (myMesh->ticksize)*(double)myMesh->nodeTable[nindex].z;
-		double x_m = (myMesh->ticksize)*(double)myMesh->nodeTable[nindex].x;
-		double y_m = (myMesh->ticksize)*(double)myMesh->nodeTable[nindex].y;
+		if (z_m == f_l_depth) {
 
-		if ( z_m == f_l_depth ){
-
-			if (((x_m == 0 && y_m == 0) || (x_m == 0 && y_m == d_width_y) || (x_m == d_width_x && y_m == 0) || (x_m == d_width_x && y_m == d_width_y))) {
+			if (((x_m == 0 && y_m == 0) || (x_m == 0 && y_m == d_width_y)
+					|| (x_m == d_width_x && y_m == 0)
+					|| (x_m == d_width_x && y_m == d_width_y))) {
 				fvector_t *nodalForce;
 				nodalForce = mySolver->force + nindex;
-				nodalForce->f[0] += force_1x/4;
+				nodalForce->f[0] += force_1x / 4;
 
-
-			} else if (((x_m == 0 && (y_m != 0 && y_m != d_width_y )) || (x_m == d_width_x && (y_m != 0 && y_m != d_width_y )) || (y_m == 0 && (x_m != 0 && x_m != d_width_x )) || (y_m == d_width_y && (x_m != 0 && x_m != d_width_x )))) {
+			} else if (((x_m == 0 && (y_m != 0 && y_m != d_width_y))
+					|| (x_m == d_width_x && (y_m != 0 && y_m != d_width_y))
+					|| (y_m == 0 && (x_m != 0 && x_m != d_width_x))
+					|| (y_m == d_width_y && (x_m != 0 && x_m != d_width_x)))) {
 
 				fvector_t *nodalForce;
 				nodalForce = mySolver->force + nindex;
-				nodalForce->f[0] += force_1x/2;
-				k1=k1+1;
+				nodalForce->f[0] += force_1x / 2;
+				k1 = k1 + 1;
 
-			}else {
+			} else {
 				fvector_t *nodalForce;
 				nodalForce = mySolver->force + nindex;
 				nodalForce->f[0] += force_1x;
-				k2=k2+1;
+				k2 = k2 + 1;
 
 			}
 		}
 
-		if ( z_m == s_l_depth ) {
+		if (z_m == s_l_depth) {
 
-			if (((x_m == 0 && y_m == 0) || (x_m == 0 && y_m == d_width_y) || (x_m == d_width_x && y_m == 0) || (x_m == d_width_x && y_m == d_width_y))) {
+			if (((x_m == 0 && y_m == 0) || (x_m == 0 && y_m == d_width_y)
+					|| (x_m == d_width_x && y_m == 0)
+					|| (x_m == d_width_x && y_m == d_width_y))) {
 				fvector_t *nodalForce;
 				nodalForce = mySolver->force + nindex;
-				nodalForce->f[0] += force_2x/4;
+				nodalForce->f[0] += force_2x / 4;
 
-
-			} else if (((x_m == 0 && (y_m != 0 && y_m != d_width_y )) || (x_m == d_width_x && (y_m != 0 && y_m != d_width_y )) || (y_m == 0 && (x_m != 0 && x_m != d_width_x )) || (y_m == d_width_y && (x_m != 0 && x_m != d_width_x )))) {
+			} else if (((x_m == 0 && (y_m != 0 && y_m != d_width_y))
+					|| (x_m == d_width_x && (y_m != 0 && y_m != d_width_y))
+					|| (y_m == 0 && (x_m != 0 && x_m != d_width_x))
+					|| (y_m == d_width_y && (x_m != 0 && x_m != d_width_x)))) {
 
 				fvector_t *nodalForce;
 				nodalForce = mySolver->force + nindex;
-				nodalForce->f[0] += force_2x/2;
-				k1=k1+1;
+				nodalForce->f[0] += force_2x / 2;
+				k1 = k1 + 1;
 
 			} else {
 				fvector_t *nodalForce;
 				nodalForce = mySolver->force + nindex;
 				nodalForce->f[0] += force_2x;
-				k2=k2+1;
+				k2 = k2 + 1;
 
 			}
 		}
 
-
 		// Add vertical force to keep the balance
 
-		if ( z_m == f_l_depth && x_m == 0 && y_m!=0 && y_m != d_width_y){
+		if (z_m == f_l_depth && x_m == 0 && y_m != 0 && y_m != d_width_y) {
 
 			fvector_t *nodalForce;
 			nodalForce = mySolver->force + nindex;
-			nodalForce->f[2] -= force_1z/2;
+			nodalForce->f[2] -= force_1z / 2;
 		}
 
-		if ( z_m == s_l_depth && x_m == 0 && y_m!=0 && y_m != d_width_y ){
+		if (z_m == s_l_depth && x_m == 0 && y_m != 0 && y_m != d_width_y) {
 
 			fvector_t *nodalForce;
 			nodalForce = mySolver->force + nindex;
-			nodalForce->f[2] -= force_2z/2;
+			nodalForce->f[2] -= force_2z / 2;
 		}
 
-		if ( z_m == f_l_depth && x_m == d_width_x && y_m!=0 && y_m != d_width_y ){
+		if (z_m == f_l_depth && x_m == d_width_x && y_m != 0
+				&& y_m != d_width_y) {
 
 			fvector_t *nodalForce;
 			nodalForce = mySolver->force + nindex;
-			nodalForce->f[2] += force_1z/2;
+			nodalForce->f[2] += force_1z / 2;
 		}
 
-		if ( z_m == s_l_depth && x_m == d_width_x && y_m!=0 && y_m != d_width_y ){
+		if (z_m == s_l_depth && x_m == d_width_x && y_m != 0
+				&& y_m != d_width_y) {
 
 			fvector_t *nodalForce;
 			nodalForce = mySolver->force + nindex;
-			nodalForce->f[2] += force_2z/2;
+			nodalForce->f[2] += force_2z / 2;
 		}
 
 		// Add vertical force at the corners
-		if ( z_m == f_l_depth && x_m == 0 && (y_m==0 || y_m == d_width_y)){
+		if (z_m == f_l_depth && x_m == 0 && (y_m == 0 || y_m == d_width_y)) {
 
-					fvector_t *nodalForce;
-					nodalForce = mySolver->force + nindex;
-					nodalForce->f[2] -= force_1z/4;
-				}
+			fvector_t *nodalForce;
+			nodalForce = mySolver->force + nindex;
+			nodalForce->f[2] -= force_1z / 4;
+		}
 
-				if ( z_m == s_l_depth && x_m == 0 && (y_m==0 || y_m == d_width_y)){
+		if (z_m == s_l_depth && x_m == 0 && (y_m == 0 || y_m == d_width_y)) {
 
-					fvector_t *nodalForce;
-					nodalForce = mySolver->force + nindex;
-					nodalForce->f[2] -= force_2z/4;
-				}
+			fvector_t *nodalForce;
+			nodalForce = mySolver->force + nindex;
+			nodalForce->f[2] -= force_2z / 4;
+		}
 
-				if ( z_m == f_l_depth && x_m == d_width_x && (y_m==0 || y_m == d_width_y)){
+		if (z_m == f_l_depth && x_m == d_width_x
+				&& (y_m == 0 || y_m == d_width_y)) {
 
-					fvector_t *nodalForce;
-					nodalForce = mySolver->force + nindex;
-					nodalForce->f[2] += force_1z/4;
-				}
+			fvector_t *nodalForce;
+			nodalForce = mySolver->force + nindex;
+			nodalForce->f[2] += force_1z / 4;
+		}
 
-				if ( z_m == s_l_depth && x_m == d_width_x && (y_m==0 || y_m == d_width_y)){
+		if (z_m == s_l_depth && x_m == d_width_x
+				&& (y_m == 0 || y_m == d_width_y)) {
 
-					fvector_t *nodalForce;
-					nodalForce = mySolver->force + nindex;
-					nodalForce->f[2] += force_2z/4;
-				}
-
-
+			fvector_t *nodalForce;
+			nodalForce = mySolver->force + nindex;
+			nodalForce->f[2] += force_2z / 4;
+		}
 
 	}
 
 }
-
-
 
 /* -------------------------------------------------------------------------- */
 /*                        Nonlinear Finalize and Stats                        */
@@ -1337,144 +1245,136 @@ void    compute_addforce_bottom(int32_t timestep, mesh_t *myMesh, mysolver_t *my
 /*                        Nonlinear Output to Stations                        */
 /* -------------------------------------------------------------------------- */
 
+void eqlinear_stations_init(mesh_t *myMesh, station_t *myStations,
+		int32_t myNumberOfStations) {
 
-void eqlinear_stations_init(mesh_t    *myMesh,
-                             station_t *myStations,
-                             int32_t    myNumberOfStations)
-{
+	if (myNumberOfStations == 0) {
+		return;
+	}
 
-    if ( myNumberOfStations == 0 ) {
-        return;
-    }
+	int32_t eindex, el_eindex;
+	int32_t iStation = 0;
+	vector3D_t point;
+	octant_t *octant;
+	int32_t lnid0;
 
-    int32_t     eindex, el_eindex;
-    int32_t     iStation=0;
-    vector3D_t  point;
-    octant_t   *octant;
-    int32_t     lnid0;
+	myNumberOfEqlinStations = 0;
+	for (iStation = 0; iStation < myNumberOfStations; iStation++) {
 
-    myNumberOfEqlinStations = 0;
-    for (iStation = 0; iStation < myNumberOfStations; iStation++) {
+		for (el_eindex = 0; el_eindex < myEqlinElementsCount; el_eindex++) {
 
-        for ( el_eindex = 0; el_eindex < myEqlinElementsCount; el_eindex++ ) {
+			/* capture the stations coordinates */
+			point = myStations[iStation].coords;
 
-            /* capture the stations coordinates */
-            point = myStations[iStation].coords;
+			/* search the octant */
+			if (search_point(point, &octant) != 1) {
+				fprintf(stderr, "eqlinear_stations_init: "
+						"No octant with station coords\n");
+				MPI_Abort(MPI_COMM_WORLD, ERROR);
+				exit(1);
+			}
 
-            /* search the octant */
-            if ( search_point(point, &octant) != 1 ) {
-                fprintf(stderr,
-                        "eqlinear_stations_init: "
-                        "No octant with station coords\n");
-                MPI_Abort(MPI_COMM_WORLD, ERROR);
-                exit(1);
-            }
+			eindex = myEqlinElementsMapping[el_eindex];
 
-            eindex = myEqlinElementsMapping[el_eindex];
+			lnid0 = myMesh->elemTable[eindex].lnid[0];
 
-            lnid0 = myMesh->elemTable[eindex].lnid[0];
+			if ((myMesh->nodeTable[lnid0].x == octant->lx)
+					&& (myMesh->nodeTable[lnid0].y == octant->ly)
+					&& (myMesh->nodeTable[lnid0].z == octant->lz)) {
 
-            if ( (myMesh->nodeTable[lnid0].x == octant->lx) &&
-                 (myMesh->nodeTable[lnid0].y == octant->ly) &&
-                 (myMesh->nodeTable[lnid0].z == octant->lz) ) {
+				/* I have a match for the element's origin */
 
-                /* I have a match for the element's origin */
+				/* Now, perform level sanity check */
+				if (myMesh->elemTable[eindex].level != octant->level) {
+					fprintf(stderr, "eqlinear_stations_init: First pass: "
+							"Wrong level of octant\n");
+					MPI_Abort(MPI_COMM_WORLD, ERROR);
+					exit(1);
+				}
 
-                /* Now, perform level sanity check */
-                if (myMesh->elemTable[eindex].level != octant->level) {
-                    fprintf(stderr,
-                            "eqlinear_stations_init: First pass: "
-                            "Wrong level of octant\n");
-                    MPI_Abort(MPI_COMM_WORLD, ERROR);
-                    exit(1);
-                }
+				myNumberOfEqlinStations++;
 
-                myNumberOfEqlinStations++;
+				break;
+			}
+		}
+	}
 
-                break;
-            }
-        }
-    }
-
-    XMALLOC_VAR_N( myStationsElementIndices, int32_t, myNumberOfEqlinStations);
-    XMALLOC_VAR_N( myEqlinStationsMapping, int32_t, myNumberOfEqlinStations);
+	XMALLOC_VAR_N(myStationsElementIndices, int32_t, myNumberOfEqlinStations);
+	XMALLOC_VAR_N(myEqlinStationsMapping, int32_t, myNumberOfEqlinStations);
 // // XMALLOC_VAR_N( myNonlinStations, nlstation_t, myNumberOfNonlinStations);
 //
-    int32_t elStationsCount = 0;
-    for (iStation = 0; iStation < myNumberOfStations; iStation++) {
+	int32_t elStationsCount = 0;
+	for (iStation = 0; iStation < myNumberOfStations; iStation++) {
 
-        for ( el_eindex = 0; el_eindex < myEqlinElementsCount; el_eindex++ ) {
+		for (el_eindex = 0; el_eindex < myEqlinElementsCount; el_eindex++) {
 
-            /* capture the stations coordinates */
-            point = myStations[iStation].coords;
+			/* capture the stations coordinates */
+			point = myStations[iStation].coords;
 
-            /* search the octant */
-            if ( search_point(point, &octant) != 1 ) {
-                fprintf(stderr,
-                        "eqlinear_stations_init: "
-                        "No octant with station coords\n");
-                MPI_Abort(MPI_COMM_WORLD, ERROR);
-                exit(1);
-            }
+			/* search the octant */
+			if (search_point(point, &octant) != 1) {
+				fprintf(stderr, "eqlinear_stations_init: "
+						"No octant with station coords\n");
+				MPI_Abort(MPI_COMM_WORLD, ERROR);
+				exit(1);
+			}
 
-            eindex = myEqlinElementsMapping[el_eindex];
+			eindex = myEqlinElementsMapping[el_eindex];
 
-            lnid0 = myMesh->elemTable[eindex].lnid[0];
+			lnid0 = myMesh->elemTable[eindex].lnid[0];
 
-            if ( (myMesh->nodeTable[lnid0].x == octant->lx) &&
-                 (myMesh->nodeTable[lnid0].y == octant->ly) &&
-                 (myMesh->nodeTable[lnid0].z == octant->lz) ) {
+			if ((myMesh->nodeTable[lnid0].x == octant->lx)
+					&& (myMesh->nodeTable[lnid0].y == octant->ly)
+					&& (myMesh->nodeTable[lnid0].z == octant->lz)) {
 
-                /* I have a match for the element's origin */
+				/* I have a match for the element's origin */
 
-                /* Now, perform level sanity check */
-                if (myMesh->elemTable[eindex].level != octant->level) {
-                    fprintf(stderr,
-                            "nonlinear_stations_init: Second pass: "
-                            "Wrong level of octant\n");
-                    MPI_Abort(MPI_COMM_WORLD, ERROR);
-                    exit(1);
-                }
+				/* Now, perform level sanity check */
+				if (myMesh->elemTable[eindex].level != octant->level) {
+					fprintf(stderr, "nonlinear_stations_init: Second pass: "
+							"Wrong level of octant\n");
+					MPI_Abort(MPI_COMM_WORLD, ERROR);
+					exit(1);
+				}
 
-                if ( elStationsCount >= myNumberOfEqlinStations ) {
-                    fprintf(stderr,
-                            "eqlinear_stations_init: Second pass: "
-                            "More stations than initially counted\n");
-                    MPI_Abort(MPI_COMM_WORLD, ERROR);
-                    exit(1);
-                }
+				if (elStationsCount >= myNumberOfEqlinStations) {
+					fprintf(stderr, "eqlinear_stations_init: Second pass: "
+							"More stations than initially counted\n");
+					MPI_Abort(MPI_COMM_WORLD, ERROR);
+					exit(1);
+				}
 
-                /* Store the element index and mapping to stations */
-                myStationsElementIndices[elStationsCount] = el_eindex;
-                myEqlinStationsMapping[elStationsCount] = iStation;
+				/* Store the element index and mapping to stations */
+				myStationsElementIndices[elStationsCount] = el_eindex;
+				myEqlinStationsMapping[elStationsCount] = iStation;
 
-                elStationsCount++;
+				elStationsCount++;
 
-                break;
-            }
+				break;
+			}
 
-        } /* for all my elements */
+		} /* for all my elements */
 
-    } /* for all my stations */
+	} /* for all my stations */
 
-/*    for ( iStation = 0; iStation < myNumberOfNonlinStations; iStation++ ) {
+	/*    for ( iStation = 0; iStation < myNumberOfNonlinStations; iStation++ ) {
 
-        tensor_t *stress, *strain, *pstrain1, *pstrain2;
-        double   *ep1;
+	 tensor_t *stress, *strain, *pstrain1, *pstrain2;
+	 double   *ep1;
 
-        strain   = &(myNonlinStations[iStation].strain);
-        stress   = &(myNonlinStations[iStation].stress);
-        pstrain1 = &(myNonlinStations[iStation].pstrain1);
-        pstrain2 = &(myNonlinStations[iStation].pstrain2);
-        ep1      = &(myNonlinStations[iStation].ep );
-        *ep1     = 0.;
+	 strain   = &(myNonlinStations[iStation].strain);
+	 stress   = &(myNonlinStations[iStation].stress);
+	 pstrain1 = &(myNonlinStations[iStation].pstrain1);
+	 pstrain2 = &(myNonlinStations[iStation].pstrain2);
+	 ep1      = &(myNonlinStations[iStation].ep );
+	 *ep1     = 0.;
 
-        init_tensorptr(strain);
-        init_tensorptr(stress);
-        init_tensorptr(pstrain1);
-        init_tensorptr(pstrain2);
+	 init_tensorptr(strain);
+	 init_tensorptr(stress);
+	 init_tensorptr(pstrain1);
+	 init_tensorptr(pstrain2);
 
-    }*/
+	 }*/
 
 }
 

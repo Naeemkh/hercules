@@ -8177,7 +8177,7 @@ int main(int argc, char** argv) {
 
 			if (eq_c == 0) {
 				eqlinear_solver_init(Global.myID, Global.myMesh,
-						Param.theDomainZ);
+						Param.theDomainZ,Param.theVSmaxeq);
 				Timer_Start("Source Init");
 				source_init(Param.parameters_input_file);
 				Timer_Stop("Source Init");
