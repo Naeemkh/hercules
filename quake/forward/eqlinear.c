@@ -165,6 +165,8 @@ void eqlinear_solver_init(int32_t myID, mesh_t *myMesh, double depth) {
         (eq_qptensors_t *)calloc(myEqlinElementsCount, sizeof(eq_qptensors_t));
     myEqlinSolver->maxstrains =
         (eq_qptensors_t *)calloc(myEqlinElementsCount, sizeof(eq_qptensors_t));
+    myEqlinSolver->effectivestrain =
+        (eq_qpvectors_t *)calloc(myEqlinElementsCount, sizeof(eq_qpvectors_t));
 //    myEqlinSolver->pstrains1 =
 //        (qptensors_t *)calloc(myEqlinElementsCount, sizeof(qptensors_t));
 //    myEqlinSolver->pstrains2 =
@@ -655,7 +657,16 @@ void compute_eqlinear_state ( mesh_t     *myMesh,
                                station_t  *myStations,
                                double      theDeltaT,
                                int         step,
-							   double      theVSmaxeq)
+							   double      theVSmaxeq,
+							   double      theEQA,
+							   double      theEQB,
+							   double      theEQC,
+							   double      theEQD,
+							   double      theEQE,
+							   double      theEQF,
+							   double      theEQG,
+							   double      theEQH
+							   )
 {
 	/* In general, j-index refers to the quadrature point in a loop (0 to 7 for
 	 * eight points), and i-index refers to the tensor component (0 to 5), with
@@ -682,6 +693,7 @@ void compute_eqlinear_state ( mesh_t     *myMesh,
 		double         XI, QC;
 		fvector_t      u[8];
 		eq_qptensors_t   *stresses, *tstrains, *maxstrains; //, *pstrains1, *pstrains2, *alphastress1, *alphastress2;
+		eq_qpvectors_t   *effectivestrain;
 //		qpvectors_t   *epstr1, *epstr2;
 
 		/* Capture data from the element and mesh */
@@ -693,29 +705,18 @@ void compute_eqlinear_state ( mesh_t     *myMesh,
 		h     = edata->edgesize;
 
 		/* Capture data from the nonlinear element structure */
-
 		enlcons = myEqlinSolver->constants + el_eindex;
 
 		mu     = enlcons->mu;
 		lambda = enlcons->lambda;
-//		alpha  = enlcons->alpha;
-//		beta   = enlcons->beta;
-//		k      = enlcons->k;
-//		hrd    = enlcons->h;
+
 
 		/* Capture the current state in the element */
-		tstrains     = myEqlinSolver->strains      + el_eindex;
-		stresses     = myEqlinSolver->stresses     + el_eindex;
-		maxstrains   = myEqlinSolver->maxstrains   + el_eindex;
-//		pstrains1    = myNonlinSolver->pstrains1    + nl_eindex;   /* Previous plastic tensor  */
-//		pstrains2    = myNonlinSolver->pstrains2    + nl_eindex;   /* Current  plastic tensor  */
-//		alphastress1 = myNonlinSolver->alphastress1 + nl_eindex;   /* Previous backstress tensor  */
-//		alphastress2 = myNonlinSolver->alphastress2 + nl_eindex;   /* Current  backstress tensor  */
-//		epstr1       = myNonlinSolver->ep1          + nl_eindex;
-//		epstr2       = myNonlinSolver->ep2          + nl_eindex;
+		tstrains         = myEqlinSolver->strains      + el_eindex;
+		stresses         = myEqlinSolver->stresses     + el_eindex;
+		maxstrains       = myEqlinSolver->maxstrains   + el_eindex;
+		effectivestrain  = myEqlinSolver->effectivestrain + el_eindex;
 
-		// temp code to control (naeem)
-		// printf("This is strain: %f \n", tstrains[1]);
 
 
 
@@ -766,15 +767,29 @@ void compute_eqlinear_state ( mesh_t     *myMesh,
 
 
 
-			//For each element you need to define another strain tensor, to only keep the maximum value of strain.
+			//Compute effective strain based on J2 or Lysmer method and keep the maximum value.
+		    // if D,E,F is zero it will be equivalent to J2
 
+		    double gamma_max_lysmer_2 = theEQA*tstrains->qp[i].xy*tstrains->qp[i].xy +
+		    		                    theEQB*tstrains->qp[i].xz*tstrains->qp[i].xz +
+									    theEQC*tstrains->qp[i].yz*tstrains->qp[i].yz +
+									    theEQD*(tstrains->qp[i].xx - tstrains->qp[i].yy)*(tstrains->qp[i].xx - tstrains->qp[i].yy) +
+									    theEQE*(tstrains->qp[i].xx - tstrains->qp[i].zz)*(tstrains->qp[i].xx - tstrains->qp[i].zz) +
+									    theEQF*(tstrains->qp[i].yy - tstrains->qp[i].zz)*(tstrains->qp[i].yy - tstrains->qp[i].zz);
+
+		    double gamma_effective = theEQG*pow(gamma_max_lysmer_2,theEQH);
+
+		    effectivestrain ->qv[i] =  MAX(fabs(gamma_effective),fabs(effectivestrain ->qv[i]));
+
+
+		    /*
             maxstrains->qp[i].xx = MAX(fabs(maxstrains->qp[i].xx),fabs(tstrains->qp[i].xx));
             maxstrains->qp[i].yy = MAX(fabs(maxstrains->qp[i].yy),fabs(tstrains->qp[i].yy));
             maxstrains->qp[i].zz = MAX(fabs(maxstrains->qp[i].zz),fabs(tstrains->qp[i].zz));
             maxstrains->qp[i].xy = MAX(fabs(maxstrains->qp[i].xy),fabs(tstrains->qp[i].xy));
             maxstrains->qp[i].yz = MAX(fabs(maxstrains->qp[i].yz),fabs(tstrains->qp[i].yz));
             maxstrains->qp[i].xz = MAX(fabs(maxstrains->qp[i].xz),fabs(tstrains->qp[i].xz));
-
+           */
 
 //            printf("This is xy max strain: %.20f (node %i) \n", maxstrains->qp[i].xy, i);
 
@@ -878,6 +893,7 @@ void material_update_eq (      mesh_t     *myMesh,
 		double         XI, QC;
 		fvector_t      u[8];
 		eq_qptensors_t   *maxstrains;
+		eq_qpvectors_t   *effectivestrain;
 		double         zeta, a, b, updated_mu, updated_lambda;
 		double         updated_Q;
         double         x_m,y_m,z_m;
@@ -934,7 +950,7 @@ void material_update_eq (      mesh_t     *myMesh,
 
 		/* Capture the maximum strain of the element */
 
-		maxstrains   = myEqlinSolver->maxstrains   + el_eindex;
+//		maxstrains   = myEqlinSolver->maxstrains   + el_eindex;
 //		pstrains1    = myNonlinSolver->pstrains1    + nl_eindex;   /* Previous plastic tensor  */
 //		pstrains2    = myNonlinSolver->pstrains2    + nl_eindex;   /* Current  plastic tensor  */
 //		alphastress1 = myNonlinSolver->alphastress1 + nl_eindex;   /* Previous backstress tensor  */
@@ -944,8 +960,21 @@ void material_update_eq (      mesh_t     *myMesh,
 //
 
 
-//         define a temprory matrix for strain
+		effectivestrain = myEqlinSolver->effectivestrain + el_eindex;
 
+		// define a temporary vector for effective strain
+
+		double  eff_strain_mat[8][1]={{0},
+					     			  {0},
+						    		  {0},
+							    	  {0},
+							    	  {0},
+								      {0},
+								      {0},
+								      {0}};
+
+//         define a temprory matrix for strain
+/*
 		double  strain_mat[8][6]={{0,  0,  0,  0,  0,  0},
 								  {0,  0,  0,  0,  0,  0},
 								  {0,  0,  0,  0,  0,  0},
@@ -955,7 +984,7 @@ void material_update_eq (      mesh_t     *myMesh,
 								  {0,  0,  0,  0,  0,  0},
 								  {0,  0,  0,  0,  0,  0}};
 
-		/* Loop over the quadrature points */
+		// Loop over the quadrature points
 		for (i = 0; i < 8; i++) {
 
 
@@ -966,14 +995,24 @@ void material_update_eq (      mesh_t     *myMesh,
 			strain_mat[i][4]=maxstrains->qp[i].yz;
 			strain_mat[i][5]=maxstrains->qp[i].xz;
 
+		} // for all quadrature points
+*/
+		/* Loop over the quadrature points */
+		for (i = 0; i < 8; i++) {
+
+
+			eff_strain_mat[i][1]=effectivestrain->qv[i];
+
+
 		} /* for all quadrature points */
+
 
 		//printf("Element %i - XX strain is: %.20f \n", el_eindex, strain_mat[0][0]);
 
 		// Now update the material based on strain level
 		// --------------------------------------
         // Here I need to add a function to pick the best strain combination
-		double myteststrain = 0;
+		double myeffectivestrain = 0;
 
 
 		// block of code for single strain
@@ -995,18 +1034,13 @@ void material_update_eq (      mesh_t     *myMesh,
 		for (i=0; i < 8; i++){
 
 
-
-		myteststrain = theEQG*pow(((strain_mat[i][3]*strain_mat[i][3]*theEQA+strain_mat[i][5]*strain_mat[i][5]*theEQB+strain_mat[i][4]*strain_mat[i][4]*theEQC) -
-				        (strain_mat[i][0]*strain_mat[i][1]*theEQD+strain_mat[i][0]*strain_mat[i][2]*theEQE+strain_mat[i][1]*strain_mat[i][2]*theEQF)),theEQH) + myteststrain;
-
-		if (x_m == 2560 && y_m == 2560 && z_m==96) {
-					printf("STSTstrain_mat el_eindex = %i , node = %i , xx = %.20f  , yy = %.20f, zz = %.20f, xy = %.20f, yz = %.20f, xz = %.20f,  myteststrain = %.20f   \n",el_eindex,i,strain_mat[i][0],strain_mat[i][1],strain_mat[i][2],strain_mat[i][3],strain_mat[i][4],strain_mat[i][5],myteststrain);
-		}
+		myeffectivestrain = eff_strain_mat[i][1]+ myeffectivestrain;
 
 		}
 
-        myteststrain = 100*(myteststrain/8);
+        myeffectivestrain= 100*(myeffectivestrain/8);
 
+        double myteststrain = myeffectivestrain;
 		// --------------------------------------
 
 		//myteststrain = 100* (myteststrain/8)*2; // I add a factor of 2 just to make the effective strain to be consistent with 1D. Later on we need to define a 3D curves.

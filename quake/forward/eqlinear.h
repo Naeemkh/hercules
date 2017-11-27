@@ -58,7 +58,6 @@ typedef struct elconstants_t {
     double Qs_value;
     double Qp_value;
 
-
 //    double alpha;        /*  yield function constants in Drucker-Prager model*/
 //    double beta;         /*  constant of the plastic potential flow law */
 //    double gamma;        /*  constant for teh hardening function in Drucker-Prager model */
@@ -94,6 +93,7 @@ typedef struct elsolver_t {
     eq_qptensors_t   *stresses;
     eq_qptensors_t   *strains;
     eq_qptensors_t   *maxstrains;
+    eq_qpvectors_t   *effectivestrain;
 //    qptensors_t   *pstrains1;
 //    qptensors_t   *pstrains2;
 //    qptensors_t   *alphastress1;
@@ -154,7 +154,15 @@ void compute_eqlinear_state ( mesh_t     *myMesh,
                                station_t  *myStations,
                                double      theDeltaT,
                                int         step,
-							   double      theVSmaxeq);
+							   double      theVSmaxeq,
+							   double      theEQA,
+							   double      theEQB,
+							   double      theEQC,
+							   double      theEQD,
+							   double      theEQE,
+							   double      theEQF,
+							   double      theEQG,
+							   double      theEQH);
 
 void material_update_eq ( mesh_t     *myMesh,
                                mysolver_t *mySolver,

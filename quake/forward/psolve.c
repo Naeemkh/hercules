@@ -4156,7 +4156,7 @@ static void solver_eqlinear_state(mysolver_t *solver, mesh_t *mesh,
 		Timer_Start("Compute Eqlinear Entities");
 		compute_eqlinear_state(mesh, solver, Param.theNumberOfStations,
 				Param.myNumberOfStations, Param.myStations, Param.theDeltaT,
-				step, Param.theVSmaxeq);
+				step, Param.theVSmaxeq,Param.theEQA,Param.theEQB,Param.theEQC,Param.theEQD,Param.theEQE,Param.theEQF,Param.theEQG,Param.theEQH);
 //        if ( get_geostatic_total_time() > 0 ) {
 //            compute_bottom_reactions( mesh, solver, k1, k2, step, Param.theDeltaT );
 //        }
