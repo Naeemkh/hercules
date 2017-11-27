@@ -789,14 +789,14 @@ void compute_eqlinear_state ( mesh_t     *myMesh,
 //			 }
 
 
-			 //FILE *fp_st = hu_fopen( "element_strain.txt", "a" );
+			// FILE *fp_st = hu_fopen( "element_strain.txt", "a" );
             // step % 10 == 0 &&
 
-      //      if (x_m == 4096 && y_m == 4096 && ( z_m == 32 || z_m == 64 || z_m == 96 || z_m == 128 || z_m == 160 || z_m == 192 || z_m == 224 || z_m == 256 || z_m == 288 || z_m == 320 || z_m == 352 || z_m == 384 || z_m == 416 || z_m == 448 || z_m == 480 || z_m == 512)){
-			    //printf("\n STST el_eindex = %i node =%i depth = %f  timestep = %i xx = %.20f  yy = %.20f  zz = %.20f  xy = %.20f  yz = %.20f  xz = %.20f \n",el_eindex,i,z_m,step,tstrains->qp[i].xx,tstrains->qp[i].yy,tstrains->qp[i].zz,tstrains->qp[i].xy,tstrains->qp[i].yz,tstrains->qp[i].xz);
-	//		    printf("\n STST el_eindex = %i node = %i depth = %f  timestep = %i xx = %.10f  yy = %.10f  zz = %.10f  xy = %.10f  yz = %.10f  xz = %.10f \n",el_eindex,i,z_m,step,tstrains->qp[i].xx,tstrains->qp[i].yy,tstrains->qp[i].zz,tstrains->qp[i].xy,tstrains->qp[i].yz,tstrains->qp[i].xz);
-
-      //      }
+//            if (x_m == 2560 && y_m == 2560 &&  z_m == 96){
+//			    //printf("\n STST el_eindex = %i node =%i depth = %f  timestep = %i xx = %.20f  yy = %.20f  zz = %.20f  xy = %.20f  yz = %.20f  xz = %.20f \n",el_eindex,i,z_m,step,tstrains->qp[i].xx,tstrains->qp[i].yy,tstrains->qp[i].zz,tstrains->qp[i].xy,tstrains->qp[i].yz,tstrains->qp[i].xz);
+//			    printf("\n STST el_eindex = %i node = %i depth = %f  timestep = %i xx = %.10f  yy = %.10f  zz = %.10f  xy = %.10f  yz = %.10f  xz = %.10f \n",el_eindex,i,z_m,step,tstrains->qp[i].xx,tstrains->qp[i].yy,tstrains->qp[i].zz,tstrains->qp[i].xy,tstrains->qp[i].yz,tstrains->qp[i].xz);
+//
+//            }
 
 
 			 //hu_fclosep( &fp_st );
@@ -881,7 +881,7 @@ void material_update_eq (      mesh_t     *myMesh,
 		double         zeta, a, b, updated_mu, updated_lambda;
 		double         updated_Q;
         double         x_m,y_m,z_m;
-        double         depth=512;
+        double         depth=10000; //todo Naeem: Fix this
 
 		/* Capture data from the element and mesh */
 		eindex = myEqlinElementsMapping[el_eindex];
@@ -908,11 +908,11 @@ void material_update_eq (      mesh_t     *myMesh,
 
 
 
-		if (isThisElementsAtTheBottom_eq(myMesh, el_eindex, depth)==YES){
-//			printf("this is bottom element number: %i\n",btn);
-//			btn=btn+1;
-			continue;
-		}
+//		if (isThisElementsAtTheBottom_eq(myMesh, el_eindex, depth)==YES){
+////			printf("this is bottom element number: %i\n",btn);
+////			btn=btn+1;
+//			continue;
+//		}
 
 		/* Capture data from the eqlinear element structure */
 		enlcons = myEqlinSolver->constants + el_eindex;
@@ -989,9 +989,20 @@ void material_update_eq (      mesh_t     *myMesh,
 
 
 
+
+
+
 		for (i=0; i < 8; i++){
+
+
+
 		myteststrain = theEQG*pow(((strain_mat[i][3]*strain_mat[i][3]*theEQA+strain_mat[i][5]*strain_mat[i][5]*theEQB+strain_mat[i][4]*strain_mat[i][4]*theEQC) -
 				        (strain_mat[i][0]*strain_mat[i][1]*theEQD+strain_mat[i][0]*strain_mat[i][2]*theEQE+strain_mat[i][1]*strain_mat[i][2]*theEQF)),theEQH) + myteststrain;
+
+		if (x_m == 2560 && y_m == 2560 && z_m==96) {
+					printf("STSTstrain_mat el_eindex = %i , node = %i , xx = %.20f  , yy = %.20f, zz = %.20f, xy = %.20f, yz = %.20f, xz = %.20f,  myteststrain = %.20f   \n",el_eindex,i,strain_mat[i][0],strain_mat[i][1],strain_mat[i][2],strain_mat[i][3],strain_mat[i][4],strain_mat[i][5],myteststrain);
+		}
+
 		}
 
         myteststrain = 100*(myteststrain/8);
@@ -1010,6 +1021,11 @@ void material_update_eq (      mesh_t     *myMesh,
 
 
 		 updated_mu = original_mu * GD.g;
+
+
+//		if (x_m == 2560 && y_m == 2560 && z_m==96) {
+//					printf("MAXSTST el_eindex = %i , depth = %f , updated_mu_f = %f , myteststrain = %.20f   \n",el_eindex,z_m,GD.g,myteststrain);
+//		}
 
 
 
