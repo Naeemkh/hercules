@@ -1218,13 +1218,13 @@ void    compute_addforce_bottom(int32_t timestep, mesh_t *myMesh, mysolver_t *my
 
     
 
-	double fc = 0.8, Ts = 2.0, zp = 0.04, Vs = 640;
+	double fc = 0.8, Ts = 2.0, zp = 0.04, Vs = 1500;
 	double el_size   = 32;
 	double t1  = timestep * dt;
 	double t2  = (timestep + (el_size/Vs)/dt) * dt;
     double fcpi2 = fc*fc*PI*PI, Vs2 = Vs*Vs;
     double max_disp = 0.01;
-    double force_coefficient = (el_size/9)*dt*dt*9953280000*max_disp; // mu*K1+lambda*K2+mu*K3 : 9953280000, vs      = 640;  vp      = 1108;   rho     = 2700
+    double force_coefficient = (el_size/9)*dt*dt*48600000000*max_disp; // mu*K1+lambda*K2+mu*K3 : 48600000000, vs      = 1500;  vp      = 2600;   rho     = 2400
 
 
 
@@ -1238,7 +1238,7 @@ void    compute_addforce_bottom(int32_t timestep, mesh_t *myMesh, mysolver_t *my
         double alpha2_2 = Vs*t2 - zp - Ts*Vs;
         double F2 = (-alpha2_1*exp(-1*fcpi2*(alpha2_1*alpha2_1)/(Vs2))-alpha2_2*exp(-1*fcpi2*(alpha2_2*alpha2_2)/Vs2))/Vs;
 
-        double max_pulse = 0.341285531849982;
+        double max_pulse = 0.341465469781093;
 
      //end
 
@@ -1277,11 +1277,11 @@ void    compute_addforce_bottom(int32_t timestep, mesh_t *myMesh, mysolver_t *my
 	int32_t nindex;
 	int32_t k1=0,k2=0;
 
-	double f_l_depth = 512;                    //first layer depth
+	double f_l_depth = 2048;                    //first layer depth
 	//double el_size   = 32;    //modify 3 of 3                   //element size
 	double s_l_depth = f_l_depth - el_size;    //second layer depth
-	double d_width_x   = 8192;                 //domain width x
-	double d_width_y   = 8192;                 //domain width y
+	double d_width_x   = 4096;                 //domain width x
+	double d_width_y   = 4096;                 //domain width y
 
 
 	for ( nindex = 0; nindex < myMesh->nharbored; nindex++ ) {

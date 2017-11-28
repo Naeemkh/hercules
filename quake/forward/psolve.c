@@ -1601,7 +1601,7 @@ setrec( octant_t* leaf, double ticksize, void* data )
     		               g_props.rho = 2200;
 
 						} else {
-
+/*
 							double a = 1024.0;
 							double b = 0.0;
 							double H = 512.0;
@@ -1614,18 +1614,19 @@ setrec( octant_t* leaf, double ticksize, void* data )
 							     ( x_m >= ( 2560 - m / 2.0  ) ) ) {
 
 								//inside the basin
-
+*/
 							        g_props.Vp  = 510;
 							        g_props.Vs  = 300;
 							        g_props.rho = 2000;
 
-
+/*
 								} else {
 
 							        g_props.Vp  = 1108;
 							        g_props.Vs  = 640;
 							        g_props.rho = 2200;
-							}
+							} */
+
 							}
 
 
@@ -7548,6 +7549,7 @@ static void mesh_correct_properties(etree_t* cvm) {
             		                    	g_props.rho = 2200;
 
 				                        }else {
+				                        	/*
             		            			double a = 1024.0;
             		            			double b = 0.0;
             		            			double H = 512.0;
@@ -7560,17 +7562,18 @@ static void mesh_correct_properties(etree_t* cvm) {
             		            			     ( north_m >= ( 2560 - m / 2.0   ) ) ) {
 
             		            				//inside the basin
-
+*/
             		            			        g_props.Vp  = 510;
             		            			        g_props.Vs  = 300;
             		            			        g_props.rho = 2000;
-
+/*
             		            			} else {
 
             		            			        g_props.Vp  = 1108;
             		            			        g_props.Vs  = 640;
             		            			        g_props.rho = 2200;
             		            		}
+            		            		*/
             		            		}
 
 
