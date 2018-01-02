@@ -1602,16 +1602,20 @@ setrec( octant_t* leaf, double ticksize, void* data )
 
 						} else {
 
-							double a = 1024.0;
-							double b = 0.0;
-							double H = 512.0;
 
-							double m = 2.0 * ( a + b - b * z_m /H );
+	            			double a = 1024.0; // radius of the basin on the surface of the ground
+	            			double H = 128.0;  // depth of basin
 
-							if ( ( y_m <= ( 2048 + m / 2.0 ) ) &&
-							     ( y_m >= ( 2048 - m / 2.0 ) ) &&
-							     ( x_m <= ( 2048 + m / 2.0   ) ) &&
-							     ( x_m >= ( 2048 - m / 2.0  ) ) ) {
+	            			// compute b and r (r: hypothetical circle radius, b: hypothetical distance from circle center to the surface.)
+	            			double b = ( a * a - H * H ) / ( 2 * H );
+	            			double r = sqrt( a * a + b * b);
+
+	            			double m = sqrt( r * r  - (b + z_m)*(b+z_m));
+
+	            			if ( ( y_m <= ( 2560 + m  ) ) &&
+	            			     ( y_m >= ( 2560 - m  ) ) &&
+	            			     ( x_m <= ( 2560 + m ) ) &&
+	            			     ( x_m >= ( 2560 - m ) ) ) {
 
 								//inside the basin
 
@@ -7544,22 +7548,25 @@ static void mesh_correct_properties(etree_t* cvm) {
             		            		        g_props.rho = 2400;
 
             		            		} else if (depth_m>=128) {
-            		         		        g_props.Vp  = 1108;
-            		                    	        g_props.Vs  = 640;
-            		                         	g_props.rho = 2200;
+            		         		           g_props.Vp  = 1108;
+            		                    	   g_props.Vs  = 640;
+            		                           g_props.rho = 2200;
 
 				                        }else {
 				                        	
-            		            			double a = 1024.0;
-            		            			double b = 0.0;
-            		            			double H = 512.0;
+            		            			double a = 1024.0; // radius of the basin on the surface of the ground
+            		            			double H = 128.0;  // depth of basin
 
-            		            			double m = 2.0 * ( a + b - b * depth_m /H );
+            		            			// compute b and r (r: hypothetical circle radius, b: hypothetical distance from circle center to the surface.)
+            		            			double b = ( a * a - H * H ) / ( 2 * H );
+            		            			double r = sqrt( a * a + b * b);
 
-            		            			if ( ( east_m <= ( 2048 + m / 2.0 ) ) &&
-            		            			     ( east_m >= ( 2048 - m / 2.0 ) ) &&
-            		            			     ( north_m <= ( 2048 + m / 2.0   ) ) &&
-            		            			     ( north_m >= ( 2048 - m / 2.0   ) ) ) {
+            		            			double m = sqrt( r * r  - (b + depth_m)*(b+depth_m));
+
+            		            			if ( ( east_m <= ( 2560 + m  ) ) &&
+            		            			     ( east_m >= ( 2560 - m  ) ) &&
+            		            			     ( north_m <= ( 2560 + m ) ) &&
+            		            			     ( north_m >= ( 2560 - m ) ) ) {
 
             		            				//inside the basin
 
