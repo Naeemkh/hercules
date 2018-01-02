@@ -1594,38 +1594,38 @@ setrec( octant_t* leaf, double ticksize, void* data )
 				            g_props.rho = 2400;
 
 
-						} else if (z_m>=512) {
+						} else if (z_m>=128) {
 
 		         		   g_props.Vp  = 1108;
     		               g_props.Vs  = 640;
     		               g_props.rho = 2200;
 
 						} else {
-/*
+
 							double a = 1024.0;
 							double b = 0.0;
 							double H = 512.0;
 
 							double m = 2.0 * ( a + b - b * z_m /H );
 
-							if ( ( y_m <= ( 2560 + m / 2.0 ) ) &&
-							     ( y_m >= ( 2560 - m / 2.0 ) ) &&
-							     ( x_m <= ( 2560 + m / 2.0   ) ) &&
-							     ( x_m >= ( 2560 - m / 2.0  ) ) ) {
+							if ( ( y_m <= ( 2048 + m / 2.0 ) ) &&
+							     ( y_m >= ( 2048 - m / 2.0 ) ) &&
+							     ( x_m <= ( 2048 + m / 2.0   ) ) &&
+							     ( x_m >= ( 2048 - m / 2.0  ) ) ) {
 
 								//inside the basin
-*/
+
 							        g_props.Vp  = 510;
 							        g_props.Vs  = 300;
 							        g_props.rho = 2000;
 
-/*
+
 								} else {
 
 							        g_props.Vp  = 1108;
 							        g_props.Vs  = 640;
 							        g_props.rho = 2200;
-							} */
+							} 
 
 							}
 
@@ -7543,37 +7543,37 @@ static void mesh_correct_properties(etree_t* cvm) {
             		            		        g_props.Vs  = 1500;
             		            		        g_props.rho = 2400;
 
-            		            		} else if (depth_m>=512) {
+            		            		} else if (depth_m>=128) {
             		         		        g_props.Vp  = 1108;
-            		                    	g_props.Vs  = 640;
-            		                    	g_props.rho = 2200;
+            		                    	        g_props.Vs  = 640;
+            		                         	g_props.rho = 2200;
 
 				                        }else {
-				                        	/*
+				                        	
             		            			double a = 1024.0;
             		            			double b = 0.0;
             		            			double H = 512.0;
 
             		            			double m = 2.0 * ( a + b - b * depth_m /H );
 
-            		            			if ( ( east_m <= ( 2560 + m / 2.0 ) ) &&
-            		            			     ( east_m >= ( 2560 - m / 2.0 ) ) &&
-            		            			     ( north_m <= ( 2560 + m / 2.0   ) ) &&
-            		            			     ( north_m >= ( 2560 - m / 2.0   ) ) ) {
+            		            			if ( ( east_m <= ( 2048 + m / 2.0 ) ) &&
+            		            			     ( east_m >= ( 2048 - m / 2.0 ) ) &&
+            		            			     ( north_m <= ( 2048 + m / 2.0   ) ) &&
+            		            			     ( north_m >= ( 2048 - m / 2.0   ) ) ) {
 
             		            				//inside the basin
-*/
+
             		            			        g_props.Vp  = 510;
             		            			        g_props.Vs  = 300;
             		            			        g_props.rho = 2000;
-/*
+
             		            			} else {
 
             		            			        g_props.Vp  = 1108;
             		            			        g_props.Vs  = 640;
             		            			        g_props.rho = 2200;
             		            		}
-            		            		*/
+            		            		
             		            		}
 
 
