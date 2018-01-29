@@ -1594,7 +1594,7 @@ setrec( octant_t* leaf, double ticksize, void* data )
 				            g_props.rho = 2400;
 
 
-						} else if (z_m>=128) {
+						} else if (z_m>=384) {
 
 		         		   g_props.Vp  = 1108;
     		               g_props.Vs  = 640;
@@ -1604,7 +1604,7 @@ setrec( octant_t* leaf, double ticksize, void* data )
 
 
 	            			double a = 1024.0; // radius of the basin on the surface of the ground
-	            			double H = 128.0;  // depth of basin
+	            			double H = 384.0;  // depth of basin
 
 	            			// compute b and r (r: hypothetical circle radius, b: hypothetical distance from circle center to the surface.)
 	            			double b = ( a * a - H * H ) / ( 2 * H );
@@ -1615,14 +1615,26 @@ setrec( octant_t* leaf, double ticksize, void* data )
 	            			if ( ( y_m <= ( 2560 + m  ) ) &&
 	            			     ( y_m >= ( 2560 - m  ) ) &&
 	            			     ( x_m <= ( 2560 + m ) ) &&
-	            			     ( x_m >= ( 2560 - m ) ) ) {
+	            			     ( x_m >= ( 2560 - m ) ) &&
+								 ( z_m <= 128 ) ) {
 
-								//inside the basin
+								//inside the basin, first layer
 
 							        g_props.Vp  = 510;
 							        g_props.Vs  = 300;
 							        g_props.rho = 2000;
 
+	            			} else if ( ( y_m <= ( 2560 + m  ) ) &&
+		            			      ( y_m >= ( 2560 - m  ) ) &&
+		            			      ( x_m <= ( 2560 + m ) ) &&
+		            			      ( x_m >= ( 2560 - m ) ) &&
+									  ( z_m > 128 ) )
+							{
+								//inside the basin, second layer
+
+							        g_props.Vp  = 850;
+							        g_props.Vs  = 500;
+							        g_props.rho = 2050;
 
 								} else {
 
@@ -1630,6 +1642,9 @@ setrec( octant_t* leaf, double ticksize, void* data )
 							        g_props.Vs  = 640;
 							        g_props.rho = 2200;
 							} 
+
+
+
 
 							}
 
@@ -7547,7 +7562,7 @@ static void mesh_correct_properties(etree_t* cvm) {
             		            		        g_props.Vs  = 1500;
             		            		        g_props.rho = 2400;
 
-            		            		} else if (depth_m>=128) {
+            		            		} else if (depth_m>=384) {
             		         		           g_props.Vp  = 1108;
             		                    	   g_props.Vs  = 640;
             		                           g_props.rho = 2200;
@@ -7555,7 +7570,7 @@ static void mesh_correct_properties(etree_t* cvm) {
 				                        }else {
 				                        	
             		            			double a = 1024.0; // radius of the basin on the surface of the ground
-            		            			double H = 128.0;  // depth of basin
+            		            			double H = 384.0;  // depth of basin
 
             		            			// compute b and r (r: hypothetical circle radius, b: hypothetical distance from circle center to the surface.)
             		            			double b = ( a * a - H * H ) / ( 2 * H );
@@ -7566,13 +7581,27 @@ static void mesh_correct_properties(etree_t* cvm) {
             		            			if ( ( east_m <= ( 2560 + m  ) ) &&
             		            			     ( east_m >= ( 2560 - m  ) ) &&
             		            			     ( north_m <= ( 2560 + m ) ) &&
-            		            			     ( north_m >= ( 2560 - m ) ) ) {
+            		            			     ( north_m >= ( 2560 - m ) ) &&
+												 ( depth_m <= 128)) {
 
-            		            				//inside the basin
+            		            				//inside the basin, first layer
 
             		            			        g_props.Vp  = 510;
             		            			        g_props.Vs  = 300;
             		            			        g_props.rho = 2000;
+
+            		            			} else if ( ( east_m <= ( 2560 + m  ) ) &&
+               		            			            ( east_m >= ( 2560 - m  ) ) &&
+               		            			            ( north_m <= ( 2560 + m ) ) &&
+               		            			            ( north_m >= ( 2560 - m ) ) &&
+   												        ( depth_m > 128)) {
+
+
+            		            				//inside the basin, second layer
+
+            		            			        g_props.Vp  = 850;
+            		            			        g_props.Vs  = 500;
+            		            			        g_props.rho = 2050;
 
             		            			} else {
 
