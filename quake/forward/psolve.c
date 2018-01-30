@@ -224,6 +224,7 @@ static struct Param_t {
 	noyesflag_t useParametricQ;
 	noyesflag_t includeNonlinearAnalysis;
 	noyesflag_t includeEqlinearAnalysis;
+	noyesflag_t useInternalEq;
 	noyesflag_t useDirectForce;
 	noyesflag_t useInfQk;
 	int theTimingBarriersFlag;
@@ -359,7 +360,7 @@ static inline int monitor_print(const char* format, ...) {
 static void read_parameters(int argc, char** argv) {
 
 #define LOCAL_INIT_DOUBLE_MESSAGE_LENGTH 30  /* Must adjust this if adding double params */
-#define LOCAL_INIT_INT_MESSAGE_LENGTH 26     /* Must adjust this if adding int params */
+#define LOCAL_INIT_INT_MESSAGE_LENGTH 27     /* Must adjust this if adding int params */
 
 	double double_message[LOCAL_INIT_DOUBLE_MESSAGE_LENGTH];
 	int int_message[LOCAL_INIT_INT_MESSAGE_LENGTH];
@@ -468,6 +469,7 @@ static void read_parameters(int argc, char** argv) {
 	int_message[23] = (int) Param.theNumberOfIterations;
 	int_message[24] = (int) Param.theIteration_c;
 	int_message[25] = (int) Param.useDirectForce;
+	int_message[26] = (int) Param.useInternalEq;
 
 	MPI_Bcast(int_message, LOCAL_INIT_INT_MESSAGE_LENGTH, MPI_INT, 0,
 			comm_solver);
@@ -498,6 +500,7 @@ static void read_parameters(int argc, char** argv) {
 	Param.theNumberOfIterations = int_message[23];
 	Param.theIteration_c = int_message[24];
 	Param.useDirectForce = int_message[25];
+	Param.useInternalEq = int_message[26];
 
 	/*Broadcast all string params*/
 	MPI_Bcast(Param.parameters_input_file, 256, MPI_CHAR, 0, comm_solver);
@@ -676,7 +679,7 @@ static int32_t parse_parameters(const char* numericalin) {
 			print_station_velocities[64], print_station_accelerations[64],
 			mesh_coordinates_for_matlab[64], implement_drm[64],
 			use_infinite_qk[64], include_topography[64],
-			include_incident_planewaves[64], include_eqlinear_analysis[64], use_direct_force[64];
+			include_incident_planewaves[64], include_eqlinear_analysis[64], use_internal_equation[64], use_direct_force[64];
 
 	damping_type_t typeOfDamping = -1;
 	stiffness_type_t stiffness_method = -1;
@@ -689,6 +692,7 @@ static int32_t parse_parameters(const char* numericalin) {
 	noyesflag_t printStationAccs = -1;
 	noyesflag_t useInfQk = -1;
 	noyesflag_t useDForce = -1;
+	noyesflag_t useInternalEq = -1;
 
 	noyesflag_t meshCoordinatesForMatlab = -1;
 	noyesflag_t implementdrm = -1;
@@ -814,6 +818,8 @@ static int32_t parse_parameters(const char* numericalin) {
 					&include_nonlinear_analysis) != 0)
 			|| (parsetext(fp, "include_eqlinear_analysis", 's',
 					&include_eqlinear_analysis) != 0)
+			|| (parsetext(fp, "use_internal_equation", 's',
+			    	&use_internal_equation) != 0)
 			|| (parsetext(fp, "stiffness_calculation_method", 's',
 					&stiffness_calculation_method) != 0)
 			|| (parsetext(fp, "print_matrix_k", 's', &print_matrix_k) != 0)
@@ -967,6 +973,16 @@ static int32_t parse_parameters(const char* numericalin) {
 		solver_abort( __FUNCTION_NAME, NULL, "Unknown response for including"
 				"equivalent linear analysis (yes or no): %s\n",
 				include_eqlinear_analysis);
+	}
+
+	if (strcasecmp(use_internal_equation, "yes") == 0) {
+		useInternalEq = YES;
+	} else if (strcasecmp(use_internal_equation, "no") == 0) {
+		useInternalEq = NO;
+	} else {
+		solver_abort( __FUNCTION_NAME, NULL, "Unknown response for including"
+				"equivalent linear analysis (yes or no): %s\n",
+				use_internal_equation);
 	}
 
 	if (strcasecmp(use_direct_force, "yes") == 0) {
@@ -1123,6 +1139,7 @@ static int32_t parse_parameters(const char* numericalin) {
 
 	Param.includeNonlinearAnalysis = includeNonlinear;
 	Param.includeEqlinearAnalysis = includeEqlinear;
+	Param.useInternalEq = useInternalEq;
 	Param.useDirectForce = useDForce;
 	Param.theStiffness = stiffness_method;
 
@@ -1166,6 +1183,8 @@ static int32_t parse_parameters(const char* numericalin) {
 			include_nonlinear_analysis);
 	monitor_print("Include eqlinear analysis:          %s\n",
 			include_eqlinear_analysis);
+	monitor_print("Use internal equation:          %s\n",
+			use_internal_equation);
 	monitor_print("Use direct force:          %s\n",
 			use_direct_force);
 	monitor_print("Printing velocities on stations:    %s\n",
@@ -4176,7 +4195,7 @@ static void solver_eqlinear_state(mysolver_t *solver, mesh_t *mesh,
 		Timer_Start("Compute Eqlinear Entities");
 		compute_eqlinear_state(mesh, solver, Param.theNumberOfStations,
 				Param.myNumberOfStations, Param.myStations, Param.theDeltaT,
-				step, Param.theVSmaxeq,Param.theEQA,Param.theEQB,Param.theEQC,Param.theEQD,Param.theEQE,Param.theEQF,Param.theEQG,Param.theEQH);
+				step, Param.theVSmaxeq,Param.theEQA,Param.theEQB,Param.theEQC,Param.theEQD,Param.theEQE,Param.theEQF,Param.theEQG,Param.theEQH,Param.useInternalEq);
 //        if ( get_geostatic_total_time() > 0 ) {
 //            compute_bottom_reactions( mesh, solver, k1, k2, step, Param.theDeltaT );
 //        }

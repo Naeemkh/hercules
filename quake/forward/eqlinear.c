@@ -26,10 +26,10 @@
 
 #include "geometrics.h"
 //#include "nonlinear.h"
+#include "quake_util.h"
 #include "eqlinear.h"
 #include "octor.h"
 #include "psolve.h"
-#include "quake_util.h"
 #include "util.h"
 #include "damping.h"
 
@@ -672,7 +672,7 @@ GD_t  search_GD_table(double strain){
 
 }
 
-void compute_eqlinear_state ( mesh_t     *myMesh,
+void compute_eqlinear_state ( mesh_t      *myMesh,
                                mysolver_t *mySolver,
                                int32_t     theNumberOfStations,
                                int32_t     myNumberOfStations,
@@ -687,7 +687,8 @@ void compute_eqlinear_state ( mesh_t     *myMesh,
 							   double      theEQE,
 							   double      theEQF,
 							   double      theEQG,
-							   double      theEQH
+							   double      theEQH,
+							   noyesflag_t useInternalEq
 							   )
 {
 	/* In general, j-index refers to the quadrature point in a loop (0 to 7 for
@@ -791,6 +792,22 @@ void compute_eqlinear_state ( mesh_t     *myMesh,
 
 			//Compute effective strain based on J2 or Lysmer method and keep the maximum value.
 		    // if D,E,F is zero it will be equivalent to J2
+
+		    if (useInternalEq == YES){
+
+		    	theEQA = 1;
+		    	theEQB = 1;
+		    	theEQC = 1;
+		    	theEQD = 0;
+		    	theEQE = 0;
+		    	theEQF = 0;
+		    	theEQG = 0.25;
+
+		    	theEQH = (0.5129639 - 0.0002226044510 * z_m) + (0.01547523 + 0.0002498937810 * z_m) * theEQG;
+
+		    	//printf("This is depth %f \n",z_m);
+		    }
+
 
 		    double gamma_max_lysmer_2 = theEQA*tstrains->qp[i].xy*tstrains->qp[i].xy +
 		    		                    theEQB*tstrains->qp[i].xz*tstrains->qp[i].xz +

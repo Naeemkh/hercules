@@ -19,7 +19,7 @@
 
 #ifndef Q_EQLINEAR_H
 #define Q_EQLINEAR_H
-
+#include "quake_util.h"
 /* -------------------------------------------------------------------------- */
 /*                        Structures and definitions                          */
 /* -------------------------------------------------------------------------- */
@@ -162,7 +162,8 @@ void compute_eqlinear_state ( mesh_t     *myMesh,
 							   double      theEQE,
 							   double      theEQF,
 							   double      theEQG,
-							   double      theEQH);
+							   double      theEQH,
+							   noyesflag_t useInternalEq);
 
 void material_update_eq ( mesh_t     *myMesh,
                                mysolver_t *mySolver,
