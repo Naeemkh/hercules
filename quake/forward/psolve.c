@@ -1631,11 +1631,15 @@ setrec( octant_t* leaf, double ticksize, void* data )
 
 	            			double m = sqrt( r * r  - (b + z_m)*(b+z_m));
 
+	            			double p_dist = sqrt((y_m-2560)*(y_m-2560)+(x_m-2560)*(x_m-2560));
+
+
 	            			if ( ( y_m <= ( 2560 + m  ) ) &&
 	            			     ( y_m >= ( 2560 - m  ) ) &&
 	            			     ( x_m <= ( 2560 + m ) ) &&
 	            			     ( x_m >= ( 2560 - m ) ) &&
-								 ( z_m <= 128 ) ) {
+								 ( z_m <= 128 ) &&
+								 (p_dist <=m)) {
 
 								//inside the basin, first layer
 
@@ -7596,12 +7600,15 @@ static void mesh_correct_properties(etree_t* cvm) {
             		            			double r = sqrt( a * a + b * b);
 
             		            			double m = sqrt( r * r  - (b + depth_m)*(b+depth_m));
+            		            			double p_dist = sqrt((east_m - 2560)*(east_m-2560)+(north_m-2560)*(north_m-2560));
+
 
             		            			if ( ( east_m <= ( 2560 + m  ) ) &&
             		            			     ( east_m >= ( 2560 - m  ) ) &&
             		            			     ( north_m <= ( 2560 + m ) ) &&
             		            			     ( north_m >= ( 2560 - m ) ) &&
-												 ( depth_m <= 128)) {
+												 ( depth_m <= 128) &&
+												 ( p_dist <= m)) {
 
             		            				//inside the basin, first layer
 
