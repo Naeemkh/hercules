@@ -54,6 +54,14 @@ static int32_t              *myEqlinElementsMapping;
 static double                theGDTABLE[11][3];
 
 
+static int32_t               n_eqlin_stat_limits=1;
+static double                min_vs_eqlin_stat[1];
+static double                max_vs_eqlin_stat[1];
+
+int32_t                      num_el_eqlin_stat[1];
+double                       mean_eff_strain_eqlin_stat[1];
+double                       stdv_eff_strain_eqlin_stat[1];
+
 
 
 /* -------------------------------------------------------------------------- */
@@ -391,8 +399,8 @@ void eqlinear_init( int32_t     myID,
 {
 
 
-//    double  double_message[2];
-//    int     int_message[7];
+    double  double_message[4];
+    int     int_message[2];
 //
 //    /* Capturing data from file --- only done by PE0 */
 //    if (myID == 0) {
@@ -404,21 +412,58 @@ void eqlinear_init( int32_t     myID,
 //        }
 //    }
 //
-//    /* Broadcasting data */
-//    double_message[0] = theGeostaticLoadingT;
-//    double_message[1] = theGeostaticCushionT;
+
+    /* Generating smoothed effective strain table. only done by PE0 */
+	    if (myID == 0) {
+
+
+	    	n_eqlin_stat_limits = 1;
+
+	    	min_vs_eqlin_stat[n_eqlin_stat_limits-1] = 200;
+	    	max_vs_eqlin_stat[n_eqlin_stat_limits-1] = 400;
+	    	mean_eff_strain_eqlin_stat[n_eqlin_stat_limits-1] = 0;
+	    	stdv_eff_strain_eqlin_stat[n_eqlin_stat_limits-1] = 0;
+	    	num_el_eqlin_stat[n_eqlin_stat_limits-1] = 0;
+
+	        /* Broadcasting data */
+//	        int_message[0]    = n_eqlin_stat_limits;
+//	        double_message[0] = min_vs_eqlin_stat[0];
+//	        double_message[1] = max_vs_eqlin_stat[0];
 //
-//    int_message[0] = (int)theMaterialModel;
-//    int_message[1] = thePropertiesCount;
-//    int_message[2] = theGeostaticFinalStep;
-//    int_message[3] = (int)thePlasticityModel;
-//    int_message[4] = (int)theApproxGeoState;
-//    int_message[5] = (int)theNonlinearFlag;
-//    int_message[6] = (int)theTensionCutoff;
+//	        int_message[1]    = num_el_eqlin_stat[0];
+//	        double_message[2] = mean_eff_strain_eqlin_stat[0];
+//	        double_message[3] = stdv_eff_strain_eqlin_stat[0];
+	    }
+
+
+
+//    MPI_Bcast(double_message, 4, MPI_DOUBLE, 0, comm_solver);
+//    MPI_Bcast(int_message,    2, MPI_INT,    0, comm_solver);
+
+	        /* Broadcast table of properties */
+//	        MPI_Bcast(n_eqlin_stat_limits,         n_eqlin_stat_limits, MPI_INT, 0, comm_solver);
+	        MPI_Bcast(min_vs_eqlin_stat,       n_eqlin_stat_limits, MPI_DOUBLE, 0, comm_solver);
+	        MPI_Bcast(max_vs_eqlin_stat,          n_eqlin_stat_limits, MPI_DOUBLE, 0, comm_solver);
+	        MPI_Bcast(mean_eff_strain_eqlin_stat,      n_eqlin_stat_limits, MPI_DOUBLE, 0, comm_solver);
+	        MPI_Bcast(stdv_eff_strain_eqlin_stat,    n_eqlin_stat_limits, MPI_DOUBLE, 0, comm_solver);
+	        MPI_Bcast(num_el_eqlin_stat, n_eqlin_stat_limits, MPI_INT, 0, comm_solver);
+
+
+
+
+
+
+//    int n_eqlin_stat_limits  = int_message[0];
 //
-//    MPI_Bcast(double_message, 2, MPI_DOUBLE, 0, comm_solver);
-//    MPI_Bcast(int_message,    7, MPI_INT,    0, comm_solver);
+//    double min_vs_eqlin_stat = double_message[0];
+//    double max_vs_eqlin_stat = double_message[1];
 //
+//    int num_el_eqlin_stat    = int_message[1];
+//
+//    double mean_eff_strain_eqlin_stat = double_message[2];
+//    double stdv_eff_strain_eqlin_stat = double_message[3];
+
+
 //    theGeostaticLoadingT  = double_message[0];
 //    theGeostaticCushionT  = double_message[1];
 //
@@ -430,18 +475,16 @@ void eqlinear_init( int32_t     myID,
 //    theNonlinearFlag      = int_message[5];
 //    theTensionCutoff      = int_message[6];
 //
-//    /* allocate table of properties for all other PEs */
-//
+    /* allocate table of properties for all other PEs */
+
 //    if (myID != 0) {
-//        theVsLimits         = (double*)malloc(sizeof(double) * thePropertiesCount);
-//        theAlphaCohes       = (double*)malloc(sizeof(double) * thePropertiesCount);
-//        theKayPhis          = (double*)malloc(sizeof(double) * thePropertiesCount);
-//        theStrainRates      = (double*)malloc(sizeof(double) * thePropertiesCount);
-//        theSensitivities    = (double*)malloc(sizeof(double) * thePropertiesCount);
-//        theHardeningModulus = (double*)malloc(sizeof(double) * thePropertiesCount);
-//        theBetaDilatancy    = (double*)malloc(sizeof(double) * thePropertiesCount);
-//        theGamma0           = (double*)malloc(sizeof(double) * thePropertiesCount);
+//    	min_vs_eqlin_stat            = (double*)malloc(sizeof(double) * n_eqlin_stat_limits);
+//    	max_vs_eqlin_stat            = (double*)malloc(sizeof(double) * n_eqlin_stat_limits);
+//    	mean_eff_strain_eqlin_stat   = (double*)malloc(sizeof(double) * n_eqlin_stat_limits);
+//    	stdv_eff_strain_eqlin_stat   = (double*)malloc(sizeof(double) * n_eqlin_stat_limits);
+//    	num_el_eqlin_stat            = (double*)malloc(sizeof(double) * n_eqlin_stat_limits);
 //    }
+
 //
 //    /* Broadcast table of properties */
 //    MPI_Bcast(theVsLimits,         thePropertiesCount, MPI_DOUBLE, 0, comm_solver);
@@ -456,8 +499,8 @@ void eqlinear_init( int32_t     myID,
 
 
 noyesflag_t isThisElementsAtTheBottom_eq( mesh_t  *myMesh,
-                                       int32_t  eindex,
-                                       double   depth )
+                                          int32_t  eindex,
+                                          double   depth )
 {
     elem_t  *elemp;
     int32_t  nindex;
@@ -660,7 +703,7 @@ GD_t  search_GD_table(double strain){
 			  if (strain >= thGDtable[table_r][0] && strain < thGDtable[table_r+1][0]){
 				  GD.g = thGDtable[table_r+1][1] - ((thGDtable[table_r+1][0] - strain)*(thGDtable[table_r+1][1]-thGDtable[table_r][1])/(thGDtable[table_r+1][0]-thGDtable[table_r][0]));
 				  GD.d = thGDtable[table_r+1][2] - ((thGDtable[table_r+1][0] - strain)*(thGDtable[table_r+1][2]-thGDtable[table_r][2])/(thGDtable[table_r+1][0]-thGDtable[table_r][0]));
-				  return GD;
+				  //return GD;
 			  }
 
 		  }
@@ -884,6 +927,134 @@ void compute_eqlinear_state ( mesh_t      *myMesh,
 
 
 
+void smooth_effective_strain ( mesh_t     *myMesh,
+                               mysolver_t *mySolver,
+                               int32_t     theNumberOfStations,
+                               int32_t     myNumberOfStations,
+                               station_t  *myStations,
+                               double      theDeltaT,
+                               int         eq_it,
+                               double      theBBase,
+                               double      theThresholdVpVs,
+                               //double      *theQTABLE,
+                               //int         QTable_Size,
+                               double      theFreq_Vel,
+                               double      theFreq,
+                               double      theEQA,
+                               double      theEQB,
+                               double      theEQC,
+                               double      theEQD,
+                               double      theEQE,
+                               double      theEQF,
+                               double      theEQG,
+                               double      theEQH,
+                               double      theVSmaxeq,
+                               int         myID )
+{
+       /* In general, j-index refers to the quadrature point in a loop (0 to 7 for
+        * eight points), and i-index refers to the tensor component (0 to 5), with
+        * the following order xx[0], yy[1], zz[2], xy[3], yz[4], xz[5]. i-index is
+        * also some times used for the number of nodes (8, 0 to 7).
+        */
+
+       int     i;
+       int32_t eindex, el_eindex, nindex;
+       double         localsum_effective_strain = 0; // for MPI_reduce
+
+
+       /* Loop over the number of local elements */
+       for (el_eindex = 0; el_eindex < myEqlinElementsCount; el_eindex++) {
+
+               elem_t        *elemp;
+               edata_t       *edata;
+               elconstants_t *enlcons;
+               e_t           *ep;    /* pointer to the element constant table */
+
+               double         h;          /* Element edge-size in meters   */
+//             double         mu, lambda, original_mu; /* Elasticity material constants */
+               double         XI, QC;
+               fvector_t      u[8];
+               eq_qptensors_t   *maxstrains;
+               eq_qpvectors_t   *effectivestrain;
+           double         x_m,y_m,z_m;
+
+               /* Capture data from the element and mesh */
+               eindex = myEqlinElementsMapping[el_eindex];
+
+               elemp = &myMesh->elemTable[eindex];
+               edata = (edata_t *)elemp->data;
+               h     = edata->edgesize;
+               ep    = &mySolver->eTable[eindex];
+
+           /* Capture the element's last node at the bottom */
+           elemp  = &myMesh->elemTable[eindex];
+           nindex = elemp->lnid[7];
+
+
+           x_m = (myMesh->ticksize)*(double)myMesh->nodeTable[nindex].x;
+           y_m = (myMesh->ticksize)*(double)myMesh->nodeTable[nindex].y;
+               z_m = (myMesh->ticksize)*(double)myMesh->nodeTable[nindex].z;
+
+
+               // Check maximum shear wave velocity of element for equivalent linear method.
+        if (edata->Vs > theVSmaxeq){
+               continue;
+        }
+
+
+               /* Capture data from the eqlinear element structure */
+               enlcons = myEqlinSolver->constants + el_eindex;
+
+
+               effectivestrain = myEqlinSolver->effectivestrain + el_eindex;
+
+               /* Loop over the quadrature points */
+               for (i = 0; i < 8; i++) {
+
+                       localsum_effective_strain += effectivestrain ->qv[i];
+
+               } /* for all quadrature points */
+
+
+
+       } /* for all nonlinear elements */
+
+       // Average effective strain to reduce heterogeneity
+
+
+       double sum_effective_strain;
+       MPI_Reduce(&localsum_effective_strain, &sum_effective_strain, 1, MPI_DOUBLE, MPI_SUM, 0, comm_solver);
+
+
+       /* compute the mean value of effective strain */
+       if (myID==0){
+
+        mean_eff_strain_eqlin_stat[0] = sum_effective_strain/(8*myEqlinElementsCount);
+
+//           printf("Sum of all effective strains: %0.10f - ID: %i\n", sum_effective_strain, myID);
+//           printf("Smoothed effective strains: %0.10f - ID: %i\n", mean_eff_strain_eqlin_stat[0], myID);
+//           printf("local effective strains: %0.10f  - ID: %i\n", localsum_effective_strain, myID);
+        printf("\n Smoothed effective strains: %0.20f - ID: %i\n", mean_eff_strain_eqlin_stat[0], myID);
+       }
+
+//       printf("Smoothed effective strains Before Bcast: %0.20f - ID: %i\n", mean_eff_strain_eqlin_stat[0], myID);
+
+       MPI_Bcast(mean_eff_strain_eqlin_stat, 1, MPI_DOUBLE, 0,	comm_solver);
+
+//       printf("Sum of all effective strains: %0.20f - ID: %i\n", sum_effective_strain, myID);
+//       printf("local effective strains: %0.20f  - ID: %i\n", localsum_effective_strain, myID);
+//       printf("Smoothed effective strains After Bcast: %0.20f - ID: %i\n", mean_eff_strain_eqlin_stat[0], myID);
+//       printf("Min vs: %f - ID: %i\n", min_vs_eqlin_stat[0], myID);
+//       printf("Max vs: %f - ID: %i\n", max_vs_eqlin_stat[0], myID);
+}
+
+
+
+
+
+
+
+
 void material_update_eq (      mesh_t     *myMesh,
                                mysolver_t *mySolver,
                                int32_t     theNumberOfStations,
@@ -1079,7 +1250,13 @@ void material_update_eq (      mesh_t     *myMesh,
 
         myeffectivestrain= 100*(myeffectivestrain/8);
 
-        double myteststrain = myeffectivestrain;
+
+        // use smoothed strain
+        // double myteststrain = myeffectivestrain;
+
+        double myteststrain = 100 * mean_eff_strain_eqlin_stat[0];
+
+
 		// --------------------------------------
 
 		//myteststrain = 100* (myteststrain/8)*2; // I add a factor of 2 just to make the effective strain to be consistent with 1D. Later on we need to define a 3D curves.

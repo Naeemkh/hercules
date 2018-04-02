@@ -4219,6 +4219,16 @@ static void eqlinear_update_material(mysolver_t *solver, mesh_t *mesh,
 
 	Timer_Start("Eqlinear Update Material");
 //	int QTable_Size = (int) (sizeof(Global.theQTABLE) / (6 * sizeof(double)));
+
+
+	smooth_effective_strain(mesh, solver, Param.theNumberOfStations,
+	                       Param.myNumberOfStations, Param.myStations, Param.theDeltaT, eq_it,
+	                       Global.theBBase, Param.theThresholdVpVs,
+	                       Param.theFreq_Vel, Param.theFreq,
+	                       Param.theEQA,Param.theEQB,Param.theEQC,Param.theEQD,Param.theEQE,Param.theEQF,Param.theEQG,Param.theEQH,Param.theVSmaxeq, Global.myID);
+
+
+
 	material_update_eq(mesh, solver, Param.theNumberOfStations,
 			Param.myNumberOfStations, Param.myStations, Param.theDeltaT, eq_it,
 			Global.theBBase, Param.theThresholdVpVs,

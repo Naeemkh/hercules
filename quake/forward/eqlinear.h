@@ -147,7 +147,7 @@ int get_displacements_eq ( mysolver_t *solver, elem_t *elemp, fvector_t *u );
 /*                   Nonlinear core computational methods                     */
 /* -------------------------------------------------------------------------- */
 
-void compute_eqlinear_state ( mesh_t     *myMesh,
+void compute_eqlinear_state ( mesh_t      *myMesh,
                                mysolver_t *mySolver,
                                int32_t     theNumberOfStations,
                                int32_t     myNumberOfStations,
@@ -164,6 +164,33 @@ void compute_eqlinear_state ( mesh_t     *myMesh,
 							   double      theEQG,
 							   double      theEQH,
 							   noyesflag_t useInternalEq);
+
+
+void smooth_effective_strain ( mesh_t     *myMesh,
+                               mysolver_t *mySolver,
+                               int32_t     theNumberOfStations,
+                               int32_t     myNumberOfStations,
+                               station_t  *myStations,
+                               double      theDeltaT,
+                               int         eq_it,
+                               double      theBBase,
+                               double      theThresholdVpVs,
+                               //double      *theQTABLE,
+                               //int         QTable_Size,
+                               double      theFreq_Vel,
+                               double      theFreq,
+                               double      theEQA,
+                               double      theEQB,
+                               double      theEQC,
+                               double      theEQD,
+                               double      theEQE,
+                               double      theEQF,
+                               double      theEQG,
+                               double      theEQH,
+                               double      theVSmaxeq,
+                               int         myID
+                                );
+
 
 void material_update_eq ( mesh_t     *myMesh,
                                mysolver_t *mySolver,
