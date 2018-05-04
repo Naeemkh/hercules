@@ -1605,7 +1605,7 @@ setrec( octant_t* leaf, double ticksize, void* data )
 
 
 				/* Reset Shear Velocities. Naeem */
-
+/*
 						if (z_m>=1024){
 
 					        g_props.Vp  = 2600;
@@ -1670,6 +1670,7 @@ setrec( octant_t* leaf, double ticksize, void* data )
 
 
 							}
+						*/
 
 
 
@@ -7575,21 +7576,21 @@ static void mesh_correct_properties(etree_t* cvm) {
 						//                        }
 					}
 
-//					if (Param.useProfile == NO) {
-//						res = cvm_query(Global.theCVMEp, east_m, north_m,
-//								depth_m, &g_props);
-//					} else {
-//						res = profile_query(depth_m, &g_props);
-//					}
-//
-//					if (res != 0) {
-//						fprintf(stderr, "Cannot find the query point\n");
-//						exit(1);
-//					}
+					if (Param.useProfile == NO) {
+						res = cvm_query(Global.theCVMEp, east_m, north_m,
+								depth_m, &g_props);
+					} else {
+						res = profile_query(depth_m, &g_props);
+					}
+
+					if (res != 0) {
+						fprintf(stderr, "Cannot find the query point\n");
+						exit(1);
+					}
 
 
             		/* Reset Shear Velocities. Naeem*/
-
+/*
             		            		if (depth_m>=1024){
             		            		        g_props.Vp  = 2600;
             		            		        g_props.Vs  = 1500;
@@ -7647,6 +7648,7 @@ static void mesh_correct_properties(etree_t* cvm) {
             		            		}
             		            		
             		            		}
+            		            		*/
 
 
 
