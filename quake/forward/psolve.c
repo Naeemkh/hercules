@@ -1593,15 +1593,15 @@ setrec( octant_t* leaf, double ticksize, void* data )
 					z_m -= get_surface_shift();
 				}
 
-//				if (Param.useProfile == NO) {
-//					res = cvm_query( Global.theCVMEp, y_m, x_m, z_m, &g_props );
-//				} else {
-//					res = profile_query(z_m, &g_props);
-//				}
+				if (Param.useProfile == NO) {
+					res = cvm_query( Global.theCVMEp, y_m, x_m, z_m, &g_props );
+				} else {
+					res = profile_query(z_m, &g_props);
+				}
 
-//				if (res != 0) {
-//					continue;
-//				}
+				if (res != 0) {
+					continue;
+				}
 
 
 				/* Reset Shear Velocities. Naeem */
